@@ -58,9 +58,21 @@ def upload_to_imgbb(file):
         print(f"Upload Exception: {e}")
         return None
 
-from flask import Flask, render_template, request, flash, redirect, url_for
-from datetime import datetime
-from werkzeug.security import generate_password_hash
+# ক্লায়েন্ট সাইড থেকে (ক্রপ করা ইমেজ) আপলোডের জন্য প্রক্সি API
+# এটি প্রোগ্রেস বার সহ আপলোড দেখানো এবং ImgBB API key লুকিয়ে রাখার জন্য ব্যবহার হয়
+@app.route('/api/upload-photo', methods=['POST'])
+def api_upload_photo():
+    photo_file = request.files.get('photo')
+
+    if not photo_file or not photo_file.filename:
+        return jsonify({"success": False, "message": "No photo provided"}), 400
+
+    photo_url = upload_to_imgbb(photo_file)
+
+    if not photo_url:
+        return jsonify({"success": False, "message": "Image upload failed. Please try again."}), 500
+
+    return jsonify({"success": True, "url": photo_url})
 
 @app.route('/apply', methods=['GET', 'POST'])
 def apply():
@@ -74,19 +86,32 @@ def apply():
                 flash("Passwords do not match!", "danger")
                 return redirect(request.url)
 
-            # ২. শুধুমাত্র ফটো রিসিভ করা (Signature বাদ দেওয়া হয়েছে)
+            # ১.১ মোবাইল নম্বর ভ্যালিডেশন - একটি নম্বর দিয়ে শুধুমাত্র একবার রেজিস্ট্রেশন করা যাবে
+            mobile_number = request.form.get('mobile', '').strip()
+            if not mobile_number:
+                flash("Mobile number is required!", "danger")
+                return redirect(request.url)
+
+            existing_student = mongo.db.students.find_one({"mobile": mobile_number})
+            if existing_student:
+                flash("এই মোবাইল নম্বর দিয়ে ইতিমধ্যে একটি আবেদন জমা দেওয়া হয়েছে। একটি নম্বর দিয়ে শুধুমাত্র একবার রেজিস্ট্রেশন করা যাবে।", "danger")
+                return redirect(request.url)
+
+            # ২. ফটো হ্যান্ডলিং - ক্লায়েন্ট সাইডে আগে থেকে আপলোড করা থাকতে পারে (ক্রপ + প্রোগ্রেস বার সহ)
+            photo_url = request.form.get('photo_url', '').strip()
             photo_file = request.files.get('photo')
 
-            if not photo_file:
-                flash("Student Photo is required!", "danger")
-                return redirect(request.url)
-
-            # ৩. ImgBB-তে ইমেজ আপলোড (শুধুমাত্র ফটো)
-            photo_url = upload_to_imgbb(photo_file)
-
             if not photo_url:
-                flash("Image upload failed! Please try again.", "danger")
-                return redirect(request.url)
+                if not photo_file or not photo_file.filename:
+                    flash("Student Photo is required!", "danger")
+                    return redirect(request.url)
+
+                # ৩. ImgBB-তে ইমেজ আপলোড (সার্ভার সাইড ফলব্যাক)
+                photo_url = upload_to_imgbb(photo_file)
+
+                if not photo_url:
+                    flash("Image upload failed! Please try again.", "danger")
+                    return redirect(request.url)
 
             # ৪. রোল এবং রেজিস্ট্রেশন নম্বর জেনারেট করা
             reg_no, roll_no = generate_numbers()
@@ -117,7 +142,8 @@ def apply():
                 "mobile": request.form.get('mobile', '').strip(),
                 "dob": request.form.get('dob'),
                 "institute_en": request.form.get('institute_en', '').strip(),
-                "institute_bn": request.form.get('institute_bn', '').strip(), 
+                "institute_bn": request.form.get('institute_bn', '').strip(),
+                "institute_type": request.form.get('institute_type', 'School'),
                 "password": generate_password_hash(password),
                 
                 "address_present": {
@@ -301,6 +327,40 @@ def view_result():
     
     return render_template('result_card.html', student=student)
 
+@app.route('/download-scholarship-certificate')
+def download_scholarship_certificate():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    student = mongo.db.students.find_one({"_id": ObjectId(session['user_id'])})
+
+    if not student:
+        return redirect(url_for('login'))
+
+    # পাবলিশ স্ট্যাটাস চেক
+    setting = mongo.db.settings.find_one({"key": "result_published"})
+    is_published = setting['value'] if setting else False
+
+    grade = student.get('scholarship_grade')
+
+    if not is_published or not student.get('verification'):
+        flash("Result is not available yet.", "warning")
+        return redirect(url_for('dashboard'))
+
+    if not grade or grade == 'Nothing':
+        flash("দুঃখিত, আপনি এই বছর বৃত্তির জন্য নির্বাচিত হননি, তাই সার্টিফিকেট ডাউনলোড করা সম্ভব নয়।", "warning")
+        return redirect(url_for('view_result'))
+
+    centers_mapping = {
+        "1": "Sariakandi", "2": "Gabtali", "3": "Khottapara",
+        "4": "Aria Bajar", "5": "Dhunat", "6": "Summit",
+        "7": "Sonka", "8": "Sukhanpukur", "9": "Sonatola"
+    }
+    c_code = str(student.get('center_code', ''))
+    center_name = centers_mapping.get(c_code, "ব্রিলিয়ান্টস ফাউন্ডেশন সেন্টার")
+
+    return render_template('certificate_design.html', student=student, center_name=center_name)
+
 @app.route('/logout')
 def logout():
     session.clear() # অথবা session.pop('student_id', None)
@@ -399,6 +459,59 @@ def admin_dashboard():
                            current_class=class_filter)
 
 # --- DIRECT DATABASE UPDATE API (Point 2) ---
+# --- ADMIN: PARTICIPANT SUMMARY (Center / Institute / Class wise count) ---
+@app.route('/admin/participant-summary')
+def participant_summary():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    view_by = request.args.get('view_by', 'center')  # center | institute | class
+    status_filter = request.args.get('status', 'all')  # all | Verified | Pending
+
+    match_stage = {}
+    if status_filter == 'Verified':
+        match_stage["status"] = "Verified"
+    elif status_filter == 'Pending':
+        match_stage["status"] = {"$ne": "Verified"}
+
+    if view_by == 'institute':
+        group_field = "$institute_en"
+        bn_field = "$institute_bn"
+    elif view_by == 'class':
+        group_field = "$student_class"
+        bn_field = None
+    else:
+        view_by = 'center'
+        group_field = "$center_code"
+        bn_field = "$center_name"
+
+    pipeline = []
+    if match_stage:
+        pipeline.append({"$match": match_stage})
+
+    group_dict = {
+        "_id": group_field,
+        "total": {"$sum": 1},
+        "verified": {"$sum": {"$cond": [{"$eq": ["$status", "Verified"]}, 1, 0]}},
+        "pending": {"$sum": {"$cond": [{"$ne": ["$status", "Verified"]}, 1, 0]}},
+    }
+    if bn_field:
+        group_dict["display_name"] = {"$first": bn_field}
+
+    pipeline.append({"$group": group_dict})
+    pipeline.append({"$sort": {"_id": 1}})
+
+    summary = list(mongo.db.students.aggregate(pipeline))
+
+    grand_total = sum(item.get("total", 0) for item in summary)
+
+    return render_template('admin_participant_summary.html',
+                           summary=summary,
+                           view_by=view_by,
+                           status_filter=status_filter,
+                           grand_total=grand_total)
+
+
 @app.route('/admin/api/update_status', methods=['POST'])
 def update_status():
     if not session.get('admin_logged_in'): return jsonify({"error": "Unauthorized"}), 403
@@ -1179,18 +1292,38 @@ def bulk_admit_download():
     return render_template('admin_print_engine.html', students=students)
 
 
+@app.route('/admin/export-filter')
+def export_filter_page():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    schools = mongo.db.students.distinct('institute_en')
+    centers = list(mongo.db.centers.find().sort("center_code", 1))
+    grades = ["Talentpool", "General", "Suveccha", "Quata", "Nothing"]
+    years = sorted({d.get('applied_at').year for d in mongo.db.students.find({}, {"applied_at": 1}) if d.get('applied_at')}, reverse=True)
+
+    return render_template('export_filter.html',
+                           schools=schools,
+                           centers=centers,
+                           grades=grades,
+                           years=years)
+
+
 @app.route('/admin/export-students')
 def export_detailed_data():
     # ১. অথেন্টিকেশন চেক
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
 
-    # ২. ফিল্টার প্যারামিটার সংগ্রহ (HTML ফর্ম থেকে পাঠানো নাম অনুযায়ী)
+    # ২. ফিল্টার প্যারামিটার সংগ্রহ (HTML ফর্ম থেকে পাঠানো নাম অনুযায়ী)
     selected_class = request.args.get('class', '').strip()
     selected_school = request.args.get('school', '').strip()
-    selected_center = request.args.get('center_code', '').strip() # নতুন সেন্টার ফিল্টার
+    selected_center = request.args.get('center_code', '').strip()
+    selected_grade = request.args.get('grade', '').strip()
+    selected_year = request.args.get('year', '').strip()
+    sort_by = request.args.get('sort_by', 'roll').strip()  # roll | year
 
-    # কোয়েরি বিল্ড করা
+    # কোয়েরি বিল্ড করা
     query = {}
     if selected_class: 
         query['student_class'] = selected_class
@@ -1198,81 +1331,105 @@ def export_detailed_data():
         query['institute_en'] = selected_school
     if selected_center:
         query['center_code'] = selected_center
+    if selected_grade:
+        if selected_grade == 'Nothing':
+            query['scholarship_grade'] = {"$in": [None, "Nothing", ""]}
+        else:
+            query['scholarship_grade'] = selected_grade
+    if selected_year and selected_year.isdigit():
+        year = int(selected_year)
+        query['applied_at'] = {
+            "$gte": datetime(year, 1, 1),
+            "$lt": datetime(year + 1, 1, 1)
+        }
 
-    # ৩. ডাটাবেস থেকে স্টুডেন্ট সংগ্রহ (রোল অনুযায়ী সর্ট)
+    # সর্টিং ঠিক করা
+    if sort_by == 'year':
+        sort_field = [("applied_at", 1)]
+    else:
+        sort_field = [("roll_no", 1)]
+
+    # ৩. ডাটাবেস থেকে স্টুডেন্ট সংগ্রহ
     try:
-        students = list(mongo.db.students.find(query).sort("roll_no", 1))
+        students = list(mongo.db.students.find(query).sort(sort_field))
     except Exception as e:
         return f"Database Error: {str(e)}", 500
 
     # ৪. CSV জেনারেশন (Memory-efficient Buffer)
     output = io.StringIO()
-    output.write(u'\ufeff') # Excel-এ বাংলা লেখা ঠিক রাখতে UTF-8 BOM যুক্ত করা হয়েছে
+    output.write(u'\ufeff') # Excel-এ বাংলা লেখা ঠিক রাখতে UTF-8 BOM যুক্ত করা হয়েছে
     writer = csv.writer(output)
 
     # হেডারের কলাম সেটআপ
     headers = [
-        'Roll No', 'Student Name (BN)', 'Student Name (EN)', 
-        'Father Name', 'Mother Name', 'Institution', 
+        'Roll No', 'Reg No', 'Student Name (BN)', 'Student Name (EN)', 
+        'Father Name', 'Mother Name', 'Institution', 'Institution Type',
         'Class', 'Exam Center', 'Address', 'Mobile',
-        'Bangla (25)', 'English (25)', 'Math (25)', 'G.K (25)', 'Total Marks'
+        'Bangla (25)', 'English (25)', 'Math (25)', 'G.K (25)', 'Total Marks',
+        'Scholarship Grade', 'Application Year', 'Status'
     ]
     writer.writerow(headers)
 
     # ৫. ডাটা প্রসেসিং লুপ
-    # পারফরম্যান্সের জন্য সেন্টার ম্যাপিং আগেই তৈরি করে রাখা
-    centers_mapping = {
-        "1": "Sariakandi", "2": "Gabtali", "3": "Khottapara",
-        "4": "Aria Bajar", "5": "Dhunat", "6": "Summit",
-        "7": "Sonka", "8": "Sukhanpukur", "9": "Sonatola"
-    }
-
     for s in students:
         # সেন্টার নাম নির্ধারণ
-        c_code = str(s.get('center_code', ''))
-        center_display = centers_mapping.get(c_code, c_code if c_code else "Unassigned")
+        center_display = s.get('center_name') or s.get('center_code', '')
 
         # নম্বর ডাটা হ্যান্ডেলিং
         marks = s.get('marks', {})
         if not isinstance(marks, dict): marks = {}
         
-        # সাবজেক্ট অনুযায়ী নম্বর (None বা missing হলে খালি স্ট্রিং)
         m_bangla = marks.get('bangla')
         m_english = marks.get('english')
         m_math = marks.get('math')
         m_gk = marks.get('gk')
 
-        # টোটাল নম্বর ক্যালকুলেশন (শুধুমাত্র ইন্টিজার বা ফ্লোট হলে যোগ হবে)
         sub_marks = [m_bangla, m_english, m_math, m_gk]
         valid_marks = [m for m in sub_marks if isinstance(m, (int, float))]
         total_marks = sum(valid_marks) if valid_marks else 0
 
+        applied_at = s.get('applied_at')
+        applied_year = applied_at.year if isinstance(applied_at, datetime) else ''
+
+        address = s.get('address_present', '')
+        if isinstance(address, dict):
+            address = ", ".join(filter(None, [address.get('village'), address.get('upazila'), address.get('district')]))
+
         # ৬. রো রাইট করা
         writer.writerow([
             s.get('roll_no', ''),
+            s.get('reg_no', ''),
             s.get('name_bn', ''),
-            s.get('name_en', '').upper(), # ইংরেজি নাম বড় হাতের অক্ষরে
+            s.get('name_en', '').upper(),
             s.get('father_en', '').upper(),
             s.get('mother_en', '').upper(),
             s.get('institute_en', ''),
+            s.get('institute_type', ''),
             s.get('student_class', ''),
             center_display,
-            s.get('address_present', ''),
+            address,
             s.get('mobile', ''),
             m_bangla if m_bangla is not None else '',
             m_english if m_english is not None else '',
             m_math if m_math is not None else '',
             m_gk if m_gk is not None else '',
-            total_marks if valid_marks else ''
+            total_marks if valid_marks else '',
+            s.get('scholarship_grade', '') or '',
+            applied_year,
+            s.get('status', '')
         ])
 
     # ৭. রেসপন্স তৈরি
     output.seek(0)
     
-    # ফাইলের নামকরণে ফিল্টার ভ্যালু ব্যবহার (ফাইল ম্যানেজমেন্টে সুবিধা হয়)
+    # ফাইলের নামকরণে ফিল্টার ভ্যালু ব্যবহার (ফাইল ম্যানেজমেন্টে সুবিধা হয়)
     file_info = f"Class_{selected_class if selected_class else 'All'}"
     if selected_center:
         file_info += f"_Center_{selected_center}"
+    if selected_grade:
+        file_info += f"_Grade_{selected_grade}"
+    if selected_year:
+        file_info += f"_Year_{selected_year}"
     
     filename = f"Student_Report_{file_info}.csv"
     
