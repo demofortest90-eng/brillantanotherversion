@@ -1,0 +1,89 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Participant Summary | Admin{% endblock %}
+
+{% block content %}
+<div style="padding: 20px; font-family: 'Inter', sans-serif; background: #f8fafc; min-height: 100vh;">
+
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 25px;">
+        <h2 style="margin: 0 0 5px 0; color: #1e293b;"><i class="fas fa-chart-bar"></i> Participant Summary</h2>
+        <p style="margin: 0 0 20px 0; color: #64748b; font-size: 0.9rem;">কোন ইন্সটিটিউট / সেন্টার / ক্লাস থেকে কতজন পরীক্ষার্থী, তা এক নজরে দেখুন।</p>
+
+        <form method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">VIEW BY</label>
+                <select name="view_by" style="padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; min-width: 200px;">
+                    <option value="center" {% if view_by == 'center' %}selected{% endif %}>Exam Center</option>
+                    <option value="institute" {% if view_by == 'institute' %}selected{% endif %}>Institute / School</option>
+                    <option value="class" {% if view_by == 'class' %}selected{% endif %}>Class</option>
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">STATUS</label>
+                <select name="status" style="padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; min-width: 160px;">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Students</option>
+                    <option value="Verified" {% if status_filter == 'Verified' %}selected{% endif %}>Verified Only</option>
+                    <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>Pending Only</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" style="background: #1e293b; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                    <i class="fas fa-filter"></i> Apply
+                </button>
+            </div>
+            <div style="margin-left: auto; background: #eff6ff; color: #1d4ed8; padding: 12px 20px; border-radius: 8px; font-weight: 700;">
+                Grand Total: {{ grand_total }}
+            </div>
+        </form>
+    </div>
+
+    <div style="background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2e8f0;">
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left;">
+                        <th style="padding: 16px 20px; color: #475569; font-size: 0.85rem; text-transform: uppercase;">
+                            {% if view_by == 'institute' %}Institute (EN / BN){% elif view_by == 'class' %}Class{% else %}Center Code / Name{% endif %}
+                        </th>
+                        <th style="padding: 16px 20px; color: #475569; font-size: 0.85rem; text-transform: uppercase; text-align: center;">Total Participants</th>
+                        <th style="padding: 16px 20px; color: #475569; font-size: 0.85rem; text-transform: uppercase; text-align: center;">Verified</th>
+                        <th style="padding: 16px 20px; color: #475569; font-size: 0.85rem; text-transform: uppercase; text-align: center;">Pending</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in summary %}
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 16px 20px;">
+                            <div style="font-weight: 700; color: #1e293b;">
+                                {% if view_by == 'class' %}
+                                    Class {{ item._id or 'N/A' }}
+                                {% else %}
+                                    {{ item._id or 'Not Set' }}
+                                {% endif %}
+                            </div>
+                            {% if item.display_name %}
+                                <div style="color: #64748b; font-size: 0.85rem; margin-top: 3px;">{{ item.display_name }}</div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 16px 20px; text-align: center; font-weight: 700; color: #1e293b; font-size: 1.1rem;">{{ item.total }}</td>
+                        <td style="padding: 16px 20px; text-align: center;">
+                            <span style="background: #ecfdf5; color: #047857; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">{{ item.verified }}</span>
+                        </td>
+                        <td style="padding: 16px 20px; text-align: center;">
+                            <span style="background: #fffbeb; color: #b45309; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">{{ item.pending }}</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="padding: 60px; text-align: center; color: #94a3b8;">
+                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                            No data found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

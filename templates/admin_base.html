@@ -160,6 +160,9 @@
             <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">
                 <i class="fas fa-th-large"></i> Overview
             </a>
+            <a href="{{ url_for('participant_summary') }}" class="{{ 'active' if request.endpoint == 'participant_summary' }}">
+                <i class="fas fa-chart-bar"></i> Participant Summary
+            </a>
             
             <div class="nav-label">Academic Management</div>
             <a href="{{ url_for('approve_admits') }}" class="{{ 'active' if request.endpoint == 'approve_admits' }}">
@@ -198,7 +201,7 @@
             <a href="{{ url_for('bulk_admit_filter') }}" class="{{ 'active' if request.endpoint == 'bulk_admit_filter' }}">
                 <i class="fas fa-id-card"></i>Admit Download
             </a>
-            <a href="{{ url_for('export_detailed_data') }}" class="{{ 'active' if request.endpoint == 'export_detailed_data' }}">
+            <a href="{{ url_for('export_filter_page') }}" class="{{ 'active' if request.endpoint in ['export_filter_page','export_detailed_data'] }}">
                 <i class="fas fa-file-csv"></i> Download Data (CSV)
             </a>
             <div class="nav-label">Communication</div>

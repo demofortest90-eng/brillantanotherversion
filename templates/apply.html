@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <style>
     :root { --navy: #1B2631; --paper-white: #FFFFFF; --accent-crimson: #922B21; --input-border: #ABB2B9; }
     body { background-color: #F4F6F7; font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif; }
@@ -105,6 +107,18 @@
         <div class="grid-row">
             <div class="field-box">
                 <div class="field-box-inner">
+                    <label>Institution Type</label>
+                    <select name="institute_type" id="instituteType" required>
+                        <option value="School">School (স্কুল)</option>
+                        <option value="Madrasha">Madrasha (মাদ্রাসা)</option>
+                        <option value="College">College (কলেজ)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="grid-row">
+            <div class="field-box">
+                <div class="field-box-inner">
                     <label>Institution (EN)</label>
                     <input type="text" id="instSearchEn" name="institute_en" autocomplete="off" placeholder="Search school..." required>
                     <div id="enSuggestions" class="suggestion-list"></div>
@@ -161,7 +175,36 @@
         <div class="grid-row" style="margin-top:20px;">
             <div class="upload-zone" style="border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px;">
                 <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:8px;">STUDENT PHOTO</label>
-                <input type="file" name="photo" accept="image/*" required>
+                <input type="file" id="photoInput" accept="image/*">
+                <input type="hidden" name="photo_url" id="photoUrlField">
+
+                <div id="photoPreviewWrap" style="display:none; margin-top:15px; flex-direction:column; align-items:center; gap:10px;">
+                    <img id="photoPreviewImg" src="" alt="Preview" style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:2px solid var(--navy);">
+                    <button type="button" id="recropBtn" class="wa-btn" style="background:#34495e; max-width:200px;">
+                        <i class="fas fa-crop"></i> Re-crop / Change Photo
+                    </button>
+                </div>
+
+                <div id="uploadProgressWrap" style="display:none; margin-top:15px;">
+                    <div style="background:#eee; border-radius:20px; overflow:hidden; height:18px; width:100%;">
+                        <div id="uploadProgressBar" style="background:var(--accent-crimson); height:100%; width:0%; transition: width 0.2s; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:bold;">0%</div>
+                    </div>
+                    <div id="uploadStatusText" style="font-size:12px; color:#7F8C8D; margin-top:6px;">Uploading photo...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Crop Modal -->
+        <div id="cropModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:5000; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:10px; padding:20px; width:95%; max-width:450px;">
+                <h3 style="margin:0 0 15px; color: var(--navy); text-align:center;">Crop Your Photo</h3>
+                <div style="max-height:60vh; overflow:hidden;">
+                    <img id="cropImage" src="" style="max-width:100%; display:block;">
+                </div>
+                <div style="display:flex; gap:10px; margin-top:15px;">
+                    <button type="button" id="cropCancelBtn" style="flex:1; padding:12px; border:1px solid #ccc; background:#f4f4f4; border-radius:5px; cursor:pointer; font-weight:600;">Cancel</button>
+                    <button type="button" id="cropConfirmBtn" style="flex:1; padding:12px; border:none; background:var(--accent-crimson); color:#fff; border-radius:5px; cursor:pointer; font-weight:600;">Crop & Upload</button>
+                </div>
             </div>
         </div>
 
@@ -236,10 +279,14 @@
     // ৩. সাবমিশন লজিক
     function validateSubmission() {
         if (document.getElementById('pass').value !== document.getElementById('confirm_pass').value) {
-            alert("পাসওয়ার্ড মেলেনি!"); return false;
+            alert("পাসওয়ার্ড মেলেনি!"); return false;
         }
         if (!isValidInstitution) {
-            alert("দয়া করে লিস্ট থেকে আপনার স্কুলটি সিলেক্ট করুন। যদি না থাকে, তবে নিচের ফর্মে তথ্য দিয়ে হোয়াটসঅ্যাপে জানান।");
+            alert("দয়া করে লিস্ট থেকে আপনার স্কুলটি সিলেক্ট করুন। যদি না থাকে, তবে নিচের ফর্মে তথ্য দিয়ে হোয়াটসঅ্যাপে জানান।");
+            return false;
+        }
+        if (!document.getElementById('photoUrlField').value) {
+            alert("দয়া করে ছাত্র/ছাত্রীর ছবি আপলোড করুন এবং আপলোড সম্পূর্ণ হওয়া পর্যন্ত অপেক্ষা করুন।");
             return false;
         }
         const btn = document.getElementById('submitBtn');
@@ -247,6 +294,129 @@
         btn.innerText = "Processing... Please wait";
         return true;
     }
+
+    // ৪. ফটো ক্রপ এবং প্রোগ্রেস বার সহ আপলোড
+    let cropper = null;
+    const photoInput = document.getElementById('photoInput');
+    const cropModal = document.getElementById('cropModal');
+    const cropImage = document.getElementById('cropImage');
+    const cropCancelBtn = document.getElementById('cropCancelBtn');
+    const cropConfirmBtn = document.getElementById('cropConfirmBtn');
+    const photoPreviewWrap = document.getElementById('photoPreviewWrap');
+    const photoPreviewImg = document.getElementById('photoPreviewImg');
+    const uploadProgressWrap = document.getElementById('uploadProgressWrap');
+    const uploadProgressBar = document.getElementById('uploadProgressBar');
+    const uploadStatusText = document.getElementById('uploadStatusText');
+    const photoUrlField = document.getElementById('photoUrlField');
+    const recropBtn = document.getElementById('recropBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    photoInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            alert("দয়া করে শুধুমাত্র ইমেজ ফাইল নির্বাচন করুন।");
+            this.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            cropImage.src = e.target.result;
+            cropModal.style.display = 'flex';
+
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(cropImage, {
+                aspectRatio: 1,
+                viewMode: 1,
+                autoCropArea: 1,
+                background: false
+            });
+        };
+        reader.readAsDataURL(file);
+    });
+
+    cropCancelBtn.addEventListener('click', function() {
+        cropModal.style.display = 'none';
+        if (cropper) { cropper.destroy(); cropper = null; }
+        photoInput.value = '';
+    });
+
+    recropBtn.addEventListener('click', function() {
+        photoInput.click();
+    });
+
+    cropConfirmBtn.addEventListener('click', function() {
+        if (!cropper) return;
+
+        const canvas = cropper.getCroppedCanvas({
+            width: 400,
+            height: 400,
+            imageSmoothingQuality: 'high'
+        });
+
+        canvas.toBlob(function(blob) {
+            cropModal.style.display = 'none';
+            if (cropper) { cropper.destroy(); cropper = null; }
+
+            photoPreviewImg.src = URL.createObjectURL(blob);
+            photoPreviewWrap.style.display = 'flex';
+
+            uploadCroppedImage(blob);
+        }, 'image/jpeg', 0.9);
+    });
+
+    function uploadCroppedImage(blob) {
+        const formData = new FormData();
+        formData.append('photo', blob, 'photo.jpg');
+
+        uploadProgressWrap.style.display = 'block';
+        uploadProgressBar.style.width = '0%';
+        uploadProgressBar.innerText = '0%';
+        uploadStatusText.innerText = 'Uploading photo...';
+        photoUrlField.value = '';
+        submitBtn.disabled = true;
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{{ url_for("api_upload_photo") }}', true);
+
+        xhr.upload.onprogress = function(e) {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                uploadProgressBar.style.width = percent + '%';
+                uploadProgressBar.innerText = percent + '%';
+            }
+        };
+
+        xhr.onload = function() {
+            submitBtn.disabled = false;
+            try {
+                const res = JSON.parse(xhr.responseText);
+                if (xhr.status === 200 && res.success) {
+                    photoUrlField.value = res.url;
+                    uploadProgressBar.style.width = '100%';
+                    uploadProgressBar.innerText = '100%';
+                    uploadStatusText.innerHTML = '<i class="fas fa-check-circle" style="color:#27AE60;"></i> Photo uploaded successfully!';
+                } else {
+                    uploadStatusText.innerHTML = '<span style="color:#922B21;">Upload failed: ' + (res.message || 'Unknown error') + '. Please try again.</span>';
+                    photoUrlField.value = '';
+                }
+            } catch (err) {
+                uploadStatusText.innerHTML = '<span style="color:#922B21;">Upload failed. Please try again.</span>';
+                photoUrlField.value = '';
+            }
+        };
+
+        xhr.onerror = function() {
+            submitBtn.disabled = false;
+            uploadStatusText.innerHTML = '<span style="color:#922B21;">Network error. Please try again.</span>';
+            photoUrlField.value = '';
+        };
+
+        xhr.send(formData);
+    }
+
 
     function toggleGroup() {
         const val = document.getElementById('classSelector').value;

@@ -249,6 +249,15 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {% if student.scholarship_grade and student.scholarship_grade != 'Nothing' %}
+                <div style="text-align: center; margin-top: 25px;">
+                    <a href="{{ url_for('download_scholarship_certificate') }}" target="_blank"
+                       style="display: inline-flex; align-items: center; gap: 10px; background: var(--accent-gold); color: #fff; padding: 14px 28px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 14px;">
+                        <i class="fas fa-award"></i> Download Scholarship Certificate
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
 
