@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    body { background: #f4f6f7; }
+    .search-container { max-width: 650px; margin: 40px auto; padding: 0 15px; }
+    .search-card { background: white; border-radius: 16px; padding: 35px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); border-top: 5px solid #1B2631; }
+    .search-header { text-align: center; margin-bottom: 25px; }
+    .search-header h2 { font-size: 1.6rem; font-weight: 900; color: #1B2631; }
+    .search-header p { color: #7F8C8D; font-size: 14px; margin-top: 6px; }
+    .tab-row { display: flex; gap: 8px; background: #f4f6f7; padding: 5px; border-radius: 10px; margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 10px; border: none; background: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; color: #7F8C8D; transition: 0.2s; }
+    .tab-btn.active { background: #1B2631; color: white; }
+    .inp { width: 100%; padding: 13px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; outline: none; }
+    .inp:focus { border-color: #922B21; }
+    .btn-search { width: 100%; background: #922B21; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; letter-spacing: 0.5px; transition: 0.2s; }
+    .btn-search:hover { background: #7B241C; }
+
+    /* Flash messages */
+    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; font-weight: 600; }
+    .alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+    .alert-danger { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+
+    /* Result Card */
+    .result-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.1); margin-top: 20px; }
+    .result-header { background: #1B2631; color: white; padding: 20px 25px; display: flex; align-items: center; gap: 15px; }
+    .result-header img { width: 65px; height: 65px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); object-fit: cover; }
+    .result-header .student-name { font-size: 1.2rem; font-weight: 800; }
+    .result-header .student-meta { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+    .result-body { padding: 20px 25px; }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+    .info-item { background: #f8fafc; padding: 10px 14px; border-radius: 8px; }
+    .info-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+    .info-val { font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 3px; }
+    .marks-section { background: #f8fafc; border-radius: 10px; padding: 16px; margin-top: 15px; }
+    .marks-title { font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 12px; }
+    .marks-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .mark-box { text-align: center; background: white; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; flex: 1; min-width: 60px; }
+    .mark-subject { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .mark-score { font-size: 1.3rem; font-weight: 900; color: #1B2631; }
+    .total-box { background: #1B2631; color: white; border-radius: 10px; padding: 14px; text-align: center; margin-top: 12px; }
+    .total-label { font-size: 11px; opacity: 0.7; font-weight: 700; }
+    .total-num { font-size: 2rem; font-weight: 900; }
+
+    .scholarship-badge { text-align: center; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 800; margin-top: 12px; }
+    .sch-tp { background: #fef3c7; color: #92400e; }
+    .sch-gen { background: #d1fae5; color: #065f46; }
+    .sch-suv { background: #dbeafe; color: #1e40af; }
+    .sch-quata { background: #fce7f3; color: #9d174d; }
+    .sch-nothing { background: #f1f5f9; color: #64748b; }
+
+    .not-published { text-align: center; padding: 50px 20px; background: white; border-radius: 16px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+</style>
+
+<div class="search-container">
+    <div class="search-card">
+        <div class="search-header">
+            <h2><i class="fas fa-poll" style="color:#922B21;"></i> Result Search</h2>
+            <p>The Brilliants Foundation — Scholarship Exam 2026</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}"><i class="fas fa-info-circle"></i> {{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+            <div class="tab-row">
+                <button type="button" class="tab-btn active" id="tabRoll" onclick="setTab('roll')">
+                    <i class="fas fa-id-card"></i> Roll Number
+                </button>
+                <button type="button" class="tab-btn" id="tabMobile" onclick="setTab('mobile')">
+                    <i class="fas fa-mobile-alt"></i> Mobile Number
+                </button>
+            </div>
+            <input type="hidden" id="search_type" name="search_type" value="roll">
+            <input class="inp" type="text" name="search_query" id="searchInput"
+                   placeholder="Enter Roll Number" value="{{ request.form.get('search_query', '') }}">
+            <button type="submit" class="btn-search"><i class="fas fa-search"></i> Search Result</button>
+        </form>
+    </div>
+
+    {% if student %}
+    <div class="result-card">
+        <div class="result-header">
+            {% if student.photo_url %}
+            <img src="{{ student.photo_url }}" alt="Photo">
+            {% else %}
+            <div style="width:65px;height:65px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.8rem;">👤</div>
+            {% endif %}
+            <div>
+                <div class="student-name">{{ student.name_en }}</div>
+                <div style="font-size:15px;opacity:0.85;margin-top:2px;">{{ student.name_bn }}</div>
+                <div class="student-meta">Roll: {{ student.roll_no }} &nbsp;|&nbsp; Class {{ student.student_class }}</div>
+            </div>
+        </div>
+        <div class="result-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Father's Name</div>
+                    <div class="info-val">{{ student.father_en }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Mother's Name</div>
+                    <div class="info-val">{{ student.mother_en }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Institute</div>
+                    <div class="info-val">{{ student.institute_en or student.institute_bn }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Exam Center</div>
+                    <div class="info-val">{{ student.center_code }}</div>
+                </div>
+            </div>
+
+            {% if student.marks %}
+            <div class="marks-section">
+                <div class="marks-title"><i class="fas fa-chart-bar"></i> Subject-wise Marks</div>
+                <div class="marks-row">
+                    <div class="mark-box">
+                        <div class="mark-subject">Bangla</div>
+                        <div class="mark-score">{{ student.marks.bangla|default(0) }}</div>
+                    </div>
+                    <div class="mark-box">
+                        <div class="mark-subject">English</div>
+                        <div class="mark-score">{{ student.marks.english|default(0) }}</div>
+                    </div>
+                    <div class="mark-box">
+                        <div class="mark-subject">Math</div>
+                        <div class="mark-score">{{ student.marks.math|default(0) }}</div>
+                    </div>
+                    <div class="mark-box">
+                        <div class="mark-subject">G.K.</div>
+                        <div class="mark-score">{{ student.marks.gk|default(0) }}</div>
+                    </div>
+                </div>
+                <div class="total-box">
+                    <div class="total-label">TOTAL MARKS (out of 100)</div>
+                    <div class="total-num">{{ student.marks.total|default(0) }}</div>
+                </div>
+            </div>
+
+            {% set g = student.scholarship_grade %}
+            {% if g and g != 'Nothing' %}
+            <div class="scholarship-badge sch-{{ g|lower if g in ['Talentpool','General','Suveccha','Quata'] else 'nothing' }}">
+                <i class="fas fa-graduation-cap"></i>
+                🎉 Congratulations! Scholarship Grade: <strong>{{ g }}</strong>
+            </div>
+            {% else %}
+            <div class="scholarship-badge sch-nothing">
+                Scholarship result not awarded this time.
+            </div>
+            {% endif %}
+            {% else %}
+            <div style="text-align:center;padding:20px;color:#94a3b8;">
+                <i class="fas fa-clock" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
+                Marks not entered yet. Please check again later.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function setTab(t) {
+    document.getElementById('search_type').value = t;
+    document.getElementById('searchInput').placeholder = t === 'roll' ? 'Enter Roll Number' : 'Enter 11-digit Mobile Number';
+    document.getElementById('tabRoll').classList.toggle('active', t === 'roll');
+    document.getElementById('tabMobile').classList.toggle('active', t === 'mobile');
+}
+</script>
+{% endblock %}

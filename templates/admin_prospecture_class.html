@@ -1,0 +1,122 @@
+{% extends "admin_base.html" %}
+{% block content %}
+<style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    .back-link { color: #6366f1; text-decoration: none; font-weight: 700; font-size:13px; }
+    .filter-bar { background: white; border-radius: 12px; padding: 15px 20px; border: 1px solid #e2e8f0; display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-bar select { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e0; font-size:13px; min-width:150px; }
+    .filter-bar button { background: #6366f1; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .result-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .result-table th { background: #f1f5f9; padding: 12px 15px; text-align: left; font-size: 12px; color: #475569; text-transform: uppercase; font-weight: 800; border-bottom: 2px solid #e2e8f0; }
+    .result-table td { padding: 11px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .result-table tr:hover td { background: #f8fafc; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .badge-tp { background: #fef3c7; color: #92400e; }
+    .badge-gen { background: #d1fae5; color: #065f46; }
+    .badge-suv { background: #dbeafe; color: #1e40af; }
+    .badge-quata { background: #fce7f3; color: #9d174d; }
+    .marks-box { display: flex; gap: 5px; flex-wrap: wrap; }
+    .m-chip { background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-size: 12px; color: #475569; font-weight: 700; }
+    .total-chip { background: #1e293b; color: white; padding: 3px 10px; border-radius: 6px; font-size: 13px; font-weight: 800; }
+</style>
+
+<div class="page-header">
+    <div>
+        <a href="{{ url_for('admin_prospecture') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Prospecture</a>
+        <h2 style="margin-top:8px; font-weight:800; color:#1e293b;">
+            <i class="fas fa-graduation-cap" style="color:#6366f1;"></i>
+            Class {{ student_class }} — Scholarship Students
+            <span style="background:#6366f1;color:white;padding:3px 12px;border-radius:20px;font-size:14px;margin-left:10px;">
+                {{ students | length }} students
+            </span>
+        </h2>
+    </div>
+    <a href="{{ url_for('admin_prospecture_result_search') }}" style="background:#3b82f6;color:white;padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">
+        <i class="fas fa-search"></i> Search Result
+    </a>
+</div>
+
+<!-- Filters -->
+<form method="GET" class="filter-bar">
+    <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">GRADE</label>
+        <select name="grade">
+            <option value="">All Grades</option>
+            <option value="Talentpool" {% if grade_filter=='Talentpool' %}selected{% endif %}>Talentpool</option>
+            <option value="General" {% if grade_filter=='General' %}selected{% endif %}>General</option>
+            <option value="Suveccha" {% if grade_filter=='Suveccha' %}selected{% endif %}>Suveccha</option>
+            <option value="Quata" {% if grade_filter=='Quata' %}selected{% endif %}>Quata</option>
+        </select>
+    </div>
+    <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CENTER</label>
+        <select name="center">
+            <option value="">All Centers</option>
+            {% for c in all_centers %}
+            <option value="{{ c }}" {% if center_filter==c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit"><i class="fas fa-filter"></i> Filter</button>
+    <a href="{{ url_for('admin_prospecture_class', student_class=student_class) }}" style="padding:9px 15px;border-radius:8px;border:1px solid #e2e8f0;color:#475569;text-decoration:none;font-size:13px;font-weight:700;">Clear</a>
+</form>
+
+{% if students %}
+<table class="result-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Roll</th>
+            <th>Reg No</th>
+            <th>Name</th>
+            <th>Institute</th>
+            <th>Center</th>
+            <th>Marks</th>
+            <th>Grade</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in students %}
+        <tr>
+            <td style="color:#94a3b8;">{{ loop.index }}</td>
+            <td><b>{{ s.roll_no }}</b></td>
+            <td>{{ s.reg_no }}</td>
+            <td>
+                <div style="font-weight:700;">{{ s.name_en }}</div>
+                <div style="font-size:11px;color:#64748b;">{{ s.name_bn }}</div>
+            </td>
+            <td style="font-size:12px;">{{ s.institute_en or s.institute_bn }}</td>
+            <td style="font-size:12px;">{{ s.center_code }}</td>
+            <td>
+                {% if s.marks %}
+                <div class="marks-box">
+                    <span class="m-chip">বাং {{ s.marks.bangla|default(0) }}</span>
+                    <span class="m-chip">Eng {{ s.marks.english|default(0) }}</span>
+                    <span class="m-chip">Math {{ s.marks.math|default(0) }}</span>
+                    <span class="m-chip">GK {{ s.marks.gk|default(0) }}</span>
+                    <span class="total-chip">{{ s.marks.total|default(0) }}</span>
+                </div>
+                {% else %}
+                <span style="color:#94a3b8;font-size:12px;">No marks</span>
+                {% endif %}
+            </td>
+            <td>
+                {% set g = s.scholarship_grade %}
+                {% if g == 'Talentpool' %}<span class="badge badge-tp"><i class="fas fa-trophy"></i> Talentpool</span>
+                {% elif g == 'General' %}<span class="badge badge-gen"><i class="fas fa-check-circle"></i> General</span>
+                {% elif g == 'Suveccha' %}<span class="badge badge-suv"><i class="fas fa-heart"></i> Suveccha</span>
+                {% elif g == 'Quata' %}<span class="badge badge-quata"><i class="fas fa-users"></i> Quata</span>
+                {% else %}<span style="color:#94a3b8;">—</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div style="text-align:center; padding:60px; background:white; border-radius:14px; border:1px solid #e2e8f0;">
+    <i class="fas fa-search" style="font-size:2.5rem; color:#cbd5e0; margin-bottom:12px; display:block;"></i>
+    <h3 style="color:#64748b;">No scholarship students found</h3>
+    <p style="color:#94a3b8; margin-top:6px;">Try adjusting your filter options above.</p>
+</div>
+{% endif %}
+{% endblock %}

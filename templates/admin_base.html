@@ -189,6 +189,12 @@
             <a href="{{ url_for('manage_results') }}" class="{{ 'active' if request.endpoint == 'manage_results' }}">
                 <i class="fas fa-poll"></i> Result Registry
             </a>
+            <a href="{{ url_for('admin_prospecture') }}" class="{{ 'active' if request.endpoint in ['admin_prospecture','admin_prospecture_class','admin_prospecture_result_search'] }}">
+                <i class="fas fa-graduation-cap"></i> Prospecture (Scholarship)
+            </a>
+            <a href="{{ url_for('admin_prospecture_result_search') }}" class="{{ 'active' if request.endpoint == 'admin_prospecture_result_search' }}">
+                <i class="fas fa-search"></i> Student Result Search
+            </a>
             <a href="{{ url_for('scholarship_labels') }}" class="{{ 'active' if request.endpoint == 'scholarship_labels' }}">
                 <i class="fas fa-tags"></i> Print Labels
             </a>

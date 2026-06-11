@@ -1,0 +1,188 @@
+{% extends "admin_base.html" %}
+{% block content %}
+<style>
+    .search-wrap { max-width: 700px; margin: 0 auto 30px; }
+    .search-card { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+    .search-title { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+    .search-sub { color: #64748b; font-size: 13px; margin-bottom: 20px; }
+    .tab-group { display: flex; background: #f1f5f9; border-radius: 10px; padding: 4px; margin-bottom: 20px; }
+    .tab-btn { flex: 1; padding: 9px; border: none; background: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; color: #64748b; transition: 0.2s; }
+    .tab-btn.active { background: white; color: #1e293b; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+    .search-input { width: 100%; padding: 12px 16px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 15px; outline: none; }
+    .search-input:focus { border-color: #6366f1; }
+    .search-btn { width: 100%; background: #6366f1; color: white; border: none; padding: 13px; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; transition: 0.2s; }
+    .search-btn:hover { background: #4f46e5; }
+
+    /* School search with datalist */
+    .school-hint { font-size: 11px; color: #94a3b8; margin-top: 5px; }
+
+    /* Result table */
+    .result-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .result-table th { background: #1e293b; color: white; padding: 12px 15px; text-align: left; font-size: 12px; text-transform: uppercase; font-weight: 700; }
+    .result-table td { padding: 11px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    .result-table tr:last-child td { border-bottom: none; }
+    .result-table tr:hover td { background: #f8fafc; }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .badge-tp { background: #fef3c7; color: #92400e; }
+    .badge-gen { background: #d1fae5; color: #065f46; }
+    .badge-suv { background: #dbeafe; color: #1e40af; }
+    .badge-quata { background: #fce7f3; color: #9d174d; }
+    .badge-nothing { background: #f1f5f9; color: #64748b; }
+    .marks-box { display: flex; gap: 5px; flex-wrap: wrap; }
+    .m-chip { background: #f1f5f9; padding: 2px 8px; border-radius: 6px; font-size: 12px; color: #475569; font-weight: 700; }
+    .total-chip { background: #1e293b; color: white; padding: 3px 10px; border-radius: 6px; font-size: 13px; font-weight: 800; }
+    .no-result { text-align: center; padding: 50px; background: white; border-radius: 14px; border: 1px solid #e2e8f0; color: #64748b; }
+</style>
+
+<div class="search-wrap">
+    <div class="search-card">
+        <div class="search-title"><i class="fas fa-search" style="color:#6366f1;"></i> Student Result Search</div>
+        <div class="search-sub">Search by Roll Number, Mobile Number, or School Name</div>
+
+        <form method="POST" id="searchForm">
+            <div class="tab-group">
+                <button type="button" class="tab-btn {% if search_type != 'mobile' and search_type != 'school' %}active{% endif %}" onclick="setType('roll')">
+                    <i class="fas fa-id-card"></i> Roll Number
+                </button>
+                <button type="button" class="tab-btn {% if search_type == 'mobile' %}active{% endif %}" onclick="setType('mobile')">
+                    <i class="fas fa-mobile-alt"></i> Mobile Number
+                </button>
+                <button type="button" class="tab-btn {% if search_type == 'school' %}active{% endif %}" onclick="setType('school')">
+                    <i class="fas fa-school"></i> School Name
+                </button>
+            </div>
+
+            <input type="hidden" name="search_type" id="searchTypeInput" value="{{ search_type or 'roll' }}">
+
+            <div id="rollField" style="{% if search_type == 'mobile' or search_type == 'school' %}display:none{% endif %}">
+                <input class="search-input" type="text" name="search_query" id="rollInput"
+                       placeholder="Enter Roll Number (e.g. 12345)"
+                       value="{% if search_type != 'mobile' and search_type != 'school' %}{{ search_query }}{% endif %}">
+            </div>
+            <div id="mobileField" style="{% if search_type != 'mobile' %}display:none{% endif %}">
+                <input class="search-input" type="text" name="search_query" id="mobileInput"
+                       placeholder="Enter 11-digit Mobile Number"
+                       value="{% if search_type == 'mobile' %}{{ search_query }}{% endif %}">
+            </div>
+            <div id="schoolField" style="{% if search_type != 'school' %}display:none{% endif %}">
+                <input class="search-input" type="text" name="search_query" id="schoolInput"
+                       placeholder="Type school name to search..."
+                       list="schoolList"
+                       value="{% if search_type == 'school' %}{{ search_query }}{% endif %}">
+                <datalist id="schoolList">
+                    {% for school in school_list %}
+                    <option value="{{ school }}">
+                    {% endfor %}
+                </datalist>
+                <div class="school-hint"><i class="fas fa-info-circle"></i> Shows all students from that school who have results</div>
+            </div>
+
+            <button type="submit" class="search-btn"><i class="fas fa-search"></i> Search Result</button>
+        </form>
+    </div>
+</div>
+
+{% if students %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+    <div style="font-weight:700; color:#1e293b; font-size:15px;">
+        <i class="fas fa-list" style="color:#6366f1;"></i>
+        Found <span style="color:#6366f1;">{{ students | length }}</span> result(s)
+        {% if search_type == 'school' %}for school: <em>"{{ search_query }}"</em>{% endif %}
+    </div>
+    <button onclick="window.print()" style="background:#1e293b;color:white;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:12px;">
+        <i class="fas fa-print"></i> Print
+    </button>
+</div>
+
+<table class="result-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Roll / Reg</th>
+            <th>Name</th>
+            <th>Class</th>
+            <th>Institute</th>
+            <th>Marks (বাং / Eng / Math / GK)</th>
+            <th>Total</th>
+            <th>Scholarship Grade</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in students %}
+        <tr>
+            <td style="color:#94a3b8;font-weight:600;">{{ loop.index }}</td>
+            <td>
+                <div style="font-weight:800;color:#1e293b;">{{ s.roll_no }}</div>
+                <div style="font-size:11px;color:#94a3b8;">Reg: {{ s.reg_no }}</div>
+            </td>
+            <td>
+                <div style="font-weight:700;">{{ s.name_en }}</div>
+                <div style="font-size:11px;color:#64748b;">{{ s.name_bn }}</div>
+                <div style="font-size:11px;color:#94a3b8;">{{ s.mobile }}</div>
+            </td>
+            <td><span style="background:#ede9fe;color:#7c3aed;padding:3px 10px;border-radius:20px;font-weight:700;font-size:12px;">Class {{ s.student_class }}</span></td>
+            <td style="font-size:12px;color:#475569;">{{ s.institute_en or s.institute_bn or '—' }}</td>
+            <td>
+                {% if s.marks %}
+                <div class="marks-box">
+                    <span class="m-chip">{{ s.marks.bangla|default(0) }}</span>
+                    <span class="m-chip">{{ s.marks.english|default(0) }}</span>
+                    <span class="m-chip">{{ s.marks.math|default(0) }}</span>
+                    <span class="m-chip">{{ s.marks.gk|default(0) }}</span>
+                </div>
+                {% else %}
+                <span style="color:#94a3b8;font-size:12px;">Not entered</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if s.marks %}
+                <span class="total-chip">{{ s.marks.total|default(0) }}</span>
+                {% else %}—{% endif %}
+            </td>
+            <td>
+                {% set g = s.scholarship_grade %}
+                {% if g == 'Talentpool' %}<span class="badge badge-tp"><i class="fas fa-trophy"></i> Talentpool</span>
+                {% elif g == 'General' %}<span class="badge badge-gen">General</span>
+                {% elif g == 'Suveccha' %}<span class="badge badge-suv">Suveccha</span>
+                {% elif g == 'Quata' %}<span class="badge badge-quata">Quata</span>
+                {% elif g and g != 'Nothing' %}<span class="badge badge-nothing">{{ g }}</span>
+                {% else %}<span style="color:#94a3b8;font-size:12px;">—</span>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% elif search_query %}
+<div class="no-result">
+    <i class="fas fa-search" style="font-size:2.5rem;color:#cbd5e0;margin-bottom:12px;display:block;"></i>
+    <h3>No results found</h3>
+    <p style="margin-top:6px;">No student found for "<strong>{{ search_query }}</strong>". Please check and try again.</p>
+</div>
+{% endif %}
+
+<script>
+function setType(type) {
+    document.getElementById('searchTypeInput').value = type;
+    document.getElementById('rollField').style.display = type === 'roll' ? '' : 'none';
+    document.getElementById('mobileField').style.display = type === 'mobile' ? '' : 'none';
+    document.getElementById('schoolField').style.display = type === 'school' ? '' : 'none';
+    document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', ['roll','mobile','school'][i] === type);
+    });
+    // Clear input of inactive fields and set name on active
+    ['rollInput','mobileInput','schoolInput'].forEach((id, i) => {
+        const el = document.getElementById(id);
+        if (['roll','mobile','school'][i] !== type) {
+            el.removeAttribute('name');
+        } else {
+            el.setAttribute('name', 'search_query');
+        }
+    });
+}
+// On load, fix names
+(function() {
+    const t = document.getElementById('searchTypeInput').value || 'roll';
+    setType(t);
+})();
+</script>
+{% endblock %}
