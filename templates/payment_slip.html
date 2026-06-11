@@ -112,6 +112,8 @@
                 <tr><td class="label">Back up serial</td><td>: {{ student.reg_no }}</td></tr>
                 <tr><td class="label">Class</td><td>: {{ student.student_class }}</td></tr>
                 <tr><td class="label">Payment</td><td>: <strong style="color: #28a745;">SUCCESSFUL</strong></td></tr>
+                <tr><td class="label">Method</td><td>: <strong>{{ student.payment_method or 'bKash/Nagad' }}</strong></td></tr>
+                <tr><td class="label">Transaction ID</td><td>: <code style="background:#f1f5f9;padding:2px 8px;border-radius:4px;">{{ student.tran_id or '—' }}</code></td></tr>
             </table>
 
             <div class="photo-box">

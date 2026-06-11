@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Download Admit Card | TBF{% endblock %}
+{% block title %}প্রবেশপত্র ডাউনলোড | টিবিএফ{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -48,7 +48,7 @@
     <div class="search-card">
         <div class="search-header">
             <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot-2026-01-20-020601-removebg-preview.png" alt="TBF Logo">
-            <h2>Download Admit</h2>
+            <h2>প্রবেশপত্র ডাউনলোড</h2>
             <p>প্রবেশপত্র পেতে রোল বা মোবাইল নম্বর দিন</p>
         </div>
         
@@ -66,14 +66,14 @@
 
             <form action="{{ url_for('download_admit') }}" method="POST" id="admitForm">
                 <div class="form-group">
-                    <label><i class="fas fa-search"></i> Roll or Mobile Number</label>
-                    <input type="text" name="search_query" class="form-control" 
-                           placeholder="e.g. 10025 or 017XXXXXXXX" required autofocus autocomplete="off">
+                    <label><i class="fas fa-search"></i> রোল বা মোবাইল নম্বর</label>
+                    <input type="text" name="search_query" class="form-control"
+                           placeholder="যেমন: 10025 অথবা 017XXXXXXXX" required autofocus autocomplete="off">
                 </div>
 
                 <button type="submit" class="btn-search" id="submitBtn">
-                    <i class="fas fa-cloud-download-alt"></i> 
-                    <span>Get Admit Card</span>
+                    <i class="fas fa-cloud-download-alt"></i>
+                    <span>প্রবেশপত্র নিন</span>
                 </button>
             </form>
         </div>
@@ -91,7 +91,7 @@
     const btnText = btn.querySelector('span');
 
     form.onsubmit = function() {
-        btnText.innerText = 'Searching...';
+        btnText.innerText = 'খোঁজা হচ্ছে...';
         btn.querySelector('i').className = 'fas fa-spinner fa-spin';
         btn.style.opacity = '0.8';
         btn.style.pointerEvents = 'none';

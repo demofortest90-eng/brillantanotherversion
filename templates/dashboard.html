@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Student Portal | {{ student.name_en }}{% endblock %}
+{% block title %}শিক্ষার্থী পোর্টাল | {{ student.name_bn or student.name_en }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Noto+Serif+Bengali:wght@600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
@@ -14,9 +14,11 @@
         --sky: #0EA5E9;
         --slate: #64748B;
         --bg-soft: #F8FAFC;
+        --bkash: #E31E7B;
+        --nagad: #F05829;
     }
 
-    body { font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif; background-color: var(--bg-soft); }
+    body { font-family: "Hind Siliguri", "Kalpurush", Arial, sans-serif; background-color: var(--bg-soft); }
 
     .dashboard-wrapper { padding: 40px 15px; min-height: 85vh; }
     
@@ -125,26 +127,187 @@
     .btn-emerald { background: var(--emerald); color: white; }
     .btn-locked { background: #F1F5F9; color: #94A3B8; cursor: not-allowed; }
 
-    /* Payment Area */
-    .payment-notice {
+    /* ===== PAYMENT SECTION ===== */
+    .payment-section {
         margin: 0 35px 35px;
-        padding: 25px;
-        background: #FFFBEB;
-        border: 1px dashed #F59E0B;
-        border-radius: 16px;
     }
 
-    .input-group { display: flex; gap: 10px; margin-top: 15px; }
-    .input-group input {
-        flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #CBD5E0; outline-color: var(--gold);
+    .payment-section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
     }
-    .btn-submit { background: var(--gold); color: white; padding: 0 20px; border-radius: 10px; font-weight: 700; cursor: pointer; border: none; }
+    .payment-section-title h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: var(--navy);
+        font-weight: 800;
+    }
+
+    /* Payment method tabs */
+    .payment-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+    .pay-tab {
+        flex: 1;
+        padding: 14px 10px;
+        border-radius: 14px;
+        border: 2px solid #E2E8F0;
+        background: white;
+        cursor: pointer;
+        text-align: center;
+        transition: 0.25s;
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+    }
+    .pay-tab .method-logo {
+        font-size: 1.4rem;
+        font-weight: 900;
+        letter-spacing: -1px;
+    }
+    .pay-tab.active-bkash { border-color: var(--bkash); background: #FFF0F7; color: var(--bkash); }
+    .pay-tab.active-nagad { border-color: var(--nagad); background: #FFF5F0; color: var(--nagad); }
+    .pay-tab:not(.active-bkash):not(.active-nagad):hover { border-color: #CBD5E0; background: #F8FAFC; }
+
+    /* Info box per method */
+    .payment-info-box {
+        display: none;
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        font-size: 0.88rem;
+        line-height: 1.7;
+    }
+    .payment-info-box.show { display: block; }
+    .payment-info-bkash {
+        background: linear-gradient(135deg, #FFF0F7 0%, #FFE4F1 100%);
+        border: 1.5px solid #F9A8D4;
+    }
+    .payment-info-nagad {
+        background: linear-gradient(135deg, #FFF5F0 0%, #FFE8DF 100%);
+        border: 1.5px solid #FDBA74;
+    }
+
+    .payment-number {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.3rem;
+        font-weight: 900;
+        letter-spacing: 1px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        margin: 6px 0;
+    }
+    .payment-number.bkash-num { background: var(--bkash); color: white; }
+    .payment-number.nagad-num { background: var(--nagad); color: white; }
+
+    .copy-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+        opacity: 0.8;
+        transition: 0.2s;
+    }
+    .copy-btn:hover { opacity: 1; }
+
+    /* Steps */
+    .pay-steps { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+    .pay-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 0.82rem;
+        color: #475569;
+    }
+    .step-num {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 800;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+    .step-bkash { background: var(--bkash); color: white; }
+    .step-nagad { background: var(--nagad); color: white; }
+
+    /* Transaction ID form */
+    .tran-form-wrap {
+        background: #F8FAFC;
+        border: 1.5px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 20px;
+    }
+    .tran-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--slate);
+        margin-bottom: 8px;
+        display: block;
+    }
+    .tran-input-row {
+        display: flex;
+        gap: 10px;
+    }
+    .tran-input-row input {
+        flex: 1;
+        padding: 12px 16px;
+        border-radius: 10px;
+        border: 1.5px solid #CBD5E0;
+        outline: none;
+        font-size: 0.9rem;
+        transition: 0.2s;
+        font-family: monospace;
+    }
+    .tran-input-row input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(197,160,89,0.12); }
+    .btn-submit-tran {
+        background: var(--gold);
+        color: white;
+        padding: 12px 22px;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        transition: 0.2s;
+    }
+    .btn-submit-tran:hover { background: #b08a40; }
+
+    .tran-status {
+        margin-top: 12px;
+        font-size: 0.8rem;
+        color: #B45309;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .tran-status code {
+        background: #FEF3C7;
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-family: monospace;
+    }
 
     @media (max-width: 600px) {
         .profile-header { flex-direction: column; text-align: center; }
         .action-grid { grid-template-columns: 1fr; padding: 20px; }
-        .payment-notice { margin: 20px; }
-        .input-group { flex-direction: column; }
+        .payment-section { margin: 20px; }
+        .tran-input-row { flex-direction: column; }
+        .payment-tabs { flex-direction: column; }
     }
 </style>
 {% endblock %}
@@ -154,19 +317,19 @@
     <div class="dashboard-card">
         
         {% if student.verification %}
-            <div class="status-banner status-verified"><i class="fas fa-check-circle"></i> Verification Complete</div>
+            <div class="status-banner status-verified"><i class="fas fa-check-circle"></i> ভেরিফিকেশন সম্পন্ন</div>
         {% else %}
-            <div class="status-banner status-pending"><i class="fas fa-hourglass-half"></i> Verification Pending</div>
+            <div class="status-banner status-pending"><i class="fas fa-hourglass-half"></i> ভেরিফিকেশন অপেক্ষমাণ</div>
         {% endif %}
 
         <div class="profile-header">
             <img src="{{ student.photo_url }}" alt="Profile" class="profile-photo" 
                  onerror="this.src='https://ui-avatars.com/api/?name={{ student.name_en }}&background=0F172A&color=fff'">
             <div class="student-meta">
-                <h1>{{ student.name_en }}</h1>
+                <h1>{{ student.name_bn or student.name_en }}</h1>
                 <div class="info-badges">
-                    <div class="badge-item"><i class="fas fa-id-badge"></i> Roll: <strong>{{ student.roll_no }}</strong></div>
-                    <div class="badge-item"><i class="fas fa-school"></i> Class: <strong>{{ student.student_class }}</strong></div>
+                    <div class="badge-item"><i class="fas fa-id-badge"></i> রোল: <strong>{{ student.roll_no }}</strong></div>
+                    <div class="badge-item"><i class="fas fa-school"></i> শ্রেণি: <strong>{{ student.student_class }}</strong></div>
                 </div>
             </div>
         </div>
@@ -176,55 +339,209 @@
             <div class="action-card">
                 <div>
                     <div class="icon-box" style="background: #F0F9FF; color: var(--sky);"><i class="fas fa-file-pdf"></i></div>
-                    <h3 style="margin:0;">Application Copy</h3>
+                    <h3 style="margin:0;">আবেদনপত্রের কপি</h3>
                     <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">ডাউনলোড করুন আপনার আবেদনপত্র</p>
                 </div>
                 <a href="{{ url_for('download_application_copy') }}" target="_blank" class="btn-action btn-sky">
-                    <i class="fas fa-download"></i> Get PDF Copy
+                    <i class="fas fa-download"></i> পিডিএফ কপি নিন
                 </a>
             </div>
 
             <div class="action-card">
                 <div>
                     <div class="icon-box" style="background: #ECFDF5; color: var(--emerald);"><i class="fas fa-receipt"></i></div>
-                    <h3 style="margin:0;">Payment Slip</h3>
-                    <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">টাকা জমা দেওয়ার রশিদ</p>
+                    <h3 style="margin:0;">পেমেন্ট স্লিপ</h3>
+                    <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">টাকা জমা দেওয়ার রশিদ</p>
                 </div>
-                {% if student.tran_id %}
+                {% if student.tran_id and student.verification %}
                     <a href="{{ url_for('download_slip') }}" target="_blank" class="btn-action btn-emerald">
-                        <i class="fas fa-print"></i> Download Slip
+                        <i class="fas fa-print"></i> স্লিপ ডাউনলোড
+                    </a>
+                {% elif student.tran_id %}
+                    <button class="btn-action btn-locked"><i class="fas fa-clock"></i> অনুমোদনের অপেক্ষায়</button>
+                {% else %}
+                    <button class="btn-action btn-locked">পেমেন্টের পর আনলক হবে</button>
+                {% endif %}
+            </div>
+
+            <div class="action-card">
+                <div>
+                    <div class="icon-box" style="background: #FEF9C3; color: #CA8A04;"><i class="fas fa-poll"></i></div>
+                    <h3 style="margin:0;">আমার ফলাফল</h3>
+                    <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">বিষয়ভিত্তিক নম্বরসহ আপনার ব্যক্তিগত ফলাফল</p>
+                </div>
+                {% if is_published and student.verification %}
+                    <a href="{{ url_for('view_result') }}" target="_blank" class="btn-action" style="background: #CA8A04; color: white;">
+                        <i class="fas fa-eye"></i> ফলাফল দেখুন
                     </a>
                 {% else %}
-                    <button class="btn-action btn-locked">Wait for Payment</button>
+                    <button class="btn-action btn-locked"><i class="fas fa-lock"></i> ফলাফল এখনো প্রকাশিত হয়নি</button>
+                {% endif %}
+            </div>
+
+            <div class="action-card">
+                <div>
+                    <div class="icon-box" style="background: #F3E8FF; color: #7C3AED;"><i class="fas fa-list-ol"></i></div>
+                    <h3 style="margin:0;">সকল ফলাফল</h3>
+                    <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">শ্রেণি ও কেন্দ্রভিত্তিক মেধাতালিকা দেখুন</p>
+                </div>
+                {% if is_published %}
+                    <a href="{{ url_for('all_results') }}" target="_blank" class="btn-action" style="background: #7C3AED; color: white;">
+                        <i class="fas fa-trophy"></i> মেধাতালিকা দেখুন
+                    </a>
+                {% else %}
+                    <button class="btn-action btn-locked"><i class="fas fa-lock"></i> ফলাফল এখনো প্রকাশিত হয়নি</button>
                 {% endif %}
             </div>
 
         </div>
 
         {% if not student.verification %}
-        <div class="payment-notice">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                <i class="fas fa-info-circle" style="color: #F59E0B; font-size: 1.2rem;"></i>
-                <h3 style="margin: 0; font-size: 1.1rem; color: var(--navy);">Verify Your Registration</h3>
+        <div class="payment-section">
+
+            <!-- Section Title -->
+            <div class="payment-section-title">
+                <i class="fas fa-mobile-alt" style="color: var(--bkash); font-size: 1.3rem;"></i>
+                <h3>রেজিস্ট্রেশন ফি পরিশোধ করুন</h3>
             </div>
-            <p style="font-size: 0.85rem; color: #78350F; line-height: 1.5;">
-                আপনার রেজিস্ট্রেশন ফি জমা দেওয়ার পর প্রাপ্ত <strong>Transaction ID</strong> টি নিচে সাবমিট করুন। অ্যাডমিন ভেরিফাই করলে আপনার পেমেন্ট স্লিপটি আনলক হবে।
+
+            <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 16px; line-height: 1.6;">
+                নিচের যেকোনো মোবাইল ব্যাংকিং পদ্ধতিতে নির্ধারিত ফি পাঠিয়ে <strong>ট্রানজেকশন আইডি</strong> সাবমিট করুন। 
+                অ্যাডমিন যাচাই করলে পেমেন্ট স্লিপ আনলক হবে।
             </p>
-            
-            <form method="POST" class="input-group">
-                <input type="text" name="tran_id" placeholder="Enter Transaction ID (e.g. SSL65A...)" 
-                        value="{{ student.tran_id or '' }}" required>
-                <button type="submit" class="btn-submit">Submit ID</button>
-            </form>
-            
-            {% if student.tran_id %}
-                <div style="margin-top: 15px; font-size: 0.8rem; color: #B45309; font-weight: 600;">
-                    <i class="fas fa-sync-alt fa-spin"></i> Status: ID <code>{{ student.tran_id }}</code> is under review.
+
+            <!-- Payment Method Tabs -->
+            <div class="payment-tabs">
+                <button class="pay-tab active-bkash" id="tab-bkash" onclick="switchTab('bkash')">
+                    <span class="method-logo" style="color: var(--bkash);">bKash</span>
+                    <span style="font-size:0.75rem; color:#94A3B8;">মোবাইল ব্যাংকিং</span>
+                </button>
+                <button class="pay-tab" id="tab-nagad" onclick="switchTab('nagad')">
+                    <span class="method-logo" style="color: var(--nagad);">Nagad</span>
+                    <span style="font-size:0.75rem; color:#94A3B8;">মোবাইল ব্যাংকিং</span>
+                </button>
+            </div>
+
+            <!-- bKash Info -->
+            <div class="payment-info-box payment-info-bkash show" id="info-bkash">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size:1.5rem; font-weight:900; color: var(--bkash);">bKash</span>
+                    <span style="background: var(--bkash); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;">SEND MONEY</span>
                 </div>
-            {% endif %}
+                <div>নিচের নম্বরে <strong>Send Money</strong> করুন:</div>
+                <div style="margin: 8px 0;">
+                    <span class="payment-number bkash-num" id="bkash-number">
+                        <i class="fas fa-phone-alt"></i> 01XXXXXXXXX
+                        <button class="copy-btn" onclick="copyNumber('01XXXXXXXXX')" title="কপি করুন">
+                            <i class="fas fa-copy" style="color:rgba(255,255,255,0.8);"></i>
+                        </button>
+                    </span>
+                </div>
+                <div class="pay-steps">
+                    <div class="pay-step">
+                        <span class="step-num step-bkash">১</span>
+                        <span>bKash অ্যাপ খুলুন → <strong>Send Money</strong> নির্বাচন করুন</span>
+                    </div>
+                    <div class="pay-step">
+                        <span class="step-num step-bkash">২</span>
+                        <span>উপরের নম্বরে নির্ধারিত পরিমাণ টাকা পাঠান</span>
+                    </div>
+                    <div class="pay-step">
+                        <span class="step-num step-bkash">৩</span>
+                        <span>SMS-এ প্রাপ্ত <strong>Transaction ID</strong> (যেমন: 8AB12CDEF3) নিচে পেস্ট করুন</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nagad Info -->
+            <div class="payment-info-box payment-info-nagad" id="info-nagad">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <span style="font-size:1.5rem; font-weight:900; color: var(--nagad);">Nagad</span>
+                    <span style="background: var(--nagad); color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 20px; font-weight: 700;">SEND MONEY</span>
+                </div>
+                <div>নিচের নম্বরে <strong>Send Money</strong> করুন:</div>
+                <div style="margin: 8px 0;">
+                    <span class="payment-number nagad-num" id="nagad-number">
+                        <i class="fas fa-phone-alt"></i> 01XXXXXXXXX
+                        <button class="copy-btn" onclick="copyNumber('01XXXXXXXXX')" title="কপি করুন">
+                            <i class="fas fa-copy" style="color:rgba(255,255,255,0.8);"></i>
+                        </button>
+                    </span>
+                </div>
+                <div class="pay-steps">
+                    <div class="pay-step">
+                        <span class="step-num step-nagad">১</span>
+                        <span>Nagad অ্যাপ খুলুন → <strong>Send Money</strong> নির্বাচন করুন</span>
+                    </div>
+                    <div class="pay-step">
+                        <span class="step-num step-nagad">২</span>
+                        <span>উপরের নম্বরে নির্ধারিত পরিমাণ টাকা পাঠান</span>
+                    </div>
+                    <div class="pay-step">
+                        <span class="step-num step-nagad">৩</span>
+                        <span>SMS-এ প্রাপ্ত <strong>Transaction ID</strong> নিচে পেস্ট করুন</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction ID Submission -->
+            <div class="tran-form-wrap">
+                <span class="tran-label"><i class="fas fa-hashtag"></i> ট্রানজেকশন আইডি সাবমিট করুন</span>
+                <form method="POST">
+                    <input type="hidden" name="payment_method" id="selectedMethod" value="bKash">
+                    <div class="tran-input-row">
+                        <input type="text" name="tran_id"
+                               placeholder="Transaction ID লিখুন (যেমন: 8AB12CDEF3)"
+                               value="{{ student.tran_id or '' }}"
+                               required
+                               autocomplete="off">
+                        <button type="submit" class="btn-submit-tran">
+                            <i class="fas fa-paper-plane"></i> সাবমিট
+                        </button>
+                    </div>
+                </form>
+                
+                {% if student.tran_id %}
+                <div class="tran-status">
+                    <i class="fas fa-sync-alt fa-spin"></i>
+                    স্ট্যাটাস: আইডি <code>{{ student.tran_id }}</code> পর্যালোচনাধীন রয়েছে।
+                </div>
+                {% endif %}
+            </div>
+
         </div>
         {% endif %}
 
     </div>
 </div>
+
+<script>
+function switchTab(method) {
+    // Reset tabs
+    document.getElementById('tab-bkash').className = 'pay-tab';
+    document.getElementById('tab-nagad').className = 'pay-tab';
+    document.getElementById('info-bkash').classList.remove('show');
+    document.getElementById('info-nagad').classList.remove('show');
+
+    if (method === 'bkash') {
+        document.getElementById('tab-bkash').className = 'pay-tab active-bkash';
+        document.getElementById('info-bkash').classList.add('show');
+        document.getElementById('selectedMethod').value = 'bKash';
+    } else {
+        document.getElementById('tab-nagad').className = 'pay-tab active-nagad';
+        document.getElementById('info-nagad').classList.add('show');
+        document.getElementById('selectedMethod').value = 'Nagad';
+    }
+}
+
+function copyNumber(num) {
+    navigator.clipboard.writeText(num).then(() => {
+        const toast = document.createElement('div');
+        toast.textContent = '✓ নম্বর কপি হয়েছে!';
+        toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1B2631;color:white;padding:10px 20px;border-radius:30px;font-size:0.85rem;font-weight:700;z-index:9999;';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    });
+}
+</script>
 {% endblock %}

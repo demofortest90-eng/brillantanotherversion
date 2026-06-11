@@ -1,0 +1,125 @@
+{% extends "admin_base.html" %}
+
+{% block title %}হোমপেজ কনটেন্ট | অ্যাডমিন{% endblock %}
+
+{% block content %}
+<style>
+    .hp-section { background: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; }
+    .hp-section h3 { margin: 0 0 5px; color: #1a252f; }
+    .hp-section .sub { color: #95a5a6; font-size: 13px; margin-bottom: 20px; }
+    .hp-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+    .hp-form-grid label, .full-row label { font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px; }
+    .hp-form-grid input, .full-row textarea, .hp-form-grid select {
+        width: 100%; padding: 11px; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; font-size: 14px;
+    }
+    .full-row { grid-column: 1 / -1; }
+    .full-row textarea { min-height: 90px; resize: vertical; }
+    .btn-save { background: #00b65e; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: 15px; font-size: 14px; }
+    .btn-save:hover { background: #009950; }
+
+    .leader-row { display: flex; gap: 20px; align-items: flex-start; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; flex-wrap: wrap; }
+    .leader-row img { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid #C5A059; flex-shrink: 0; }
+    .leader-row form { flex: 1; min-width: 280px; }
+    .btn-delete { background: #fee2e2; color: #dc2626; text-decoration: none; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; display: inline-block; margin-top: 15px; margin-left: 10px; }
+    .empty-note { background: #fffbeb; border: 1px dashed #f59e0b; padding: 18px; border-radius: 10px; color: #92400e; font-size: 14px; }
+</style>
+
+<div style="margin-bottom: 20px;">
+    <h2 style="margin:0; color:#1a252f;"><i class="fas fa-home"></i> হোমপেজ — বাণী সেকশন ম্যানেজমেন্ট</h2>
+    <p style="color:#95a5a6; font-size: 13px; margin-top: 5px;">
+        হোমপেজের শেষ সেকশনের (পরিচালনা পর্ষদ ও বাণী) নাম, পদবি, ছবি এবং বাণী এখান থেকে পরিবর্তন করুন।
+    </p>
+</div>
+
+<div class="hp-section">
+    <h3><i class="fas fa-user-plus" style="color:#00b65e;"></i> নতুন সদস্য যোগ করুন</h3>
+    <div class="sub">ছবি আপলোড করলে সেটি স্বয়ংক্রিয়ভাবে হোস্ট হবে, অথবা সরাসরি ছবির লিংক দিতে পারেন।</div>
+    <form method="POST" action="{{ url_for('admin_homepage_add') }}" enctype="multipart/form-data">
+        <div class="hp-form-grid">
+            <div>
+                <label>নাম *</label>
+                <input type="text" name="name" placeholder="যেমন: মোঃ নজরুল ইসলাম" required>
+            </div>
+            <div>
+                <label>পদবি *</label>
+                <input type="text" name="designation" placeholder="যেমন: চেয়ারম্যান" required>
+            </div>
+            <div>
+                <label>ছবি আপলোড</label>
+                <input type="file" name="photo" accept="image/*">
+            </div>
+            <div>
+                <label>অথবা ছবির লিংক (URL)</label>
+                <input type="url" name="photo_url" placeholder="https://...">
+            </div>
+            <div class="full-row">
+                <label>বাণী</label>
+                <textarea name="speech" placeholder="এখানে বাণী লিখুন..."></textarea>
+            </div>
+        </div>
+        <button type="submit" class="btn-save"><i class="fas fa-plus"></i> যোগ করুন</button>
+    </form>
+</div>
+
+<div class="hp-section">
+    <h3><i class="fas fa-users" style="color:#C5A059;"></i> বর্তমান সদস্যবৃন্দ ({{ leaders|length }} জন)</h3>
+    <div class="sub">পরিবর্তন করে "আপডেট করুন" বাটনে ক্লিক করুন। ক্রম (Order) অনুযায়ী হোমপেজে সাজানো হবে।</div>
+
+    {% if not leaders %}
+    <div class="empty-note">
+        <i class="fas fa-info-circle"></i> এখনো কোনো সদস্য যোগ করা হয়নি — হোমপেজে ডিফল্ট তথ্য দেখানো হচ্ছে।
+        উপরের ফর্ম দিয়ে সদস্য যোগ করলেই হোমপেজ স্বয়ংক্রিয়ভাবে আপডেট হবে।
+    </div>
+    {% endif %}
+
+    {% for leader in leaders %}
+    <div class="leader-row">
+        <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
+             onerror="this.src='https://ui-avatars.com/api/?name=TBF&background=1a252f&color=fff'">
+        <form method="POST" action="{{ url_for('admin_homepage_edit', leader_id=leader._id) }}" enctype="multipart/form-data">
+            <div class="hp-form-grid">
+                <div>
+                    <label>নাম</label>
+                    <input type="text" name="name" value="{{ leader.name }}">
+                </div>
+                <div>
+                    <label>পদবি</label>
+                    <input type="text" name="designation" value="{{ leader.designation }}">
+                </div>
+                <div>
+                    <label>ক্রম (Order)</label>
+                    <input type="number" name="order" value="{{ leader.order or loop.index }}" min="1">
+                </div>
+                <div>
+                    <label>নতুন ছবি আপলোড</label>
+                    <input type="file" name="photo" accept="image/*">
+                </div>
+                <div>
+                    <label>অথবা ছবির লিংক (URL)</label>
+                    <input type="url" name="photo_url" placeholder="বর্তমান ছবি রাখতে খালি রাখুন">
+                </div>
+                <div class="full-row">
+                    <label>বাণী</label>
+                    <textarea name="speech">{{ leader.speech }}</textarea>
+                </div>
+            </div>
+            <button type="submit" class="btn-save" style="background:#1a252f;"><i class="fas fa-save"></i> আপডেট করুন</button>
+            <a href="{{ url_for('admin_homepage_delete', leader_id=leader._id) }}" class="btn-delete"
+               onclick="return confirm('আপনি কি নিশ্চিতভাবে \'{{ leader.name }}\' কে মুছে ফেলতে চান?');">
+                <i class="fas fa-trash"></i> মুছে ফেলুন
+            </a>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <script>
+      {% for category, message in messages %}
+      alert({{ message|tojson }});
+      {% endfor %}
+    </script>
+  {% endif %}
+{% endwith %}
+{% endblock %}

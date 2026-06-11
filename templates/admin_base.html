@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TBF Admin Panel 2026</title>
+    <title>টিবিএফ অ্যাডমিন প্যানেল ২০২৬</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@600;700;900&display=swap" rel="stylesheet">
     <style>
         :root {
             --sidebar-w: 280px;
@@ -17,12 +20,12 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        @import url('https://fonts.maateen.me/kalpurush/font.css');
 
+        body, button, input, select, textarea {
+            font-family: "Hind Siliguri", "Kalpurush", Arial, sans-serif;
+        }
 
         body {
-            font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif;
             background: var(--bg);
             height: 100vh;
             display: flex;
@@ -151,73 +154,76 @@
 
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2 style="font-size: 1.3rem; color: white;">TBF <span style="color: var(--accent);">Admin</span></h2>
-            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">Control Panel v2.0</p>
+            <h2 style="font-size: 1.3rem; color: white;">টিবিএফ <span style="color: var(--accent);">অ্যাডমিন</span></h2>
+            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">কন্ট্রোল প্যানেল v2.0</p>
         </div>
 
         <nav class="sidebar-nav">
-            <div class="nav-label">Main Navigation</div>
+            <div class="nav-label">প্রধান নেভিগেশন</div>
             <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">
-                <i class="fas fa-th-large"></i> Overview
+                <i class="fas fa-th-large"></i> ড্যাশবোর্ড
             </a>
             <a href="{{ url_for('participant_summary') }}" class="{{ 'active' if request.endpoint == 'participant_summary' }}">
-                <i class="fas fa-chart-bar"></i> Participant Summary
-            </a>
-            
-            <div class="nav-label">Academic Management</div>
-            <a href="{{ url_for('approve_admits') }}" class="{{ 'active' if request.endpoint == 'approve_admits' }}">
-                <i class="fas fa-user-check"></i> Admit Approval
-            </a>
-            <a href="{{ url_for('attendance_sheet') }}" class="{{ 'active' if request.endpoint == 'attendance_sheet' }}">
-                <i class="fas fa-clipboard-check"></i> Attendance
-            </a>
-            <a href="{{ url_for('seat_plan') }}" class="{{ 'active' if request.endpoint == 'seat_plan' }}">
-                <i class="fas fa-th"></i> Seat Plan
-            </a>
-            <a href="{{ url_for('entry_marks') }}" class="{{ 'active' if request.endpoint == 'entry_marks' }}">
-                <i class="fas fa-marker"></i> Student Marks
-            </a>
-            <a href="{{ url_for('manage_centers') }}" class="{{ 'active' if request.endpoint == 'manage_centers' }}">
-                <i class="fas fa-map-marker-alt"></i> Manage Centers
-            </a>
-            <a href="{{ url_for('manage_institutions') }}" class="{{ 'active' if request.endpoint == 'manage_institutions' }}">
-                <i class="fas fa-university"></i> Manage Institutions
-            </a>
-            <a href="{{ url_for('serial_allocation') }}" class="{{ 'active' if request.endpoint == 'serial_allocation' }}">
-                <i class="fas fa-list-ol"></i> Roll & Reg Serial
-            </a>
-            <a href="{{ url_for('manage_results') }}" class="{{ 'active' if request.endpoint == 'manage_results' }}">
-                <i class="fas fa-poll"></i> Result Registry
-            </a>
-            <a href="{{ url_for('admin_prospecture') }}" class="{{ 'active' if request.endpoint in ['admin_prospecture','admin_prospecture_class','admin_prospecture_result_search'] }}">
-                <i class="fas fa-graduation-cap"></i> Prospecture (Scholarship)
-            </a>
-            <a href="{{ url_for('admin_prospecture_result_search') }}" class="{{ 'active' if request.endpoint == 'admin_prospecture_result_search' }}">
-                <i class="fas fa-search"></i> Student Result Search
-            </a>
-            <a href="{{ url_for('scholarship_labels') }}" class="{{ 'active' if request.endpoint == 'scholarship_labels' }}">
-                <i class="fas fa-tags"></i> Print Labels
-            </a>
-            <a href="{{ url_for('print_result') }}" class="{{ 'active' if request.endpoint == 'print_result' }}">
-                <i class="fas fa-file-invoice"></i> Print Result
-            </a>
-            <a href="{{ url_for('admin_certificates') }}" class="{{ 'active' if request.endpoint == 'admin_certificates' }}">
-                <i class="fas fa-certificate"></i> Print Certificates
-            </a>
-            <a href="{{ url_for('bulk_admit_filter') }}" class="{{ 'active' if request.endpoint == 'bulk_admit_filter' }}">
-                <i class="fas fa-id-card"></i>Admit Download
-            </a>
-            <a href="{{ url_for('export_filter_page') }}" class="{{ 'active' if request.endpoint in ['export_filter_page','export_detailed_data'] }}">
-                <i class="fas fa-file-csv"></i> Download Data (CSV)
-            </a>
-            <div class="nav-label">Communication</div>
-            <a href="{{ url_for('admin_notices') }}" class="{{ 'active' if request.endpoint == 'admin_notices' }}">
-                <i class="fas fa-bullhorn"></i> Notices & News
+                <i class="fas fa-chart-bar"></i> অংশগ্রহণকারীর সারসংক্ষেপ
             </a>
 
-            <div class="nav-label">System</div>
+            <div class="nav-label">একাডেমিক ম্যানেজমেন্ট</div>
+            <a href="{{ url_for('approve_admits') }}" class="{{ 'active' if request.endpoint == 'approve_admits' }}">
+                <i class="fas fa-user-check"></i> এডমিট অনুমোদন
+            </a>
+            <a href="{{ url_for('attendance_sheet') }}" class="{{ 'active' if request.endpoint == 'attendance_sheet' }}">
+                <i class="fas fa-clipboard-check"></i> উপস্থিতি শীট
+            </a>
+            <a href="{{ url_for('seat_plan') }}" class="{{ 'active' if request.endpoint == 'seat_plan' }}">
+                <i class="fas fa-th"></i> সিট প্ল্যান
+            </a>
+            <a href="{{ url_for('entry_marks') }}" class="{{ 'active' if request.endpoint == 'entry_marks' }}">
+                <i class="fas fa-marker"></i> নম্বর এন্ট্রি
+            </a>
+            <a href="{{ url_for('manage_centers') }}" class="{{ 'active' if request.endpoint == 'manage_centers' }}">
+                <i class="fas fa-map-marker-alt"></i> কেন্দ্র ব্যবস্থাপনা
+            </a>
+            <a href="{{ url_for('manage_institutions') }}" class="{{ 'active' if request.endpoint == 'manage_institutions' }}">
+                <i class="fas fa-university"></i> প্রতিষ্ঠান ব্যবস্থাপনা
+            </a>
+            <a href="{{ url_for('serial_allocation') }}" class="{{ 'active' if request.endpoint == 'serial_allocation' }}">
+                <i class="fas fa-list-ol"></i> রোল ও রেজি. সিরিয়াল
+            </a>
+            <a href="{{ url_for('manage_results') }}" class="{{ 'active' if request.endpoint == 'manage_results' }}">
+                <i class="fas fa-poll"></i> ফলাফল রেজিস্ট্রি
+            </a>
+            <a href="{{ url_for('admin_prospecture') }}" class="{{ 'active' if request.endpoint in ['admin_prospecture','admin_prospecture_class'] }}">
+                <i class="fas fa-graduation-cap"></i> বৃত্তি (প্রসপেক্টাস)
+            </a>
+            <a href="{{ url_for('admin_prospecture_result_search') }}" class="{{ 'active' if request.endpoint == 'admin_prospecture_result_search' }}">
+                <i class="fas fa-search"></i> শিক্ষার্থীর ফলাফল খুঁজুন
+            </a>
+            <a href="{{ url_for('scholarship_labels') }}" class="{{ 'active' if request.endpoint == 'scholarship_labels' }}">
+                <i class="fas fa-tags"></i> লেবেল প্রিন্ট
+            </a>
+            <a href="{{ url_for('print_result') }}" class="{{ 'active' if request.endpoint == 'print_result' }}">
+                <i class="fas fa-file-invoice"></i> ফলাফল প্রিন্ট
+            </a>
+            <a href="{{ url_for('admin_certificates') }}" class="{{ 'active' if request.endpoint == 'admin_certificates' }}">
+                <i class="fas fa-certificate"></i> সার্টিফিকেট প্রিন্ট
+            </a>
+            <a href="{{ url_for('bulk_admit_filter') }}" class="{{ 'active' if request.endpoint == 'bulk_admit_filter' }}">
+                <i class="fas fa-id-card"></i> এডমিট ডাউনলোড
+            </a>
+            <a href="{{ url_for('export_filter_page') }}" class="{{ 'active' if request.endpoint in ['export_filter_page','export_detailed_data'] }}">
+                <i class="fas fa-file-csv"></i> ডাটা ডাউনলোড (CSV)
+            </a>
+            <div class="nav-label">ওয়েবসাইট কনটেন্ট</div>
+            <a href="{{ url_for('admin_homepage') }}" class="{{ 'active' if request.endpoint == 'admin_homepage' }}">
+                <i class="fas fa-home"></i> হোমপেজ (বাণী সেকশন)
+            </a>
+            <a href="{{ url_for('admin_notices') }}" class="{{ 'active' if request.endpoint == 'admin_notices' }}">
+                <i class="fas fa-bullhorn"></i> নোটিশ ও সংবাদ
+            </a>
+
+            <div class="nav-label">সিস্টেম</div>
             <a href="{{ url_for('admin_logout') }}" style="color: #ff7675; margin-top: 20px;">
-                <i class="fas fa-power-off"></i> Logout
+                <i class="fas fa-power-off"></i> লগআউট
             </a>
         </nav>
     </aside>
@@ -228,10 +234,10 @@
                 <button class="hamburger" onclick="toggleSidebar()">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h3 style="font-weight: 600; color: var(--primary); font-size: 1.1rem;">Panel</h3>
+                <h3 style="font-weight: 600; color: var(--primary); font-size: 1.1rem;">প্যানেল</h3>
             </div>
             <div class="admin-badge">
-                <i class="fas fa-shield-alt" style="margin-right: 5px;"></i> System Administrator
+                <i class="fas fa-shield-alt" style="margin-right: 5px;"></i> সিস্টেম অ্যাডমিনিস্ট্রেটর
             </div>
         </header>
 

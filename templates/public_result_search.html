@@ -54,8 +54,8 @@
 <div class="search-container">
     <div class="search-card">
         <div class="search-header">
-            <h2><i class="fas fa-poll" style="color:#922B21;"></i> Result Search</h2>
-            <p>The Brilliants Foundation — Scholarship Exam 2026</p>
+            <h2><i class="fas fa-poll" style="color:#922B21;"></i> ফলাফল অনুসন্ধান</h2>
+            <p>দ্য ব্রিলিয়ান্টস ফাউন্ডেশন — বৃত্তি পরীক্ষা ২০২৬</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -67,17 +67,22 @@
         <form method="POST">
             <div class="tab-row">
                 <button type="button" class="tab-btn active" id="tabRoll" onclick="setTab('roll')">
-                    <i class="fas fa-id-card"></i> Roll Number
+                    <i class="fas fa-id-card"></i> রোল নম্বর
                 </button>
                 <button type="button" class="tab-btn" id="tabMobile" onclick="setTab('mobile')">
-                    <i class="fas fa-mobile-alt"></i> Mobile Number
+                    <i class="fas fa-mobile-alt"></i> মোবাইল নম্বর
                 </button>
             </div>
             <input type="hidden" id="search_type" name="search_type" value="roll">
             <input class="inp" type="text" name="search_query" id="searchInput"
-                   placeholder="Enter Roll Number" value="{{ request.form.get('search_query', '') }}">
-            <button type="submit" class="btn-search"><i class="fas fa-search"></i> Search Result</button>
+                   placeholder="রোল নম্বর লিখুন" value="{{ request.form.get('search_query', '') }}">
+            <button type="submit" class="btn-search"><i class="fas fa-search"></i> ফলাফল খুঁজুন</button>
         </form>
+
+        <a href="{{ url_for('all_results') }}"
+           style="display:block; text-align:center; margin-top:14px; background:#1B2631; color:white; padding:13px; border-radius:10px; font-weight:800; font-size:14px; text-decoration:none;">
+            <i class="fas fa-trophy"></i> সকল ফলাফল (মেধাতালিকা) দেখুন
+        </a>
     </div>
 
     {% if student %}
@@ -91,52 +96,52 @@
             <div>
                 <div class="student-name">{{ student.name_en }}</div>
                 <div style="font-size:15px;opacity:0.85;margin-top:2px;">{{ student.name_bn }}</div>
-                <div class="student-meta">Roll: {{ student.roll_no }} &nbsp;|&nbsp; Class {{ student.student_class }}</div>
+                <div class="student-meta">রোল: {{ student.roll_no }} &nbsp;|&nbsp; শ্রেণি {{ student.student_class }}</div>
             </div>
         </div>
         <div class="result-body">
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Father's Name</div>
-                    <div class="info-val">{{ student.father_en }}</div>
+                    <div class="info-label">পিতার নাম</div>
+                    <div class="info-val">{{ student.father_bn or student.father_en }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Mother's Name</div>
-                    <div class="info-val">{{ student.mother_en }}</div>
+                    <div class="info-label">মাতার নাম</div>
+                    <div class="info-val">{{ student.mother_bn or student.mother_en }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Institute</div>
-                    <div class="info-val">{{ student.institute_en or student.institute_bn }}</div>
+                    <div class="info-label">শিক্ষা প্রতিষ্ঠান</div>
+                    <div class="info-val">{{ student.institute_bn or student.institute_en }}</div>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Exam Center</div>
-                    <div class="info-val">{{ student.center_code }}</div>
+                    <div class="info-label">পরীক্ষা কেন্দ্র</div>
+                    <div class="info-val">{{ student.center_name or student.center_code }}</div>
                 </div>
             </div>
 
             {% if student.marks %}
             <div class="marks-section">
-                <div class="marks-title"><i class="fas fa-chart-bar"></i> Subject-wise Marks</div>
+                <div class="marks-title"><i class="fas fa-chart-bar"></i> বিষয়ভিত্তিক নম্বর</div>
                 <div class="marks-row">
                     <div class="mark-box">
-                        <div class="mark-subject">Bangla</div>
+                        <div class="mark-subject">বাংলা</div>
                         <div class="mark-score">{{ student.marks.bangla|default(0) }}</div>
                     </div>
                     <div class="mark-box">
-                        <div class="mark-subject">English</div>
+                        <div class="mark-subject">ইংরেজি</div>
                         <div class="mark-score">{{ student.marks.english|default(0) }}</div>
                     </div>
                     <div class="mark-box">
-                        <div class="mark-subject">Math</div>
+                        <div class="mark-subject">গণিত</div>
                         <div class="mark-score">{{ student.marks.math|default(0) }}</div>
                     </div>
                     <div class="mark-box">
-                        <div class="mark-subject">G.K.</div>
+                        <div class="mark-subject">সা. জ্ঞান</div>
                         <div class="mark-score">{{ student.marks.gk|default(0) }}</div>
                     </div>
                 </div>
                 <div class="total-box">
-                    <div class="total-label">TOTAL MARKS (out of 100)</div>
+                    <div class="total-label">মোট নম্বর (১০০-এর মধ্যে)</div>
                     <div class="total-num">{{ student.marks.total|default(0) }}</div>
                 </div>
             </div>
@@ -145,17 +150,24 @@
             {% if g and g != 'Nothing' %}
             <div class="scholarship-badge sch-{{ g|lower if g in ['Talentpool','General','Suveccha','Quata'] else 'nothing' }}">
                 <i class="fas fa-graduation-cap"></i>
-                🎉 Congratulations! Scholarship Grade: <strong>{{ g }}</strong>
+                🎉 অভিনন্দন! বৃত্তির ধরন:
+                <strong>
+                    {% if g == 'Talentpool' %}ট্যালেন্টপুল
+                    {% elif g == 'General' %}সাধারণ
+                    {% elif g == 'Suveccha' %}শুভেচ্ছা
+                    {% elif g == 'Quata' %}কোটা
+                    {% else %}{{ g }}{% endif %}
+                </strong>
             </div>
             {% else %}
             <div class="scholarship-badge sch-nothing">
-                Scholarship result not awarded this time.
+                এবার বৃত্তির জন্য নির্বাচিত হয়নি।
             </div>
             {% endif %}
             {% else %}
             <div style="text-align:center;padding:20px;color:#94a3b8;">
                 <i class="fas fa-clock" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
-                Marks not entered yet. Please check again later.
+                নম্বর এখনো এন্ট্রি করা হয়নি। অনুগ্রহ করে পরে আবার দেখুন।
             </div>
             {% endif %}
         </div>
@@ -166,7 +178,7 @@
 <script>
 function setTab(t) {
     document.getElementById('search_type').value = t;
-    document.getElementById('searchInput').placeholder = t === 'roll' ? 'Enter Roll Number' : 'Enter 11-digit Mobile Number';
+    document.getElementById('searchInput').placeholder = t === 'roll' ? 'রোল নম্বর লিখুন' : '১১ ডিজিটের মোবাইল নম্বর লিখুন';
     document.getElementById('tabRoll').classList.toggle('active', t === 'roll');
     document.getElementById('tabMobile').classList.toggle('active', t === 'mobile');
 }

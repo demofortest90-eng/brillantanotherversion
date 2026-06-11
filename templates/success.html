@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Registration Success | The Brilliant Foundation {% endblock %}
+{% block title %}রেজিস্ট্রেশন সফল | দ্য ব্রিলিয়ান্টস ফাউন্ডেশন{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -88,26 +88,26 @@
 <div class="success-wrapper">
     <div class="success-card">
         <div class="check-icon">✓</div>
-        <h1>Apply Successful!</h1>
-        <p style="color: #666;">Welcome to The Brilliant Foundation . Your application has been received.</p>
-        
+        <h1>আবেদন সফল হয়েছে!</h1>
+        <p style="color: #666;">দ্য ব্রিলিয়ান্টস ফাউন্ডেশনে স্বাগতম। আপনার আবেদনটি গৃহীত হয়েছে।</p>
+
         <div class="info-container">
             <div class="info-row">
-                <span class="label">Your Backup Serial ID</span>
+                <span class="label">আপনার ব্যাকআপ সিরিয়াল আইডি</span>
                 <span class="highlight">{{ reg }}</span>
             </div>
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
             <div class="info-row">
-                <span class="label">Your Serial Number</span>
+                <span class="label">আপনার সিরিয়াল নম্বর</span>
                 <span class="highlight">{{ roll }}</span>
             </div>
         </div>
 
         <p class="instruction">
-            Please <b>save or screenshot</b> these details. You will need your <b>Serial Number</b> and the password you created to access your dashboard and download your admit card.
+            অনুগ্রহ করে এই তথ্যগুলো <b>সংরক্ষণ বা স্ক্রিনশট</b> করে রাখুন। ড্যাশবোর্ডে প্রবেশ এবং প্রবেশপত্র ডাউনলোড করতে আপনার <b>সিরিয়াল নম্বর</b> ও আপনার তৈরি করা পাসওয়ার্ড লাগবে।
         </p>
 
-        <a href="/login" class="btn-login">Go to Login</a>
+        <a href="/login" class="btn-login">লগইন পেজে যান</a>
     </div>
 </div>
 {% endblock %}

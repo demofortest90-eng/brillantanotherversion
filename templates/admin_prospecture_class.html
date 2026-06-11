@@ -5,7 +5,9 @@
     .back-link { color: #6366f1; text-decoration: none; font-weight: 700; font-size:13px; }
     .filter-bar { background: white; border-radius: 12px; padding: 15px 20px; border: 1px solid #e2e8f0; display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: flex-end; }
     .filter-bar select { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e0; font-size:13px; min-width:150px; }
-    .filter-bar button { background: #6366f1; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .filter-bar button, .filter-bar .btn-action { background: #6366f1; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:5px; }
+    .btn-csv-dl { background: #059669 !important; }
+    .btn-csv-dl:hover { background: #047857 !important; }
     .result-table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .result-table th { background: #f1f5f9; padding: 12px 15px; text-align: left; font-size: 12px; color: #475569; text-transform: uppercase; font-weight: 800; border-bottom: 2px solid #e2e8f0; }
     .result-table td { padding: 11px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
@@ -37,7 +39,7 @@
 </div>
 
 <!-- Filters -->
-<form method="GET" class="filter-bar">
+<form method="GET" class="filter-bar" id="filterForm">
     <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">GRADE</label>
         <select name="grade">
@@ -59,6 +61,10 @@
     </div>
     <button type="submit"><i class="fas fa-filter"></i> Filter</button>
     <a href="{{ url_for('admin_prospecture_class', student_class=student_class) }}" style="padding:9px 15px;border-radius:8px;border:1px solid #e2e8f0;color:#475569;text-decoration:none;font-size:13px;font-weight:700;">Clear</a>
+    <a href="{{ url_for('download_prospecture_csv', student_class=student_class) }}?grade={{ grade_filter }}&center={{ center_filter }}"
+       class="btn-action btn-csv-dl">
+        <i class="fas fa-file-csv"></i> CSV Download
+    </a>
 </form>
 
 {% if students %}

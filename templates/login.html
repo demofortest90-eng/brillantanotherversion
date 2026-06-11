@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Student Login | TBF{% endblock %}
+{% block title %}শিক্ষার্থী লগইন | টিবিএফ{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -54,7 +54,7 @@
     <div class="login-card">
         <div class="login-header">
             <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot-2026-01-20-020601-removebg-preview.png" alt="TBF Logo">
-            <h2>Student Login</h2>
+            <h2>শিক্ষার্থী লগইন</h2>
         </div>
         
         <div class="login-body">
@@ -73,25 +73,25 @@
 
             <form action="{{ url_for('login') }}" method="POST">
                 <div class="form-group">
-                    <label><i class="fas fa-id-card"></i> Serial Number</label>
-                    <input type="text" name="roll" class="form-control" placeholder="Enter Serial Number" required>
+                    <label><i class="fas fa-id-card"></i> সিরিয়াল / রোল নম্বর</label>
+                    <input type="text" name="roll" class="form-control" placeholder="সিরিয়াল নম্বর লিখুন" required>
                 </div>
-                
+
                 <div class="form-group">
-                    <label><i class="fas fa-lock"></i> Password</label>
-                    <input type="password" name="password" class="form-control" placeholder="Enter Password" required>
+                    <label><i class="fas fa-lock"></i> পাসওয়ার্ড</label>
+                    <input type="password" name="password" class="form-control" placeholder="পাসওয়ার্ড লিখুন" required>
                 </div>
 
                 <div class="forgot-link">
-                    <a href="{{ url_for('forgot_serial') }}"><i class="fas fa-question-circle"></i> Forgot Serial Number?</a>
+                    <a href="{{ url_for('forgot_serial') }}"><i class="fas fa-question-circle"></i> সিরিয়াল নম্বর ভুলে গেছেন?</a>
                 </div>
 
-                <button type="submit" class="btn-login">Login to Dashboard</button>
+                <button type="submit" class="btn-login">ড্যাশবোর্ডে লগইন করুন</button>
             </form>
         </div>
-        
+
         <div class="login-footer">
-            New Student? <a href="/apply" style="color: #e74c3c; text-decoration: none; font-weight: bold;">Register Here</a>
+            নতুন শিক্ষার্থী? <a href="/apply" style="color: #e74c3c; text-decoration: none; font-weight: bold;">এখানে রেজিস্ট্রেশন করুন</a>
         </div>
     </div>
 </div>

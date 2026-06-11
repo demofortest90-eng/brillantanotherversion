@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}সকল ফলাফল | দ্য ব্রিলিয়ান্টস ফাউন্ডেশন{% endblock %}
+
+{% block extra_css %}
+<style>
+    .results-container { max-width: 1100px; margin: 30px auto; padding: 0 15px; }
+    .results-card { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); border-top: 5px solid #1B2631; }
+    .results-header { text-align: center; margin-bottom: 25px; }
+    .results-header h2 { font-size: 1.7rem; font-weight: 900; color: #1B2631; margin: 0; }
+    .results-header p { color: #7F8C8D; font-size: 14px; margin-top: 6px; }
+
+    .filter-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; background: #f8fafc; padding: 16px; border-radius: 12px; margin-bottom: 20px; align-items: end; }
+    .filter-bar label { font-size: 12px; font-weight: 700; color: #475569; display: block; margin-bottom: 5px; }
+    .filter-bar select { width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; font-size: 14px; }
+    .btn-filter { background: #1B2631; color: white; border: none; padding: 11px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 14px; }
+    .btn-reset { background: #f1f5f9; color: #475569; text-decoration: none; text-align: center; padding: 11px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 14px; display: block; }
+    .btn-csv { background: #059669; color: white; border: none; padding: 11px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .btn-csv:hover { background: #047857; color: white; }
+
+    .summary-strip { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+    .count-badge { background: #1B2631; color: white; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+    .summary-actions { display: flex; gap: 8px; align-items: center; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 680px; }
+    thead tr { background: #1B2631; color: white; }
+    th { padding: 12px 14px; font-size: 12px; text-align: left; white-space: nowrap; }
+    td { padding: 12px 14px; font-size: 14px; border-top: 1px solid #f1f5f9; }
+    tbody tr:hover { background: #f8fafc; }
+    .rank-cell { font-weight: 900; color: #b45309; }
+    .total-cell { font-weight: 900; color: #1B2631; font-size: 15px; }
+
+    .grade-pill { display: inline-block; padding: 4px 12px; border-radius: 14px; font-size: 12px; font-weight: 800; }
+    .g-talentpool { background: #fef3c7; color: #92400e; }
+    .g-general { background: #d1fae5; color: #065f46; }
+    .g-suveccha { background: #dbeafe; color: #1e40af; }
+    .g-quata { background: #fce7f3; color: #9d174d; }
+    .g-none { background: #f1f5f9; color: #64748b; }
+
+    @media print {
+        nav, footer, .filter-bar, .btn-print-area, .summary-actions { display: none !important; }
+        .results-card { box-shadow: none; border: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <div class="results-card">
+        <div class="results-header">
+            <h2><i class="fas fa-trophy" style="color:#b45309;"></i> সকল ফলাফল (মেধাতালিকা)</h2>
+            <p>দ্য ব্রিলিয়ান্টস ফাউন্ডেশন — বৃত্তি পরীক্ষা ২০২৬</p>
+        </div>
+
+        <form method="GET" class="filter-bar" id="filterForm">
+            <div>
+                <label>শ্রেণি</label>
+                <select name="class">
+                    <option value="">-- সকল শ্রেণি --</option>
+                    {% for c in all_classes %}
+                    <option value="{{ c }}" {% if f_class == c|string %}selected{% endif %}>শ্রেণি {{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>পরীক্ষা কেন্দ্র</label>
+                <select name="center">
+                    <option value="">-- সকল কেন্দ্র --</option>
+                    {% for c in all_centers %}
+                    <option value="{{ c }}" {% if f_center == c|string %}selected{% endif %}>{{ center_names.get(c, c) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>বৃত্তির ধরন</label>
+                <select name="grade">
+                    <option value="">-- সকল --</option>
+                    <option value="Talentpool" {% if f_grade == 'Talentpool' %}selected{% endif %}>ট্যালেন্টপুল</option>
+                    <option value="General" {% if f_grade == 'General' %}selected{% endif %}>সাধারণ</option>
+                    <option value="Suveccha" {% if f_grade == 'Suveccha' %}selected{% endif %}>শুভেচ্ছা</option>
+                    <option value="Quata" {% if f_grade == 'Quata' %}selected{% endif %}>কোটা</option>
+                </select>
+            </div>
+            <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> ফিল্টার করুন</button>
+            <a href="{{ url_for('all_results') }}" class="btn-reset"><i class="fas fa-undo"></i> রিসেট</a>
+        </form>
+
+        <div class="summary-strip">
+            <span class="count-badge"><i class="fas fa-users"></i> মোট ফলাফল: {{ students|length }} জন</span>
+            <div class="summary-actions">
+                <a href="{{ url_for('download_results_csv') }}?class={{ f_class }}&center={{ f_center }}&grade={{ f_grade }}"
+                   class="btn-csv">
+                    <i class="fas fa-file-csv"></i> CSV ডাউনলোড
+                </a>
+                <button onclick="window.print()" class="btn-filter btn-print-area" style="padding: 8px 18px;">
+                    <i class="fas fa-print"></i> প্রিন্ট করুন
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ক্রম</th>
+                        <th>নাম</th>
+                        <th>শ্রেণি</th>
+                        <th>প্রতিষ্ঠান</th>
+                        <th>কেন্দ্র</th>
+                        <th>বাংলা</th>
+                        <th>ইংরেজি</th>
+                        <th>গণিত</th>
+                        <th>সা.জ্ঞান</th>
+                        <th>মোট</th>
+                        <th>বৃত্তি</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="rank-cell">{{ loop.index }}</td>
+                        <td>{{ s.name_bn or s.name_en }}</td>
+                        <td>{{ s.student_class }}</td>
+                        <td style="font-size:13px;">{{ s.institute_bn or s.institute_en }}</td>
+                        <td style="font-size:13px;">{{ center_names.get(s.center_code, s.center_code) }}</td>
+                        <td>{{ (s.marks or {}).get('bangla', 0) }}</td>
+                        <td>{{ (s.marks or {}).get('english', 0) }}</td>
+                        <td>{{ (s.marks or {}).get('math', 0) }}</td>
+                        <td>{{ (s.marks or {}).get('gk', 0) }}</td>
+                        <td class="total-cell">{{ (s.marks or {}).get('total', 0) }}</td>
+                        <td>
+                            {% set g = s.scholarship_grade %}
+                            {% if g == 'Talentpool' %}<span class="grade-pill g-talentpool">ট্যালেন্টপুল</span>
+                            {% elif g == 'General' %}<span class="grade-pill g-general">সাধারণ</span>
+                            {% elif g == 'Suveccha' %}<span class="grade-pill g-suveccha">শুভেচ্ছা</span>
+                            {% elif g == 'Quata' %}<span class="grade-pill g-quata">কোটা</span>
+                            {% else %}<span class="grade-pill g-none">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="11" style="text-align:center; padding: 40px; color:#94a3b8;">
+                            <i class="fas fa-search" style="font-size:1.6rem; display:block; margin-bottom:8px;"></i>
+                            এই ফিল্টারে কোনো ফলাফল পাওয়া যায়নি।
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result Card - {{ student.roll_no }}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Hind+Siliguri:wght@500;700&display=swap" rel="stylesheet">
+    <title>ফলাফল কার্ড - {{ student.roll_no }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
+
     <style>
         :root {
             --primary-dark: #1B2631;
@@ -15,15 +15,45 @@
             --text-main: #1e293b;
             --grid-bg: #e2e8f0;
         }
-        
-        @import url('https://fonts.maateen.me/kalpurush/font.css');
 
         body {
             background-color: var(--bg-neutral);
-            font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif;
+            font-family: "Hind Siliguri", "Kalpurush", Arial, sans-serif;
             margin: 0;
             padding: 40px 20px;
             color: var(--text-main);
+        }
+
+        h1, h2, h3 { font-family: "Noto Serif Bengali", "Hind Siliguri", serif; }
+
+        /* Subject-wise marks */
+        .marks-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .marks-table th {
+            background: var(--primary-dark);
+            color: #fff;
+            padding: 10px 14px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .marks-table td {
+            padding: 12px 14px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .marks-table .total-cell {
+            background: #FEF3C7;
+            color: var(--accent-gold);
+            font-size: 18px;
         }
 
         .result-wrapper {
@@ -202,8 +232,8 @@
 
     <div class="result-wrapper">
         <div class="result-header">
-            <h2>Official Result Certificate</h2>
-            <p style="color: #64748b; margin-top: 5px;">Academic Year 2025-2026</p>
+            <h2>অফিসিয়াল ফলাফল সনদ</h2>
+            <p style="color: #64748b; margin-top: 5px;">শিক্ষাবর্ষ ২০২৫-২০২৬ | দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</p>
         </div>
 
         <div class="result-grid-container">
@@ -220,32 +250,84 @@
             <div class="data-grid">
                 <div class="info-strip">
                     <i class="fas fa-user" style="margin-right: 10px; color: var(--accent-gold);"></i>
-                    {{ student.name_en }}
+                    {{ student.name_bn or student.name_en }}
                 </div>
 
                 <div class="info-strip">
                     <i class="fas fa-university" style="margin-right: 10px; color: var(--accent-gold);"></i>
-                    {{ student.institute_en }}
+                    {{ student.institute_bn or student.institute_en }}
                 </div>
 
                 <div class="split-row">
                     <div class="info-strip">
                         <i class="fas fa-map-marker-alt" style="margin-right: 10px; color: var(--accent-gold);"></i>
-                        Center: {{ student.center_code }}
+                        কেন্দ্র: {{ center_name or student.center_code }}
                     </div>
                     <div class="info-strip">
                         <i class="fas fa-graduation-cap" style="margin-right: 10px; color: var(--accent-gold);"></i>
-                        Class: {{ student.student_class }}
+                        শ্রেণি: {{ student.student_class }}
                     </div>
                 </div>
 
+                <div class="split-row">
+                    <div class="info-strip" style="grid-column: 1 / -1; text-align: center; justify-content: center;">
+                        <i class="fas fa-award" style="margin-right: 10px; color: var(--accent-gold);"></i>
+                        {% if student.scholarship_grade == 'Talentpool' %}
+                            <strong style="color: #d97706;">ট্যালেন্টপুল বৃত্তি প্রাপ্ত</strong>
+                        {% elif student.scholarship_grade == 'General' %}
+                            <strong style="color: #059669;">সাধারণ বৃত্তি প্রাপ্ত</strong>
+                        {% elif student.scholarship_grade == 'Suveccha' %}
+                            <strong style="color: #2563eb;">শুভেচ্ছা পুরস্কার প্রাপ্ত</strong>
+                        {% elif student.scholarship_grade == 'Quata' %}
+                            <strong style="color: #ec4899;">কোটা বৃত্তি প্রাপ্ত</strong>
+                        {% else %}
+                            <strong style="color: #64748b;">বৃত্তি পাওয়া যায়নি</strong>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if student.marks %}
+                <table class="marks-table">
+                    <thead>
+                        <tr>
+                            <th>বাংলা (২৫)</th>
+                            <th>ইংরেজি (২৫)</th>
+                            <th>গণিত (২৫)</th>
+                            <th>সাধারণ জ্ঞান (২৫)</th>
+                            <th>মোট (১০০)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ student.marks.bangla|default(0) }}</td>
+                            <td>{{ student.marks.english|default(0) }}</td>
+                            <td>{{ student.marks.math|default(0) }}</td>
+                            <td>{{ student.marks.gk|default(0) }}</td>
+                            <td class="total-cell">{{ student.marks.total|default(0) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="info-strip" style="text-align:center; color:#94a3b8;">
+                    <i class="fas fa-clock"></i> নম্বর এখনো এন্ট্রি করা হয়নি।
+                </div>
+                {% endif %}
+
                 <div class="grade-highlight">
-                    <span class="grade-label">Scholarship Status</span>
+                    <span class="grade-label">বৃত্তির ফলাফল</span>
                     <div class="grade-value">
-                        {% if student.scholarship_grade and student.scholarship_grade != 'Nothing' %}
+                        {% if student.scholarship_grade == 'Talentpool' %}
+                            ট্যালেন্টপুল বৃত্তি
+                        {% elif student.scholarship_grade == 'General' %}
+                            সাধারণ বৃত্তি
+                        {% elif student.scholarship_grade == 'Suveccha' %}
+                            শুভেচ্ছা পুরস্কার
+                        {% elif student.scholarship_grade == 'Quata' %}
+                            কোটা বৃত্তি
+                        {% elif student.scholarship_grade and student.scholarship_grade != 'Nothing' %}
                             {{ student.scholarship_grade | upper }}
                         {% else %}
-                            NOTHING
+                            বৃত্তি পাওয়া যায়নি
                         {% endif %}
                     </div>
                 </div>
@@ -254,7 +336,7 @@
                 <div style="text-align: center; margin-top: 25px;">
                     <a href="{{ url_for('download_scholarship_certificate') }}" target="_blank"
                        style="display: inline-flex; align-items: center; gap: 10px; background: var(--accent-gold); color: #fff; padding: 14px 28px; border-radius: 10px; font-weight: 700; text-decoration: none; font-size: 14px;">
-                        <i class="fas fa-award"></i> Download Scholarship Certificate
+                        <i class="fas fa-award"></i> বৃত্তির সার্টিফিকেট ডাউনলোড করুন
                     </a>
                 </div>
                 {% endif %}
@@ -263,15 +345,18 @@
 
         <div style="margin-top: 30px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px;">
             <p style="font-size: 12px; color: #94a3b8; font-style: italic;">
-                Verified by The Brilliants Foundation. This is a secure digital record.
+                দ্য ব্রিলিয়ান্টস ফাউন্ডেশন কর্তৃক যাচাইকৃত। এটি একটি সুরক্ষিত ডিজিটাল রেকর্ড।
             </p>
         </div>
     </div>
 
     <div class="action-area">
         <button onclick="window.print()" class="btn btn-print">
-            <i class="fas fa-print"></i> Print Result
+            <i class="fas fa-print"></i> ফলাফল প্রিন্ট করুন
         </button>
+        <a href="{{ url_for('all_results') }}" class="btn btn-more">
+            <i class="fas fa-list-ol"></i> সকল ফলাফল দেখুন
+        </a>
     </div>
 
 </body>

@@ -1,20 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="https://i.postimg.cc/SsLDX6WZ/Screenshot-2026-01-20-020601-removebg-preview.png">
-    
-    <title>{% block title %}The Brilliants Foundation{% endblock %}</title>
+
+    <title>{% block title %}দ্য ব্রিলিয়ান্টস ফাউন্ডেশন{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <style>
-        @import url('https://fonts.maateen.me/kalpurush/font.css');
-        
+        body, button, input, select, textarea {
+            font-family: "Hind Siliguri", "Noto Serif Bengali", "Kalpurush", Arial, sans-serif;
+        }
         body {
-            font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif;
             background: #f8fafc;
+        }
+        h1, h2, h3, h4 {
+            font-family: "Noto Serif Bengali", "Hind Siliguri", "Kalpurush", serif;
         }
         /* ===== FLASH MESSAGE STYLES ===== */
         .flash-wrapper{
@@ -91,11 +97,12 @@
         </div>
 
         <div class="nav-links" id="nav-list">
-            <a href="/notices">Notices</a>
-            <a href="/apply">Apply</a>
-            <a href="/download-admit">Download Admit Card</a>
-            <a href="/contact">Contact</a>
-            <a href="/login" style="background: var(--gold); color: var(--navy);">Login</a>
+            <a href="/notices">নোটিশ</a>
+            <a href="/apply">আবেদন</a>
+            <a href="/download-admit">প্রবেশপত্র ডাউনলোড</a>
+            <a href="/result-search">ফলাফল</a>
+            <a href="/contact">যোগাযোগ</a>
+            <a href="/login" style="background: var(--gold); color: var(--navy);">লগইন</a>
         </div>
     </nav>
 
@@ -120,8 +127,8 @@
 
     <!-- ===== FOOTER ===== -->
     <footer>
-        <p><strong>THE BRILLIANTS FOUNDATION, BOGURA</strong></p>
-        <p>&copy; 2026 Admission Portal. All Rights Reserved.</p>
+        <p><strong>দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</strong></p>
+        <p>&copy; ২০২৬ ভর্তি পোর্টাল। সর্বস্বত্ব সংরক্ষিত।</p>
         <a href="https://teslaxtech.onrender.com/" class="tesla-link">
             Made with TeslaXTech
         </a>

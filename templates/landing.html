@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Home | TBF 2026{% endblock %}
+{% block title %}হোম | টিবিএফ ২০২৬{% endblock %}
 
 {% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
 <style>
@@ -17,14 +17,16 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    @import url('https://fonts.maateen.me/kalpurush/font.css');
-
     body {
-        font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif;
+        font-family: "Hind Siliguri", "Kalpurush", Arial, sans-serif;
         color: var(--dark);
         overflow-x: hidden;
         background: #fff;
         -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4 {
+        font-family: "Noto Serif Bengali", "Hind Siliguri", serif;
     }
 
     .container {
@@ -226,8 +228,8 @@
         <h1 class="reveal active">মেধার অন্বেষণে <br><span style="color: var(--gold);">টিবিএফ ২০২৬</span></h1>
         <p class="reveal active">বগুড়ার মেধাবী শিক্ষার্থীদের জন্য এক বিশ্বস্ত ও আধুনিক প্লাটফর্ম।</p>
         <div class="hero-btns reveal active">
-            <a href="/apply" class="btn btn-gold">Apply Now</a>
-            <a href="#dates" class="btn btn-border">Timeline</a>
+            <a href="/apply" class="btn btn-gold">এখনই আবেদন করুন</a>
+            <a href="#dates" class="btn btn-border">সময়সূচী</a>
         </div>
     </div>
 </section>
@@ -297,41 +299,22 @@
     </div>
     
     <div class="leader-grid">
-        <div class="leader-card reveal" onclick="toggleSpeech('speech-1')">
+        {% for leader in leaders %}
+        <div class="leader-card reveal" onclick="toggleSpeech('speech-{{ loop.index }}')">
             <div class="leader-img-box">
-                <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" alt="Chairman">
+                <img src="{{ leader.photo_url }}" alt="{{ leader.name }}"
+                     onerror="this.src='https://ui-avatars.com/api/?name=TBF&background=020617&color=C5A059'">
             </div>
-            <h3>মোঃ নজরুল ইসলাম</h3>
-            <span>চেয়ারম্যান</span>
+            <h3>{{ leader.name }}</h3>
+            <span>{{ leader.designation }}</span>
+            {% if leader.speech %}
             <div class="speech-trigger"><i class="fas fa-quote-left"></i> বাণী দেখুন</div>
-            <div id="speech-1" class="speech-text">
-                "মেধাবীদের সঠিক মূল্যায়ন এবং তাদের উচ্চশিক্ষার পথ সুগম করাই আমাদের প্রধান লক্ষ্য। আমরা বিশ্বাস করি বগুড়ার শিক্ষার্থীরা আগামীতে দেশের মুখ উজ্জ্বল করবে।"
+            <div id="speech-{{ loop.index }}" class="speech-text">
+                "{{ leader.speech }}"
             </div>
+            {% endif %}
         </div>
-
-        <div class="leader-card reveal" onclick="toggleSpeech('speech-2')">
-            <div class="leader-img-box">
-                <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" alt="Director">
-            </div>
-            <h3>ড. আবু সাঈদ</h3>
-            <span>পরিচালক (শিক্ষা)</span>
-            <div class="speech-trigger"><i class="fas fa-quote-left"></i> বাণী দেখুন</div>
-            <div id="speech-2" class="speech-text">
-                "স্বচ্ছতা এবং আধুনিক পরীক্ষা পদ্ধতির মাধ্যমে আমরা একটি বিশ্বস্ত মেধা যাচাই প্রক্রিয়া গড়ে তুলেছি। আমরা শিক্ষার্থীদের গুণগত মান বৃদ্ধিতে প্রতিশ্রুতিবদ্ধ।"
-            </div>
-        </div>
-
-        <div class="leader-card reveal" onclick="toggleSpeech('speech-3')">
-            <div class="leader-img-box">
-                <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" alt="Director">
-            </div>
-            <h3>জনাব আহসান হাবীব</h3>
-            <span>সমন্বয়কারী</span>
-            <div class="speech-trigger"><i class="fas fa-quote-left"></i> বাণী দেখুন</div>
-            <div id="speech-3" class="speech-text">
-                "টিবিএফ একটি পরিবারের মতো। গত এক দশক ধরে আমরা বগুড়ার প্রতিটি শিক্ষা প্রতিষ্ঠানের সাথে সমন্বয় করে মেধাবীদের জন্য কাজ করে যাচ্ছি।"
-            </div>
-        </div>
+        {% endfor %}
     </div>
 </section>
 
