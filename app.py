@@ -44,9 +44,36 @@ def generate_numbers():
     roll = ''.join(random.choices(string.digits, k=5))
     return reg, roll
 
+DEFAULT_LEADERS = [
+    {
+        "name": "মোঃ নজরুল ইসলাম",
+        "designation": "চেয়ারম্যান",
+        "photo_url": "https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png",
+        "speech": "মেধাবীদের সঠিক মূল্যায়ন এবং তাদের উচ্চশিক্ষার পথ সুগম করাই আমাদের প্রধান লক্ষ্য। আমরা বিশ্বাস করি বগুড়ার শিক্ষার্থীরা আগামীতে দেশের মুখ উজ্জ্বল করবে।"
+    },
+    {
+        "name": "ড. আবু সাঈদ",
+        "designation": "পরিচালক (শিক্ষা)",
+        "photo_url": "https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png",
+        "speech": "স্বচ্ছতা এবং আধুনিক পরীক্ষা পদ্ধতির মাধ্যমে আমরা একটি বিশ্বস্ত মেধা যাচাই প্রক্রিয়া গড়ে তুলেছি। আমরা শিক্ষার্থীদের গুণগত মান বৃদ্ধিতে প্রতিশ্রুতিবদ্ধ।"
+    },
+    {
+        "name": "জনাব আহসান হাবীব",
+        "designation": "সমন্বয়কারী",
+        "photo_url": "https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png",
+        "speech": "টিবিএফ একটি পরিবারের মতো। গত এক দশক ধরে আমরা বগুড়ার প্রতিটি শিক্ষা প্রতিষ্ঠানের সাথে সমন্বয় করে মেধাবীদের জন্য কাজ করে যাচ্ছি।"
+    }
+]
+
 @app.route('/')
 def landing():
-    return render_template('landing.html')
+    try:
+        leaders = list(mongo.db.leaders.find().sort("order", 1))
+    except Exception:
+        leaders = []
+    if not leaders:
+        leaders = DEFAULT_LEADERS
+    return render_template('landing.html', leaders=leaders)
 
 def upload_to_imgbb(file):
     api_key = "0bb1747f7045ccee9cc03c792b828a67"
@@ -83,12 +110,12 @@ def apply():
             password = request.form.get('password')
             confirm_password = request.form.get('confirm_password')
             if not password or password != confirm_password:
-                flash("Passwords do not match!", "danger")
+                flash("পাসওয়ার্ড দুটি মিলছে না!", "danger")
                 return redirect(request.url)
 
             mobile_number = request.form.get('mobile', '').strip()
             if not mobile_number:
-                flash("Mobile number is required!", "danger")
+                flash("মোবাইল নম্বর অবশ্যই দিতে হবে!", "danger")
                 return redirect(request.url)
 
             existing_student = mongo.db.students.find_one({"mobile": mobile_number})
@@ -101,11 +128,11 @@ def apply():
 
             if not photo_url:
                 if not photo_file or not photo_file.filename:
-                    flash("Student Photo is required!", "danger")
+                    flash("শিক্ষার্থীর ছবি অবশ্যই দিতে হবে!", "danger")
                     return redirect(request.url)
                 photo_url = upload_to_imgbb(photo_file)
                 if not photo_url:
-                    flash("Image upload failed! Please try again.", "danger")
+                    flash("ছবি আপলোড ব্যর্থ হয়েছে! অনুগ্রহ করে আবার চেষ্টা করুন।", "danger")
                     return redirect(request.url)
 
             reg_no, roll_no = generate_numbers()
@@ -149,12 +176,12 @@ def apply():
             }
 
             mongo.db.students.insert_one(student_data)
-            flash("Application Submitted Successfully!", "success")
+            flash("আবেদন সফলভাবে জমা হয়েছে!", "success")
             return render_template("success.html", roll=roll_no, reg=reg_no, mobile=student_data["mobile"])
 
         except Exception as e:
             print(f"Submission Error: {e}")
-            flash("An error occurred. Please try again.", "danger")
+            flash("একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।", "danger")
             return redirect(request.url)
 
     all_centers = list(mongo.db.centers.find().sort("center_code", 1))
@@ -170,31 +197,37 @@ def notices():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        roll = request.form.get('roll')
-        pw = request.form.get('password')
+        roll = (request.form.get('roll') or '').strip()
+        pw = request.form.get('password') or ''
 
         if not roll or not pw:
             flash("রোল এবং পাসওয়ার্ড উভয়ই প্রদান করুন।", "danger")
             return redirect(url_for('login'))
 
-        user = mongo.db.students.find_one({
-            "$or": [
-                {"roll_no": roll},
-                {"roll_no": int(roll) if roll.isdigit() else None}
-            ]
-        })
+        try:
+            or_conditions = [{"roll_no": roll}, {"reg_no": roll}]
+            if roll.isdigit():
+                or_conditions.append({"roll_no": int(roll)})
+            user = mongo.db.students.find_one({"$or": or_conditions})
 
-        if user:
-            if check_password_hash(user['password'], pw):
-                session.permanent = True
-                session['user_id'] = str(user['_id'])
-                session['student_roll'] = user['roll_no']
-                flash("সফলভাবে লগইন হয়েছে!", "success")
-                return redirect(url_for('dashboard'))
+            if user:
+                stored_pw = user.get('password')
+                # Some legacy records may not have a password hash — avoid 500 crash
+                if stored_pw and check_password_hash(stored_pw, pw):
+                    session.permanent = True
+                    session['user_id'] = str(user['_id'])
+                    session['student_roll'] = str(user.get('roll_no', ''))
+                    flash("সফলভাবে লগইন হয়েছে!", "success")
+                    return redirect(url_for('dashboard'))
+                elif not stored_pw:
+                    flash("এই একাউন্টে কোনো পাসওয়ার্ড সেট করা নেই। অনুগ্রহ করে এডমিনের সাথে যোগাযোগ করুন।", "danger")
+                else:
+                    flash("ভুল পাসওয়ার্ড, আবার চেষ্টা করুন।", "danger")
             else:
-                flash("ভুল পাসওয়ার্ড, আবার চেষ্টা করুন।", "danger")
-        else:
-            flash("এই রোল নম্বরটি সিস্টেমে পাওয়া যায়নি।", "danger")
+                flash("এই রোল নম্বরটি সিস্টেমে পাওয়া যায়নি।", "danger")
+        except Exception as e:
+            print(f"Login Error: {e}")
+            flash("লগইন করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।", "danger")
         return redirect(url_for('login'))
 
     return render_template('login.html')
@@ -204,10 +237,13 @@ def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('login'))
 
-    student = mongo.db.students.find_one({"_id": ObjectId(session['user_id'])})
+    try:
+        student = mongo.db.students.find_one({"_id": ObjectId(session['user_id'])})
+    except Exception:
+        student = None
     if not student:
         session.clear()
-        flash("Account error. Please login again.", "danger")
+        flash("একাউন্টে সমস্যা হয়েছে। অনুগ্রহ করে আবার লগইন করুন।", "danger")
         return redirect(url_for('login'))
 
     is_verified = student.get('verification', False)
@@ -215,12 +251,14 @@ def dashboard():
     is_published = setting['value'] if setting else False
 
     if request.method == 'POST':
-        tran_id = request.form.get('tran_id')
-        mongo.db.students.update_one(
-            {"_id": ObjectId(session['user_id'])},
-            {"$set": {"tran_id": tran_id}}
-        )
-        flash("Transaction ID submitted! Waiting for approval.", "info")
+        tran_id = request.form.get('tran_id', '').strip()
+        payment_method = request.form.get('payment_method', 'bKash').strip()
+        if tran_id:
+            mongo.db.students.update_one(
+                {"_id": ObjectId(session['user_id'])},
+                {"$set": {"tran_id": tran_id, "payment_method": payment_method}}
+            )
+            flash("ট্রানজেকশন আইডি জমা হয়েছে! অনুমোদনের জন্য অপেক্ষা করুন।", "info")
         return redirect(url_for('dashboard'))
 
     return render_template('dashboard.html', student=student, is_verified=is_verified, is_published=is_published)
@@ -231,7 +269,7 @@ def download_slip():
         return redirect(url_for('login'))
     student = mongo.db.students.find_one({"_id": ObjectId(session['user_id'])})
     if not student or not student.get('verification'):
-        flash("Access Denied: Account not verified.", "danger")
+        flash("দুঃখিত! আপনার একাউন্টটি এখনো ভেরিফাই করা হয়নি।", "danger")
         return redirect(url_for('dashboard'))
     return render_template('payment_slip.html', student=student)
 
@@ -240,7 +278,7 @@ def download_admit():
     if request.method == 'POST':
         query = request.form.get('search_query', '').strip()
         if not query:
-            flash("Please enter a Roll or Mobile number.", "warning")
+            flash("অনুগ্রহ করে রোল বা মোবাইল নম্বর লিখুন।", "warning")
             return redirect(url_for('download_admit'))
 
         if len(query) == 11 and query.isdigit():
@@ -250,14 +288,14 @@ def download_admit():
 
         if student:
             if not student.get('verification', False):
-                flash("Your registration is not verified yet. Please contact admin.", "danger")
+                flash("আপনার রেজিস্ট্রেশন এখনো ভেরিফাই হয়নি। অনুগ্রহ করে এডমিনের সাথে যোগাযোগ করুন।", "danger")
                 return redirect(url_for('download_admit'))
 
             center_info = mongo.db.centers.find_one({"center_code": student.get('center_code')})
             center_display_name = center_info.get('center_name_bn') if center_info else student.get('center_code')
             return render_template('admit_card.html', student=student, center_name=center_display_name)
         else:
-            flash("No student found with this Roll or Mobile number.", "danger")
+            flash("এই রোল বা মোবাইল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।", "danger")
             return redirect(url_for('download_admit'))
 
     return render_template('admit_search.html')
@@ -266,13 +304,116 @@ def download_admit():
 def view_result():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    student = mongo.db.students.find_one({"_id": ObjectId(session['user_id'])})
+    try:
+        student = mongo.db.students.find_one({"_id": ObjectId(session['user_id'])})
+    except Exception:
+        student = None
+    if not student:
+        session.clear()
+        return redirect(url_for('login'))
     setting = mongo.db.settings.find_one({"key": "result_published"})
     is_published = setting['value'] if setting else False
     if not is_published or not student.get('verification'):
-        flash("Result is not available yet.", "warning")
+        flash("ফলাফল এখনো প্রকাশিত হয়নি।", "warning")
         return redirect(url_for('dashboard'))
-    return render_template('result_card.html', student=student)
+    center_info = mongo.db.centers.find_one({"center_code": student.get('center_code')})
+    center_name = center_info.get('center_name_bn') if center_info else student.get('center_code')
+    return render_template('result_card.html', student=student, center_name=center_name)
+
+
+@app.route('/results/all')
+def all_results():
+    """Public merit list — all published results with class & center filters"""
+    setting = mongo.db.settings.find_one({"key": "result_published"})
+    is_published = setting['value'] if setting else False
+    if not is_published:
+        flash("ফলাফল এখনো প্রকাশিত হয়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।", "warning")
+        return redirect(url_for('public_result_search'))
+
+    f_class = request.args.get('class', '').strip()
+    f_center = request.args.get('center', '').strip()
+    f_grade = request.args.get('grade', '').strip()
+
+    query = {"marks": {"$exists": True}}
+    if f_class:
+        query["student_class"] = f_class
+    if f_center:
+        query["center_code"] = f_center
+    if f_grade:
+        query["scholarship_grade"] = f_grade
+
+    students = list(mongo.db.students.find(query).sort([("student_class", 1), ("marks.total", -1)]))
+    all_centers = sorted([c for c in mongo.db.students.distinct("center_code") if c], key=str)
+    all_classes = sorted([c for c in mongo.db.students.distinct("student_class") if c], key=str)
+    center_names = {c.get('center_code'): c.get('center_name_bn') or c.get('center_name_en')
+                    for c in mongo.db.centers.find()}
+
+    return render_template('all_results.html',
+                           students=students,
+                           all_centers=all_centers,
+                           all_classes=all_classes,
+                           center_names=center_names,
+                           f_class=f_class, f_center=f_center, f_grade=f_grade)
+
+@app.route('/results/download-csv')
+def download_results_csv():
+    """Public merit list CSV download with same filters as all_results"""
+    setting = mongo.db.settings.find_one({"key": "result_published"})
+    is_published = setting['value'] if setting else False
+    if not is_published:
+        flash("ফলাফল এখনো প্রকাশিত হয়নি।", "warning")
+        return redirect(url_for('public_result_search'))
+
+    f_class = request.args.get('class', '').strip()
+    f_center = request.args.get('center', '').strip()
+    f_grade = request.args.get('grade', '').strip()
+
+    query = {"marks": {"$exists": True}}
+    if f_class:
+        query["student_class"] = f_class
+    if f_center:
+        query["center_code"] = f_center
+    if f_grade:
+        query["scholarship_grade"] = f_grade
+
+    students = list(mongo.db.students.find(query).sort([("student_class", 1), ("marks.total", -1)]))
+    center_names = {c.get('center_code'): c.get('center_name_bn') or c.get('center_name_en')
+                    for c in mongo.db.centers.find()}
+
+    output = io.StringIO()
+    output.write(u'\ufeff')
+    writer = csv.writer(output)
+    writer.writerow(['ক্রম', 'নাম (বাংলা)', 'নাম (ইংরেজি)', 'শ্রেণি', 'প্রতিষ্ঠান', 'কেন্দ্র',
+                     'বাংলা', 'ইংরেজি', 'গণিত', 'সাধারণ জ্ঞান', 'মোট', 'বৃত্তি গ্রেড'])
+    for idx, s in enumerate(students, 1):
+        marks = s.get('marks') or {}
+        center_display = center_names.get(s.get('center_code'), s.get('center_code', ''))
+        writer.writerow([
+            idx,
+            s.get('name_bn', ''),
+            s.get('name_en', ''),
+            s.get('student_class', ''),
+            s.get('institute_bn') or s.get('institute_en', ''),
+            center_display,
+            marks.get('bangla', ''),
+            marks.get('english', ''),
+            marks.get('math', ''),
+            marks.get('gk', ''),
+            marks.get('total', ''),
+            s.get('scholarship_grade', '')
+        ])
+    output.seek(0)
+    file_parts = ['Results']
+    if f_class:
+        file_parts.append(f'Class{f_class}')
+    if f_center:
+        file_parts.append(f'Center{f_center}')
+    if f_grade:
+        file_parts.append(f_grade)
+    filename = '_'.join(file_parts) + '.csv'
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-disposition": f"attachment; filename={filename}"})
+
 
 @app.route('/download-scholarship-certificate')
 def download_scholarship_certificate():
@@ -302,7 +443,7 @@ def download_scholarship_certificate():
 @app.route('/logout')
 def logout():
     session.clear()
-    flash('You have been logged out successfully.', 'info')
+    flash('আপনি সফলভাবে লগআউট হয়েছেন।', 'info')
     return redirect(url_for('login'))
 
 @app.route('/contact', methods=['GET', 'POST'])
@@ -313,18 +454,18 @@ def contact():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('error.html', code=404, message="Page Not Found",
-        description="The page you are looking for might have been removed, had its name changed, or is temporarily unavailable."), 404
+    return render_template('error.html', code=404, message="পেজটি খুঁজে পাওয়া যায়নি",
+        description="আপনি যে পেজটি খুঁজছেন সেটি সরিয়ে ফেলা হয়েছে, নাম পরিবর্তন করা হয়েছে অথবা সাময়িকভাবে অনুপলব্ধ।"), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('error.html', code=500, message="Internal Server Error",
-        description="Oops! Something went wrong on our end. Please try again later or contact support."), 500
+    return render_template('error.html', code=500, message="সার্ভারে সমস্যা হয়েছে",
+        description="দুঃখিত! আমাদের সার্ভারে একটি সমস্যা হয়েছে। অনুগ্রহ করে কিছুক্ষণ পরে আবার চেষ্টা করুন।"), 500
 
 @app.errorhandler(403)
 def forbidden(e):
-    return render_template('error.html', code=403, message="Access Forbidden",
-        description="You don't have permission to access this page. Please make sure you are logged in."), 403
+    return render_template('error.html', code=403, message="প্রবেশাধিকার নেই",
+        description="এই পেজে প্রবেশের অনুমতি আপনার নেই। অনুগ্রহ করে লগইন করেছেন কিনা নিশ্চিত করুন।"), 403
 
 # --- ADMIN LOGIN (Bug Fixed: username check was broken) ---
 @app.route('/admin-login', methods=['GET', 'POST'])
@@ -352,9 +493,12 @@ def admin_dashboard():
     search_query = request.args.get('search', '').strip()
     center_filter = request.args.get('center', '').strip()
     class_filter = request.args.get('class', '').strip()
+    status_filter = request.args.get('status', '').strip()
 
-    available_centers = mongo.db.students.distinct("center_code")
-    available_classes = mongo.db.students.distinct("student_class")
+    available_centers = sorted([c for c in mongo.db.students.distinct("center_code") if c], key=str)
+    available_classes = sorted([c for c in mongo.db.students.distinct("student_class") if c], key=str)
+    center_names = {c.get('center_code'): c.get('center_name_bn') or c.get('center_name_en')
+                    for c in mongo.db.centers.find()}
 
     query = {}
     if search_query:
@@ -369,12 +513,17 @@ def admin_dashboard():
         query["center_code"] = center_filter
     if class_filter:
         query["student_class"] = class_filter
+    if status_filter == 'Verified':
+        query["status"] = "Verified"
+    elif status_filter == 'Pending':
+        query["status"] = {"$ne": "Verified"}
 
     students = list(mongo.db.students.find(query).sort("roll_no", 1))
     stats = {
         "total": mongo.db.students.count_documents({}),
         "pending": mongo.db.students.count_documents({"status": {"$ne": "Verified"}}),
-        "verified": mongo.db.students.count_documents({"status": "Verified"})
+        "verified": mongo.db.students.count_documents({"status": "Verified"}),
+        "filtered": len(students)
     }
 
     return render_template('admin_panel.html',
@@ -382,9 +531,11 @@ def admin_dashboard():
                            stats=stats,
                            available_centers=available_centers,
                            available_classes=available_classes,
+                           center_names=center_names,
                            current_search=search_query,
                            current_center=center_filter,
-                           current_class=class_filter)
+                           current_class=class_filter,
+                           current_status=status_filter)
 
 @app.route('/admin/participant-summary')
 def participant_summary():
@@ -1115,6 +1266,54 @@ def admin_prospecture_class(student_class):
                            all_centers=all_centers)
 
 
+@app.route('/admin/prospecture/class/<student_class>/download-csv')
+def download_prospecture_csv(student_class):
+    """Download CSV of scholarship students for a given class"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    grade_filter = request.args.get('grade', '').strip()
+    center_filter = request.args.get('center', '').strip()
+
+    query = {"student_class": student_class, "scholarship_grade": {"$exists": True, "$ne": "Nothing"}}
+    if grade_filter:
+        query["scholarship_grade"] = grade_filter
+    if center_filter:
+        query["center_code"] = center_filter
+
+    students = list(mongo.db.students.find(query).sort([("scholarship_grade", 1), ("marks.total", -1)]))
+
+    output = io.StringIO()
+    output.write(u'\ufeff')
+    writer = csv.writer(output)
+    writer.writerow(['#', 'Roll No', 'Reg No', 'Name (EN)', 'Name (BN)', 'Institute', 'Center',
+                     'Bangla', 'English', 'Math', 'GK', 'Total', 'Scholarship Grade'])
+    for idx, s in enumerate(students, 1):
+        marks = s.get('marks') or {}
+        writer.writerow([
+            idx,
+            s.get('roll_no', ''),
+            s.get('reg_no', ''),
+            s.get('name_en', ''),
+            s.get('name_bn', ''),
+            s.get('institute_en') or s.get('institute_bn', ''),
+            s.get('center_code', ''),
+            marks.get('bangla', ''),
+            marks.get('english', ''),
+            marks.get('math', ''),
+            marks.get('gk', ''),
+            marks.get('total', ''),
+            s.get('scholarship_grade', '')
+        ])
+    output.seek(0)
+    filename = f"Prospecture_Class{student_class}"
+    if grade_filter:
+        filename += f"_{grade_filter}"
+    filename += ".csv"
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-disposition": f"attachment; filename={filename}"})
+
+
 @app.route('/admin/prospecture/search-result', methods=['GET', 'POST'])
 def admin_prospecture_result_search():
     """Admin panel - Search student result by roll, mobile, or school name"""
@@ -1191,6 +1390,119 @@ def public_result_search():
             flash("অনুগ্রহ করে রোল বা মোবাইল নম্বর লিখুন।", "danger")
 
     return render_template('public_result_search.html', student=student, search_done=search_done)
+
+
+# =====================================================================
+# HOMEPAGE CONTENT (LEADERSHIP / SPEECH SECTION) MANAGEMENT
+# =====================================================================
+
+@app.route('/admin/homepage')
+def admin_homepage():
+    """Admin: manage homepage leadership/speech section (names, designations, speeches, photos)"""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    leaders = list(mongo.db.leaders.find().sort("order", 1))
+    return render_template('admin_homepage.html', leaders=leaders)
+
+
+def _resolve_leader_photo(default_url=None):
+    """Photo can come as an uploaded file (sent to ImgBB) or a direct URL"""
+    photo_file = request.files.get('photo')
+    photo_url_input = request.form.get('photo_url', '').strip()
+    if photo_file and photo_file.filename:
+        uploaded = upload_to_imgbb(photo_file)
+        if uploaded:
+            return uploaded
+    if photo_url_input:
+        return photo_url_input
+    return default_url
+
+
+@app.route('/admin/homepage/add', methods=['POST'])
+def admin_homepage_add():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    name = request.form.get('name', '').strip()
+    designation = request.form.get('designation', '').strip()
+    speech = request.form.get('speech', '').strip()
+    if not name or not designation:
+        flash("নাম এবং পদবি অবশ্যই দিতে হবে!", "danger")
+        return redirect(url_for('admin_homepage'))
+    photo_url = _resolve_leader_photo(
+        "https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png")
+    last = mongo.db.leaders.find_one(sort=[("order", -1)])
+    next_order = (last.get('order', 0) + 1) if last else 1
+    mongo.db.leaders.insert_one({
+        "name": name,
+        "designation": designation,
+        "speech": speech,
+        "photo_url": photo_url,
+        "order": next_order
+    })
+    flash(f"সফলভাবে '{name}' যোগ করা হয়েছে।", "success")
+    return redirect(url_for('admin_homepage'))
+
+
+@app.route('/admin/homepage/edit/<leader_id>', methods=['POST'])
+def admin_homepage_edit(leader_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    try:
+        leader = mongo.db.leaders.find_one({"_id": ObjectId(leader_id)})
+        if not leader:
+            flash("তথ্য খুঁজে পাওয়া যায়নি!", "danger")
+            return redirect(url_for('admin_homepage'))
+        photo_url = _resolve_leader_photo(leader.get('photo_url'))
+        update_data = {
+            "name": request.form.get('name', '').strip() or leader.get('name'),
+            "designation": request.form.get('designation', '').strip() or leader.get('designation'),
+            "speech": request.form.get('speech', '').strip(),
+            "photo_url": photo_url
+        }
+        order_val = request.form.get('order', '').strip()
+        if order_val.isdigit():
+            update_data["order"] = int(order_val)
+        mongo.db.leaders.update_one({"_id": ObjectId(leader_id)}, {"$set": update_data})
+        flash("সফলভাবে আপডেট করা হয়েছে।", "success")
+    except Exception as e:
+        flash(f"আপডেট করতে সমস্যা হয়েছে: {str(e)}", "danger")
+    return redirect(url_for('admin_homepage'))
+
+
+@app.route('/admin/homepage/delete/<leader_id>')
+def admin_homepage_delete(leader_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    try:
+        mongo.db.leaders.delete_one({"_id": ObjectId(leader_id)})
+        flash("সফলভাবে মুছে ফেলা হয়েছে।", "info")
+    except Exception as e:
+        flash(f"মুছে ফেলতে সমস্যা হয়েছে: {str(e)}", "danger")
+    return redirect(url_for('admin_homepage'))
+
+
+# --- CENTER-WISE BULK APPROVAL (from dashboard filters) ---
+@app.route('/admin/bulk-update-status', methods=['POST'])
+def bulk_update_status():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    center = request.form.get('center', '').strip()
+    student_class = request.form.get('class', '').strip()
+    action = request.form.get('action', 'Verified')
+    query = {}
+    if center:
+        query["center_code"] = center
+    if student_class:
+        query["student_class"] = student_class
+    if not query:
+        flash("বাল্ক অ্যাপ্রুভালের জন্য অন্তত একটি সেন্টার বা শ্রেণি নির্বাচন করুন!", "warning")
+        return redirect(url_for('admin_dashboard'))
+    new_status = "Verified" if action == 'Verified' else "Pending"
+    verification = new_status == "Verified"
+    result = mongo.db.students.update_many(
+        query, {"$set": {"status": new_status, "verification": verification}})
+    flash(f"সফল! {result.modified_count} জন শিক্ষার্থীর স্ট্যাটাস '{new_status}' করা হয়েছে।", "success")
+    return redirect(url_for('admin_dashboard', center=center, **{'class': student_class}))
 
 
 # --- ADMIN LOGOUT ---
