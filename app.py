@@ -14,6 +14,7 @@ import requests
 from bson import ObjectId
 import csv
 import io
+import bleach
 
 load_dotenv()
 
@@ -38,6 +39,32 @@ if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 mongo = PyMongo(app)
+
+@app.template_filter('notice_content')
+def notice_content_filter(text):
+    """Sanitize notice content but allow admin-provided <a> links to render
+    as styled, clickable buttons. All other HTML is stripped/escaped."""
+    if not text:
+        return ""
+    allowed_tags = ['a']
+    allowed_attrs = {'a': ['href', 'target', 'rel']}
+    cleaned = bleach.clean(text, tags=allowed_tags, attributes=allowed_attrs,
+                            protocols=['http', 'https', 'mailto', 'tel'], strip=True)
+
+    # Style every <a> tag as a notice link-button and force safe target/rel
+    def style_links(html):
+        import re
+        def repl(m):
+            attrs = m.group(1)
+            href_match = re.search(r'href=["\']([^"\']*)["\']', attrs)
+            href = href_match.group(1) if href_match else '#'
+            return ('<a href="{0}" target="_blank" rel="noopener noreferrer" '
+                    'class="notice-link-btn"><i class="fas fa-link"></i> '
+                    'লিঙ্ক দেখুন</a>').format(href)
+        return re.sub(r'<a\s+([^>]*)>.*?</a>', repl, html, flags=re.IGNORECASE | re.DOTALL)
+
+    return style_links(cleaned)
+
 
 def generate_numbers():
     reg = ''.join(random.choices(string.digits, k=8))
@@ -136,6 +163,8 @@ def apply():
                     return redirect(request.url)
 
             reg_no, roll_no = generate_numbers()
+            # Permanent login serial — never changed by admin serial allocation
+            serial_no = roll_no
 
             center_info = mongo.db.centers.find_one({"center_code": request.form.get('center_code')})
             center_display_name = center_info.get('center_name', 'N/A') if center_info else 'N/A'
@@ -143,6 +172,7 @@ def apply():
             student_data = {
                 "roll_no": str(roll_no),
                 "reg_no": str(reg_no),
+                "serial_no": str(serial_no),
                 "student_class": request.form.get('student_class'),
                 "category": request.form.get('category', 'General'),
                 "center_code": request.form.get('center_code'),
@@ -205,7 +235,7 @@ def login():
             return redirect(url_for('login'))
 
         try:
-            or_conditions = [{"roll_no": roll}, {"reg_no": roll}]
+            or_conditions = [{"serial_no": roll}, {"roll_no": roll}, {"reg_no": roll}]
             if roll.isdigit():
                 or_conditions.append({"roll_no": int(roll)})
             user = mongo.db.students.find_one({"$or": or_conditions})
@@ -214,6 +244,8 @@ def login():
                 stored_pw = user.get('password')
                 # Some legacy records may not have a password hash — avoid 500 crash
                 if stored_pw and check_password_hash(stored_pw, pw):
+                    if not user.get('serial_no'):
+                        mongo.db.students.update_one({"_id": user['_id']}, {"$set": {"serial_no": str(user.get('roll_no', ''))}})
                     session.permanent = True
                     session['user_id'] = str(user['_id'])
                     session['student_roll'] = str(user.get('roll_no', ''))
@@ -250,6 +282,18 @@ def dashboard():
     setting = mongo.db.settings.find_one({"key": "result_published"})
     is_published = setting['value'] if setting else False
 
+    # Fetch center info for this student
+    center_info = None
+    center_code = student.get('center_code')
+    if center_code:
+        center_info = mongo.db.centers.find_one({"center_code": center_code})
+
+    # Fetch payment numbers from settings
+    bkash_setting = mongo.db.settings.find_one({"key": "bkash_number"})
+    nagad_setting = mongo.db.settings.find_one({"key": "nagad_number"})
+    bkash_number = bkash_setting['value'] if bkash_setting else ''
+    nagad_number = nagad_setting['value'] if nagad_setting else ''
+
     if request.method == 'POST':
         tran_id = request.form.get('tran_id', '').strip()
         payment_method = request.form.get('payment_method', 'bKash').strip()
@@ -261,7 +305,13 @@ def dashboard():
             flash("ট্রানজেকশন আইডি জমা হয়েছে! অনুমোদনের জন্য অপেক্ষা করুন।", "info")
         return redirect(url_for('dashboard'))
 
-    return render_template('dashboard.html', student=student, is_verified=is_verified, is_published=is_published)
+    return render_template('dashboard.html',
+                           student=student,
+                           is_verified=is_verified,
+                           is_published=is_published,
+                           center_info=center_info,
+                           bkash_number=bkash_number,
+                           nagad_number=nagad_number)
 
 @app.route('/download-slip')
 def download_slip():
@@ -448,9 +498,10 @@ def logout():
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
+    centers = list(mongo.db.centers.find().sort("center_code", 1))
     if request.method == 'POST':
-        return render_template('contact.html', success=True)
-    return render_template('contact.html')
+        return render_template('contact.html', success=True, centers=centers)
+    return render_template('contact.html', centers=centers)
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -789,7 +840,24 @@ def manage_centers():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     centers = list(mongo.db.centers.find().sort("center_code", 1))
-    return render_template('admin_center.html', centers=centers)
+    bkash_s = mongo.db.settings.find_one({"key": "bkash_number"})
+    nagad_s = mongo.db.settings.find_one({"key": "nagad_number"})
+    bkash_number = bkash_s['value'] if bkash_s else ''
+    nagad_number = nagad_s['value'] if nagad_s else ''
+    return render_template('admin_center.html', centers=centers, bkash_number=bkash_number, nagad_number=nagad_number)
+
+@app.route('/admin/update-payment-numbers', methods=['POST'])
+def update_payment_numbers():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    bkash = request.form.get('bkash_number', '').strip()
+    nagad = request.form.get('nagad_number', '').strip()
+    if bkash:
+        mongo.db.settings.update_one({"key": "bkash_number"}, {"$set": {"value": bkash}}, upsert=True)
+    if nagad:
+        mongo.db.settings.update_one({"key": "nagad_number"}, {"$set": {"value": nagad}}, upsert=True)
+    flash("পেমেন্ট নম্বর আপডেট হয়েছে।", "success")
+    return redirect(url_for('admin_center'))
 
 @app.route('/admin/add_center', methods=['POST'])
 def add_center():
@@ -798,6 +866,7 @@ def add_center():
     center_code = request.form.get('center_code', '').strip().upper()
     center_name_en = request.form.get('center_name_en', '').strip()
     center_name_bn = request.form.get('center_name_bn', '').strip()
+    center_phone = request.form.get('center_phone', '').strip()
     if not center_code or not center_name_en or not center_name_bn:
         flash("All fields (Code, English Name, Bangla Name) are required!", "danger")
         return redirect(url_for('manage_centers'))
@@ -806,7 +875,8 @@ def add_center():
         mongo.db.centers.insert_one({
             "center_code": center_code,
             "center_name_en": center_name_en,
-            "center_name_bn": center_name_bn
+            "center_name_bn": center_name_bn,
+            "center_phone": center_phone
         })
         flash(f"Success! {center_name_en} ({center_code}) has been added.", "success")
     else:
@@ -925,9 +995,13 @@ def serial_allocation():
                 flash(f"সতর্কতা: Class {target_class}-এ এই সেন্টারে কোনো ভেরিফাইড ছাত্র পাওয়া যায়নি।", "warning")
                 return redirect(request.url)
             for index, student in enumerate(students):
+                update_fields = {"roll_no": str(start_roll + index), "reg_no": str(start_reg + index)}
+                # Preserve permanent login serial — backfill from old roll_no if missing
+                if not student.get('serial_no'):
+                    update_fields["serial_no"] = str(student.get('roll_no', ''))
                 mongo.db.students.update_one(
                     {"_id": student["_id"]},
-                    {"$set": {"roll_no": str(start_roll + index), "reg_no": str(start_reg + index)}}
+                    {"$set": update_fields}
                 )
             flash(f"সফল! {len(students)} জন ছাত্রের রোল ({start_roll} থেকে শুরু) আপডেট করা হয়েছে।", "success")
         except Exception as e:
@@ -964,7 +1038,7 @@ def forgot_serial():
         if not student and input_mobile.isdigit():
             student = mongo.db.students.find_one({"mobile": int(input_mobile)})
         if student:
-            student_data = {'serial': student.get('roll_no'), 'name': student.get('name_en')}
+            student_data = {'serial': student.get('serial_no') or student.get('roll_no'), 'name': student.get('name_en')}
         else:
             flash('এই মোবাইল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি!', 'danger')
     return render_template('forgot_serial.html', student=student_data)
@@ -1361,7 +1435,7 @@ def admin_prospecture_result_search():
 # Public result search page (like admit search)
 @app.route('/result-search', methods=['GET', 'POST'])
 def public_result_search():
-    """Public page - search result by roll or mobile number"""
+    """Public page - search result by roll number only"""
     student = None
     search_done = False
 
@@ -1378,18 +1452,65 @@ def public_result_search():
                 flash("ফলাফল এখনো প্রকাশিত হয়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।", "warning")
                 return render_template('public_result_search.html', student=None, search_done=True)
 
-            # Search by mobile (11 digits) or roll number
-            if len(query) == 11 and query.isdigit():
-                student = mongo.db.students.find_one({"mobile": query})
-            else:
-                student = mongo.db.students.find_one({"roll_no": query})
-
+            # Search by roll number only
+            student = mongo.db.students.find_one({"roll_no": query})
             if not student:
-                flash("এই রোল/মোবাইল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।", "danger")
+                flash("এই রোল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।", "danger")
         else:
-            flash("অনুগ্রহ করে রোল বা মোবাইল নম্বর লিখুন।", "danger")
+            flash("অনুগ্রহ করে রোল নম্বর লিখুন।", "danger")
 
     return render_template('public_result_search.html', student=student, search_done=search_done)
+
+
+# Teacher/Institute-wise scholarship result search
+@app.route('/result-search/institute', methods=['GET', 'POST'])
+def institute_result_search():
+    """Teachers can search by institute name to see all scholarshiped students,
+    organized by class and grade."""
+    grouped = None
+    institute_name = ''
+    search_done = False
+
+    setting = mongo.db.settings.find_one({"key": "result_published"})
+    is_published = setting['value'] if setting else False
+
+    if request.method == 'POST':
+        institute_name = request.form.get('institute_name', '').strip()
+        search_done = True
+
+        if not is_published:
+            flash("ফলাফল এখনো প্রকাশিত হয়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।", "warning")
+        elif not institute_name:
+            flash("অনুগ্রহ করে শিক্ষা প্রতিষ্ঠানের নাম লিখুন।", "danger")
+        else:
+            # Match either Bangla or English institute name, case-insensitive partial match
+            regex = {"$regex": institute_name, "$options": "i"}
+            query = {
+                "$and": [
+                    {"$or": [{"institute_bn": regex}, {"institute_en": regex}]},
+                    {"marks": {"$exists": True}},
+                    {"scholarship_grade": {"$exists": True, "$nin": ["", "Nothing", None]}}
+                ]
+            }
+            students = list(mongo.db.students.find(query).sort([
+                ("student_class", 1), ("scholarship_grade", 1), ("marks.total", -1)
+            ]))
+
+            if not students:
+                flash("এই প্রতিষ্ঠানের কোনো বৃত্তিপ্রাপ্ত শিক্ষার্থী পাওয়া যায়নি।", "danger")
+            else:
+                # Group by class, then by grade
+                grouped = {}
+                for s in students:
+                    cls = s.get('student_class', 'Unknown')
+                    grade = s.get('scholarship_grade', 'Nothing')
+                    grouped.setdefault(cls, {}).setdefault(grade, []).append(s)
+
+    return render_template('institute_result_search.html',
+                           grouped=grouped,
+                           institute_name=institute_name,
+                           search_done=search_done,
+                           is_published=is_published)
 
 
 # =====================================================================
