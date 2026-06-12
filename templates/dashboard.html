@@ -219,6 +219,21 @@
     }
     .copy-btn:hover { opacity: 1; }
 
+    .copy-btn-inline {
+        background: none;
+        border: 1px solid #CBD5E0;
+        cursor: pointer;
+        font-size: 0.75rem;
+        color: var(--slate);
+        border-radius: 6px;
+        padding: 2px 7px;
+        margin-left: 4px;
+        transition: 0.2s;
+        vertical-align: middle;
+    }
+    .copy-btn-inline:hover { background: var(--gold); color: white; border-color: var(--gold); }
+    .center-phone-badge { align-items: center; }
+
     /* Steps */
     .pay-steps { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
     .pay-step {
@@ -330,6 +345,18 @@
                 <div class="info-badges">
                     <div class="badge-item"><i class="fas fa-id-badge"></i> রোল: <strong>{{ student.roll_no }}</strong></div>
                     <div class="badge-item"><i class="fas fa-school"></i> শ্রেণি: <strong>{{ student.student_class }}</strong></div>
+                    {% if center_info %}
+                    <div class="badge-item"><i class="fas fa-map-marker-alt"></i> সেন্টার: <strong>{{ center_info.center_name_bn or center_info.center_name_en }}</strong></div>
+                    {% if center_info.center_phone %}
+                    <div class="badge-item center-phone-badge">
+                        <i class="fas fa-phone"></i> সেন্টার নম্বর:
+                        <strong>{{ center_info.center_phone }}</strong>
+                        <button class="copy-btn-inline" onclick="copyNumber('{{ center_info.center_phone }}')" title="নম্বর কপি করুন">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -361,36 +388,6 @@
                     <button class="btn-action btn-locked"><i class="fas fa-clock"></i> অনুমোদনের অপেক্ষায়</button>
                 {% else %}
                     <button class="btn-action btn-locked">পেমেন্টের পর আনলক হবে</button>
-                {% endif %}
-            </div>
-
-            <div class="action-card">
-                <div>
-                    <div class="icon-box" style="background: #FEF9C3; color: #CA8A04;"><i class="fas fa-poll"></i></div>
-                    <h3 style="margin:0;">আমার ফলাফল</h3>
-                    <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">বিষয়ভিত্তিক নম্বরসহ আপনার ব্যক্তিগত ফলাফল</p>
-                </div>
-                {% if is_published and student.verification %}
-                    <a href="{{ url_for('view_result') }}" target="_blank" class="btn-action" style="background: #CA8A04; color: white;">
-                        <i class="fas fa-eye"></i> ফলাফল দেখুন
-                    </a>
-                {% else %}
-                    <button class="btn-action btn-locked"><i class="fas fa-lock"></i> ফলাফল এখনো প্রকাশিত হয়নি</button>
-                {% endif %}
-            </div>
-
-            <div class="action-card">
-                <div>
-                    <div class="icon-box" style="background: #F3E8FF; color: #7C3AED;"><i class="fas fa-list-ol"></i></div>
-                    <h3 style="margin:0;">সকল ফলাফল</h3>
-                    <p style="font-size: 0.75rem; color: var(--slate); margin-top: 5px;">শ্রেণি ও কেন্দ্রভিত্তিক মেধাতালিকা দেখুন</p>
-                </div>
-                {% if is_published %}
-                    <a href="{{ url_for('all_results') }}" target="_blank" class="btn-action" style="background: #7C3AED; color: white;">
-                        <i class="fas fa-trophy"></i> মেধাতালিকা দেখুন
-                    </a>
-                {% else %}
-                    <button class="btn-action btn-locked"><i class="fas fa-lock"></i> ফলাফল এখনো প্রকাশিত হয়নি</button>
                 {% endif %}
             </div>
 
@@ -431,10 +428,13 @@
                 <div>নিচের নম্বরে <strong>Send Money</strong> করুন:</div>
                 <div style="margin: 8px 0;">
                     <span class="payment-number bkash-num" id="bkash-number">
-                        <i class="fas fa-phone-alt"></i> 01XXXXXXXXX
-                        <button class="copy-btn" onclick="copyNumber('01XXXXXXXXX')" title="কপি করুন">
+                        <i class="fas fa-phone-alt"></i>
+                        <span id="bkash-num-text">{{ bkash_number or 'নম্বর সেট হয়নি' }}</span>
+                        {% if bkash_number %}
+                        <button class="copy-btn" onclick="copyNumber('{{ bkash_number }}')" title="কপি করুন">
                             <i class="fas fa-copy" style="color:rgba(255,255,255,0.8);"></i>
                         </button>
+                        {% endif %}
                     </span>
                 </div>
                 <div class="pay-steps">
@@ -462,10 +462,13 @@
                 <div>নিচের নম্বরে <strong>Send Money</strong> করুন:</div>
                 <div style="margin: 8px 0;">
                     <span class="payment-number nagad-num" id="nagad-number">
-                        <i class="fas fa-phone-alt"></i> 01XXXXXXXXX
-                        <button class="copy-btn" onclick="copyNumber('01XXXXXXXXX')" title="কপি করুন">
+                        <i class="fas fa-phone-alt"></i>
+                        <span id="nagad-num-text">{{ nagad_number or 'নম্বর সেট হয়নি' }}</span>
+                        {% if nagad_number %}
+                        <button class="copy-btn" onclick="copyNumber('{{ nagad_number }}')" title="কপি করুন">
                             <i class="fas fa-copy" style="color:rgba(255,255,255,0.8);"></i>
                         </button>
+                        {% endif %}
                     </span>
                 </div>
                 <div class="pay-steps">

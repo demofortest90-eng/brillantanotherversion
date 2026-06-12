@@ -65,23 +65,16 @@
         {% endwith %}
 
         <form method="POST">
-            <div class="tab-row">
-                <button type="button" class="tab-btn active" id="tabRoll" onclick="setTab('roll')">
-                    <i class="fas fa-id-card"></i> রোল নম্বর
-                </button>
-                <button type="button" class="tab-btn" id="tabMobile" onclick="setTab('mobile')">
-                    <i class="fas fa-mobile-alt"></i> মোবাইল নম্বর
-                </button>
-            </div>
             <input type="hidden" id="search_type" name="search_type" value="roll">
             <input class="inp" type="text" name="search_query" id="searchInput"
                    placeholder="রোল নম্বর লিখুন" value="{{ request.form.get('search_query', '') }}">
             <button type="submit" class="btn-search"><i class="fas fa-search"></i> ফলাফল খুঁজুন</button>
         </form>
 
-        <a href="{{ url_for('all_results') }}"
-           style="display:block; text-align:center; margin-top:14px; background:#1B2631; color:white; padding:13px; border-radius:10px; font-weight:800; font-size:14px; text-decoration:none;">
-            <i class="fas fa-trophy"></i> সকল ফলাফল (মেধাতালিকা) দেখুন
+
+        <a href="{{ url_for('institute_result_search') }}"
+           style="display:block; text-align:center; margin-top:10px; background:#922B21; color:white; padding:13px; border-radius:10px; font-weight:800; font-size:14px; text-decoration:none;">
+            <i class="fas fa-school"></i> শিক্ষক/প্রতিষ্ঠান অনুসন্ধান (Institute-wise Search)
         </a>
     </div>
 
@@ -175,12 +168,4 @@
     {% endif %}
 </div>
 
-<script>
-function setTab(t) {
-    document.getElementById('search_type').value = t;
-    document.getElementById('searchInput').placeholder = t === 'roll' ? 'রোল নম্বর লিখুন' : '১১ ডিজিটের মোবাইল নম্বর লিখুন';
-    document.getElementById('tabRoll').classList.toggle('active', t === 'roll');
-    document.getElementById('tabMobile').classList.toggle('active', t === 'mobile');
-}
-</script>
 {% endblock %}

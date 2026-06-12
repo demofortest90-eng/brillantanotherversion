@@ -1,150 +1,51 @@
 {% extends "admin_base.html" %}
 {% block content %}
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&family=Noto+Serif+Bengali:wght@600;700;900&display=swap');
+    /* ===== PROSPECTURE PDF-STYLE LAYOUT ===== */
+    .pro-page { max-width: 1000px; margin: 0 auto; }
 
-    /* ===== PDF-STYLE PROSPECTURE ===== */
-    .pro-page { max-width: 960px; margin: 0 auto; font-family: "Hind Siliguri", Arial, sans-serif; }
-
-    /* ---- TOP COVER HEADER ---- */
-    .pro-cover {
-        background: linear-gradient(160deg, #1a7a1a 0%, #2e9e2e 40%, #4caf50 100%);
+    /* Document Header */
+    .doc-header {
+        background: linear-gradient(135deg, #1B2631 0%, #2C3E50 100%);
+        color: white;
         border-radius: 16px;
-        padding: 0;
-        margin-bottom: 20px;
-        overflow: hidden;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-        position: relative;
-    }
-    .pro-cover-top {
-        background: rgba(0,0,0,0.15);
-        text-align: center;
-        padding: 8px;
-        font-size: 12px;
-        color: rgba(255,255,255,0.9);
-        font-weight: 600;
-        letter-spacing: 1px;
-    }
-    .pro-cover-body {
+        padding: 30px 35px;
+        margin-bottom: 24px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 24px 30px;
         flex-wrap: wrap;
-        gap: 15px;
-    }
-    .pro-cover-org {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-    }
-    .pro-cover-logo {
-        width: 70px; height: 70px;
-        background: white;
-        border-radius: 50%;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        overflow: hidden;
-    }
-    .pro-cover-logo img { width: 100%; height: 100%; object-fit: cover; }
-    .pro-cover-title h1 {
-        margin: 0;
-        font-size: 1.4rem;
-        font-weight: 900;
-        color: white;
-        font-family: "Noto Serif Bengali", serif;
-        text-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .pro-cover-title h2 {
-        margin: 4px 0 0;
-        font-size: 1rem;
-        font-weight: 700;
-        color: rgba(255,255,255,0.9);
-        font-family: Arial, sans-serif;
-    }
-    .pro-cover-title p {
-        margin: 3px 0 0;
-        font-size: 11px;
-        color: rgba(255,255,255,0.75);
-    }
-
-    .pro-year-badge {
-        background: #ffcc00;
-        color: #1a4a1a;
-        border-radius: 12px;
-        padding: 12px 20px;
-        text-align: center;
-        font-weight: 900;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    }
-    .pro-year-badge .year-num {
-        font-size: 2rem;
-        line-height: 1;
-        display: block;
-        font-family: "Noto Serif Bengali", serif;
-    }
-    .pro-year-badge .year-label {
-        font-size: 0.7rem;
-        color: #2e5e2e;
-        display: block;
-        margin-top: 2px;
-        font-weight: 700;
-    }
-
-    .pro-cover-doc-title {
-        background: rgba(0,0,0,0.25);
-        text-align: center;
-        padding: 12px 20px;
-    }
-    .pro-cover-doc-title h2 {
-        margin: 0;
-        font-family: "Noto Serif Bengali", serif;
-        font-size: 2rem;
-        font-weight: 900;
-        color: #ffcc00;
-        text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
-        letter-spacing: 2px;
-    }
-    .pro-cover-contact {
-        background: #1a4a1a;
-        padding: 10px 20px;
-        display: flex;
         gap: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
     }
-    .pro-contact-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: rgba(255,255,255,0.9);
-        font-size: 12px;
-        font-weight: 600;
+    .doc-header-left { display: flex; align-items: center; gap: 18px; }
+    .doc-logo {
+        width: 64px; height: 64px;
+        background: rgba(255,255,255,0.12);
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
     }
-    .pro-contact-item i { color: #ffcc00; font-size: 0.9rem; }
+    .doc-org { }
+    .doc-org h1 { margin: 0; font-size: 1.3rem; font-weight: 900; letter-spacing: 0.5px; }
+    .doc-org p { margin: 4px 0 0; font-size: 0.78rem; opacity: 0.75; }
+    .doc-title-block { text-align: right; }
+    .doc-title-block h2 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #F9C74F; text-transform: uppercase; letter-spacing: 1px; }
+    .doc-title-block p { margin: 5px 0 0; font-size: 0.78rem; opacity: 0.7; }
+    .doc-stamp {
+        border: 2px solid rgba(249,199,79,0.5);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #F9C74F;
+        margin-top: 10px;
+        display: inline-block;
+    }
 
-    /* ---- ADMIN ACTION BAR ---- */
-    .action-bar {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-    }
-    .btn-act { padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; transition: 0.2s; }
-    .btn-blue { background: #3b82f6; color: white; }
-    .btn-blue:hover { background: #2563eb; color: white; }
-    .btn-green { background: #10b981; color: white; }
-    .btn-green:hover { background: #059669; color: white; }
-    .btn-csv { background: #059669; color: white; }
-    .btn-csv:hover { background: #047857; color: white; }
-    .btn-print { background: #64748b; color: white; }
-
-    /* ---- STATS ROW ---- */
+    /* Stats Row */
     .stats-row {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 14px;
         margin-bottom: 24px;
     }
@@ -158,315 +59,300 @@
         align-items: center;
         gap: 14px;
     }
-    .stat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
+    .stat-icon {
+        width: 44px; height: 44px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
     .stat-num { font-size: 1.7rem; font-weight: 900; color: #1e293b; line-height: 1; }
     .stat-lbl { font-size: 11px; color: #64748b; font-weight: 600; margin-top: 3px; }
 
-    /* ---- SECTION DIVIDER ---- */
-    .section-divider {
+    /* Action Bar */
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+    .btn-action { padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer; transition: 0.2s; }
+    .btn-blue { background: #3b82f6; color: white; }
+    .btn-blue:hover { background: #2563eb; color: white; }
+    .btn-green { background: #10b981; color: white; }
+    .btn-green:hover { background: #059669; color: white; }
+    .btn-csv { background: #059669; color: white; }
+    .btn-csv:hover { background: #047857; color: white; }
+
+    /* Section Title */
+    .section-title {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin: 24px 0 16px;
+        gap: 10px;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f1f5f9;
     }
-    .section-divider .div-line { flex: 1; height: 2px; background: linear-gradient(90deg, #2e9e2e, transparent); }
-    .section-divider .div-line.right { background: linear-gradient(90deg, transparent, #2e9e2e); }
-    .section-divider h3 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 800;
-        color: #1a5c1a;
-        padding: 6px 16px;
-        background: #f0faf0;
-        border-radius: 20px;
-        border: 1px solid #bbf7d0;
-        white-space: nowrap;
-    }
+    .section-title h3 { margin: 0; font-size: 1rem; font-weight: 800; color: #1e293b; }
 
-    /* ---- CLASS REGISTRY (PDF TABLE STYLE) ---- */
-    .registry-table {
-        width: 100%;
-        border-collapse: collapse;
+    /* Class Cards Grid — PDF style */
+    .registry-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 18px;
+        margin-bottom: 30px;
+    }
+    .class-card {
         background: white;
         border-radius: 14px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         overflow: hidden;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.07);
-        margin-bottom: 24px;
-    }
-    .registry-table thead tr {
-        background: linear-gradient(90deg, #1a7a1a, #2e9e2e);
-    }
-    .registry-table th {
-        padding: 13px 16px;
-        text-align: left;
-        font-size: 12px;
-        color: white;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        white-space: nowrap;
-    }
-    .registry-table td {
-        padding: 12px 16px;
-        font-size: 13px;
-        border-bottom: 1px solid #f0faf0;
-        vertical-align: middle;
-    }
-    .registry-table tbody tr:hover td { background: #f0faf0; }
-    .registry-table tbody tr:last-child td { border-bottom: none; }
-
-    .class-badge-tbl {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: linear-gradient(135deg, #1a7a1a, #4caf50);
-        color: white;
-        padding: 5px 14px;
-        border-radius: 20px;
-        font-weight: 900;
-        font-size: 13px;
-    }
-    .total-badge-tbl {
-        background: #1e293b;
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 800;
-        font-size: 13px;
-        display: inline-block;
-    }
-
-    /* Grade badges */
-    .g-tp { background: #fef3c7; color: #92400e; padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 700; display: inline-block; margin: 2px; }
-    .g-gen { background: #d1fae5; color: #065f46; padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 700; display: inline-block; margin: 2px; }
-    .g-suv { background: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 700; display: inline-block; margin: 2px; }
-    .g-quata { background: #fce7f3; color: #9d174d; padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 700; display: inline-block; margin: 2px; }
-
-    /* Progress bar in table */
-    .mini-progress { display: flex; gap: 3px; align-items: center; }
-    .mp-bar { height: 8px; border-radius: 4px; min-width: 4px; }
-    .mp-tp { background: #d97706; }
-    .mp-gen { background: #059669; }
-    .mp-suv { background: #3b82f6; }
-    .mp-quata { background: #ec4899; }
-
-    .view-link {
-        color: #2e9e2e;
-        font-weight: 700;
-        font-size: 12px;
         text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 5px 12px;
-        border: 1px solid #bbf7d0;
-        border-radius: 6px;
-        transition: 0.2s;
+        color: inherit;
+        display: block;
+        transition: 0.25s;
     }
-    .view-link:hover { background: #f0faf0; color: #1a5c1a; }
+    .class-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(99,102,241,0.15); border-color: #6366f1; }
 
-    /* ---- PDF FOOTER ---- */
-    .pro-footer {
-        background: linear-gradient(135deg, #1a7a1a, #2e9e2e);
-        border-radius: 12px;
-        padding: 16px 24px;
+    /* Card header bar */
+    .card-header-bar {
+        background: linear-gradient(90deg, #1B2631 0%, #34495E 100%);
+        padding: 14px 18px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-        color: white;
-        font-size: 12px;
-        margin-top: 20px;
     }
-    .pro-footer-quote { font-style: italic; opacity: 0.85; font-size: 11px; }
-    .pro-footer-brand { font-weight: 800; font-size: 13px; }
+    .card-class-badge {
+        color: white;
+        font-size: 1rem;
+        font-weight: 900;
+        letter-spacing: 0.5px;
+    }
+    .card-total-badge {
+        background: rgba(255,255,255,0.15);
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    /* Card body */
+    .card-body { padding: 16px 18px; }
+
+    /* Grade rows — like a table in PDF */
+    .grade-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px dotted #f1f5f9;
+        font-size: 13px;
+    }
+    .grade-row:last-child { border-bottom: none; }
+    .grade-row-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        color: #475569;
+    }
+    .grade-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .dot-tp { background: #d97706; }
+    .dot-gen { background: #059669; }
+    .dot-suv { background: #3b82f6; }
+    .dot-quata { background: #ec4899; }
+    .dot-total { background: #1e293b; }
+
+    .grade-count {
+        font-weight: 800;
+        font-size: 14px;
+        color: #1e293b;
+    }
+    .grade-bar-wrap {
+        flex: 1;
+        margin: 0 12px;
+        height: 6px;
+        background: #f1f5f9;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .grade-bar-fill { height: 100%; border-radius: 4px; }
+    .fill-tp { background: #d97706; }
+    .fill-gen { background: #059669; }
+    .fill-suv { background: #3b82f6; }
+    .fill-quata { background: #ec4899; }
+
+    /* Card footer */
+    .card-footer {
+        background: #f8fafc;
+        padding: 10px 18px;
+        border-top: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #6366f1;
+        font-weight: 700;
+    }
 
     @media print {
-        .action-bar { display: none !important; }
-        .pro-page { max-width: 100%; }
-    }
-    @media (max-width: 700px) {
-        .pro-cover-body { flex-direction: column; text-align: center; }
-        .pro-cover-org { flex-direction: column; }
-        .registry-table { font-size: 12px; }
+        .action-bar, .doc-header .doc-title-block a { display: none !important; }
+        .class-card { break-inside: avoid; }
     }
 </style>
 
 <div class="pro-page">
 
-    <!-- ===== COVER SECTION (like the PDF) ===== -->
-    <div class="pro-cover">
-        <div class="pro-cover-top">বিসমিল্লাহির রাহমানির রাহিম &nbsp;|&nbsp; শিক্ষা উন্নয়নে সাফল্য ও অগ্রগতির</div>
-        <div class="pro-cover-body">
-            <div class="pro-cover-org">
-                <div class="pro-cover-logo">
-                    <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png"
-                         onerror="this.parentElement.innerHTML='<i class=\'fas fa-graduation-cap\' style=\'font-size:2rem;color:#2e9e2e;\'></i>'">
-                </div>
-                <div class="pro-cover-title">
-                    <h1>দ্যা ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</h1>
-                    <h2>The Brilliants Foundation, Bogura</h2>
-                    <p>জাতীয় রেজিঃ নং- S-9759/2009 &nbsp;|&nbsp; প্রধান কার্যালয়: ব্রিলিয়ান্টস হাউজ, সবুজবাগ, বগুড়া</p>
-                </div>
-            </div>
-            <div class="pro-year-badge">
-                <span class="year-num">২০</span>
-                <span class="year-label">বছর</span>
+    <!-- Document Header (PDF Style) -->
+    <div class="doc-header">
+        <div class="doc-header-left">
+            <div class="doc-logo"><i class="fas fa-graduation-cap"></i></div>
+            <div class="doc-org">
+                <h1>The Brilliants Foundation</h1>
+                <p>দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</p>
+                <p>Scholarship Examination — 2025–2026</p>
             </div>
         </div>
-        <div class="pro-cover-doc-title">
-            <h2>প্রস্পেক্টাস — বৃত্তি পরীক্ষা ২০২৬</h2>
-        </div>
-        <div class="pro-cover-contact">
-            <div class="pro-contact-item"><i class="fas fa-phone-alt"></i> ০১৭৮০-২৭৭৪৪৩, ০১৭৭৩-৮৬৪৬৩৬</div>
-            <div class="pro-contact-item"><i class="fas fa-envelope"></i> tbfbogura2002@gmail.com</div>
-            <div class="pro-contact-item"><i class="fab fa-facebook"></i> thebrilliantsbogura</div>
+        <div class="doc-title-block">
+            <h2>Scholarship Prospecture</h2>
+            <p>Official Scholarship Registry Document</p>
+            <div class="doc-stamp"><i class="fas fa-shield-alt"></i> OFFICIAL RECORD</div>
         </div>
     </div>
 
-    <!-- ===== ADMIN ACTION BAR ===== -->
-    <div class="action-bar">
-        <a href="{{ url_for('admin_prospecture_result_search') }}" class="btn-act btn-blue">
-            <i class="fas fa-search"></i> শিক্ষার্থী খুঁজুন
-        </a>
-        <a href="{{ url_for('public_result_search') }}" class="btn-act btn-green" target="_blank">
-            <i class="fas fa-external-link-alt"></i> পাবলিক রেজাল্ট পেজ
-        </a>
-        <a href="{{ url_for('export_detailed_data') }}" class="btn-act btn-csv">
-            <i class="fas fa-file-csv"></i> সব ডেটা CSV Export
-        </a>
-        <button onclick="window.print()" class="btn-act btn-print">
-            <i class="fas fa-print"></i> প্রিন্ট করুন
-        </button>
-    </div>
-
-    <!-- ===== STATS ROW ===== -->
+    <!-- Stats -->
     <div class="stats-row">
         <div class="stat-card">
-            <div class="stat-icon" style="background:#f0faf0;"><i class="fas fa-award" style="color:#2e9e2e;"></i></div>
+            <div class="stat-icon" style="background:#ede9fe;"><i class="fas fa-award" style="color:#7c3aed;"></i></div>
             <div>
                 <div class="stat-num">{{ total_scholarship }}</div>
-                <div class="stat-lbl">মোট বৃত্তিপ্রাপ্ত</div>
+                <div class="stat-lbl">Total Scholarship</div>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon" style="background:#fef3c7;"><i class="fas fa-trophy" style="color:#d97706;"></i></div>
             <div>
-                <div class="stat-num">{{ class_summary | map(attribute='talentpool') | sum }}</div>
-                <div class="stat-lbl">ট্যালেন্টপুল</div>
+                <div class="stat-num">{{ class_summary | selectattr('talentpool', 'gt', 0) | list | length }}</div>
+                <div class="stat-lbl">Talentpool Classes</div>
             </div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background:#d1fae5;"><i class="fas fa-check-circle" style="color:#059669;"></i></div>
-            <div>
-                <div class="stat-num">{{ class_summary | map(attribute='general') | sum }}</div>
-                <div class="stat-lbl">সাধারণ বৃত্তি</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#dbeafe;"><i class="fas fa-heart" style="color:#3b82f6;"></i></div>
-            <div>
-                <div class="stat-num">{{ class_summary | map(attribute='suveccha') | sum }}</div>
-                <div class="stat-lbl">শুভেচ্ছা</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background:#ede9fe;"><i class="fas fa-book" style="color:#7c3aed;"></i></div>
+            <div class="stat-icon" style="background:#dcfce7;"><i class="fas fa-book" style="color:#16a34a;"></i></div>
             <div>
                 <div class="stat-num">{{ class_summary | length }}</div>
-                <div class="stat-lbl">শ্রেণি</div>
+                <div class="stat-lbl">Classes with Results</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:#dbeafe;"><i class="fas fa-school" style="color:#2563eb;"></i></div>
+            <div>
+                <div class="stat-num">{{ class_summary | sum(attribute='total') }}</div>
+                <div class="stat-lbl">Total Awarded</div>
             </div>
         </div>
     </div>
 
-    <!-- ===== CLASS REGISTRY TABLE (PDF style) ===== -->
-    {% if class_summary %}
-    <div class="section-divider">
-        <div class="div-line"></div>
-        <h3><i class="fas fa-graduation-cap"></i> শ্রেণিভিত্তিক বৃত্তি রেজিস্ট্রি</h3>
-        <div class="div-line right"></div>
+    <!-- Actions -->
+    <div class="action-bar">
+        <a href="{{ url_for('admin_prospecture_result_search') }}" class="btn-action btn-blue">
+            <i class="fas fa-search"></i> Search Student Result
+        </a>
+        <a href="{{ url_for('public_result_search') }}" class="btn-action btn-green" target="_blank">
+            <i class="fas fa-external-link-alt"></i> Public Result Page
+        </a>
+        <a href="{{ url_for('export_detailed_data') }}?grade=Talentpool" class="btn-action btn-csv">
+            <i class="fas fa-file-csv"></i> Export CSV
+        </a>
+        <button onclick="window.print()" class="btn-action" style="background:#64748b;color:white;">
+            <i class="fas fa-print"></i> Print Registry
+        </button>
     </div>
 
-    <table class="registry-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>শ্রেণি</th>
-                <th>মোট বৃত্তি</th>
-                <th>বৃত্তির ধরন</th>
-                <th>বিতরণ</th>
-                <th>বিস্তারিত</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cls in class_summary %}
-            <tr>
-                <td style="color:#94a3b8; font-weight:700;">{{ loop.index }}</td>
-                <td>
-                    <span class="class-badge-tbl">
-                        <i class="fas fa-graduation-cap"></i> শ্রেণি {{ cls._id }}
-                    </span>
-                </td>
-                <td>
-                    <span class="total-badge-tbl">{{ cls.total }} জন</span>
-                </td>
-                <td>
-                    {% if cls.talentpool > 0 %}
-                    <span class="g-tp"><i class="fas fa-trophy"></i> টা. {{ cls.talentpool }}</span>
-                    {% endif %}
-                    {% if cls.general > 0 %}
-                    <span class="g-gen"><i class="fas fa-check-circle"></i> সা. {{ cls.general }}</span>
-                    {% endif %}
-                    {% if cls.suveccha > 0 %}
-                    <span class="g-suv"><i class="fas fa-heart"></i> শু. {{ cls.suveccha }}</span>
-                    {% endif %}
-                    {% if cls.quata > 0 %}
-                    <span class="g-quata"><i class="fas fa-users"></i> কো. {{ cls.quata }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    <div class="mini-progress">
-                        {% if cls.talentpool > 0 %}
-                        <div class="mp-bar mp-tp" style="width:{{ [cls.talentpool * 6, 60] | min }}px;" title="Talentpool: {{ cls.talentpool }}"></div>
-                        {% endif %}
-                        {% if cls.general > 0 %}
-                        <div class="mp-bar mp-gen" style="width:{{ [cls.general * 4, 50] | min }}px;" title="General: {{ cls.general }}"></div>
-                        {% endif %}
-                        {% if cls.suveccha > 0 %}
-                        <div class="mp-bar mp-suv" style="width:{{ [cls.suveccha * 3, 40] | min }}px;" title="Suveccha: {{ cls.suveccha }}"></div>
-                        {% endif %}
-                        {% if cls.quata > 0 %}
-                        <div class="mp-bar mp-quata" style="width:{{ [cls.quata * 4, 40] | min }}px;" title="Quata: {{ cls.quata }}"></div>
-                        {% endif %}
-                    </div>
-                </td>
-                <td>
-                    <a href="{{ url_for('admin_prospecture_class', student_class=cls._id) }}" class="view-link">
-                        <i class="fas fa-eye"></i> দেখুন
-                    </a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <!-- Class Registry -->
+    {% if class_summary %}
+    <div class="section-title">
+        <i class="fas fa-list-alt" style="color:#6366f1;"></i>
+        <h3>Class-wise Scholarship Registry</h3>
+    </div>
 
+    <div class="registry-grid">
+        {% for cls in class_summary %}
+        <a href="{{ url_for('admin_prospecture_class', student_class=cls._id) }}" class="class-card">
+            <div class="card-header-bar">
+                <div class="card-class-badge">
+                    <i class="fas fa-graduation-cap"></i> Class {{ cls._id }}
+                </div>
+                <div class="card-total-badge">{{ cls.total }} Students</div>
+            </div>
+            <div class="card-body">
+                {% if cls.talentpool > 0 %}
+                <div class="grade-row">
+                    <div class="grade-row-label">
+                        <span class="grade-dot dot-tp"></span> Talentpool
+                    </div>
+                    <div class="grade-bar-wrap">
+                        <div class="grade-bar-fill fill-tp" style="width:{{ (cls.talentpool / cls.total * 100)|int }}%"></div>
+                    </div>
+                    <div class="grade-count">{{ cls.talentpool }}</div>
+                </div>
+                {% endif %}
+                {% if cls.general > 0 %}
+                <div class="grade-row">
+                    <div class="grade-row-label">
+                        <span class="grade-dot dot-gen"></span> General
+                    </div>
+                    <div class="grade-bar-wrap">
+                        <div class="grade-bar-fill fill-gen" style="width:{{ (cls.general / cls.total * 100)|int }}%"></div>
+                    </div>
+                    <div class="grade-count">{{ cls.general }}</div>
+                </div>
+                {% endif %}
+                {% if cls.suveccha > 0 %}
+                <div class="grade-row">
+                    <div class="grade-row-label">
+                        <span class="grade-dot dot-suv"></span> Suveccha
+                    </div>
+                    <div class="grade-bar-wrap">
+                        <div class="grade-bar-fill fill-suv" style="width:{{ (cls.suveccha / cls.total * 100)|int }}%"></div>
+                    </div>
+                    <div class="grade-count">{{ cls.suveccha }}</div>
+                </div>
+                {% endif %}
+                {% if cls.quata > 0 %}
+                <div class="grade-row">
+                    <div class="grade-row-label">
+                        <span class="grade-dot dot-quata"></span> Quata
+                    </div>
+                    <div class="grade-bar-wrap">
+                        <div class="grade-bar-fill fill-quata" style="width:{{ (cls.quata / cls.total * 100)|int }}%"></div>
+                    </div>
+                    <div class="grade-count">{{ cls.quata }}</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-footer">
+                <span><i class="fas fa-eye"></i> View all {{ cls.total }} students</span>
+                <span><i class="fas fa-arrow-right"></i></span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
     {% else %}
     <div style="text-align:center; padding:60px; background:white; border-radius:14px; border:1px solid #e2e8f0;">
         <i class="fas fa-graduation-cap" style="font-size:3rem; color:#cbd5e0; margin-bottom:15px; display:block;"></i>
-        <h3 style="color:#64748b;">কোনো বৃত্তির তথ্য নেই</h3>
-        <p style="color:#94a3b8; margin-top:8px;">Student Marks section থেকে নম্বর এন্ট্রি এবং scholarship grade সেট করুন।</p>
-        <a href="{{ url_for('entry_marks') }}" style="display:inline-block; margin-top:15px; background:#2e9e2e; color:white; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:700;">
-            <i class="fas fa-pen"></i> নম্বর এন্ট্রি করুন
+        <h3 style="color:#64748b;">No scholarship data yet</h3>
+        <p style="color:#94a3b8; margin-top:8px;">Enter marks and set scholarship grades from Student Marks section.</p>
+        <a href="{{ url_for('entry_marks') }}" style="display:inline-block; margin-top:15px; background:#6366f1; color:white; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:700;">
+            Go to Student Marks
         </a>
     </div>
     {% endif %}
-
-    <!-- ===== PDF FOOTER ===== -->
-    <div class="pro-footer">
-        <div class="pro-footer-quote">"সত্য সকল আলোর ফুল, মিথ্যা হলো পাপের মূল"</div>
-        <div class="pro-footer-brand">দ্যা ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া | The Brilliants Foundation, Bogura</div>
-    </div>
 
 </div>
 {% endblock %}

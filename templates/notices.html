@@ -134,6 +134,24 @@
 
     .download-link:hover { text-decoration: underline; color: var(--navy); }
 
+    /* Admin-provided links inside notice content */
+    .notice-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 12px;
+        margin-right: 8px;
+        padding: 10px 18px;
+        background: var(--crimson);
+        color: white !important;
+        border-radius: 8px;
+        text-decoration: none !important;
+        font-weight: 700;
+        font-size: 0.85rem;
+        transition: 0.2s;
+    }
+    .notice-link-btn:hover { background: var(--navy); transform: translateY(-2px); }
+
     /* Empty State */
     .empty-state {
         text-align: center;
@@ -176,7 +194,7 @@
             <h3 class="notice-title">{{ notice.title }}</h3>
             
             <div class="notice-content">
-                {{ notice.content }}
+                {{ notice.content|notice_content|safe }}
             </div>
 
             {% if notice.file_path %}

@@ -4,6 +4,33 @@
 <div style="padding: 30px; font-family: 'Inter', sans-serif;">
     <h2 style="color: #2c3e50; margin-bottom: 25px;"><i class="fas fa-map-marker-alt"></i> Manage Exam Centers</h2>
 
+
+    <!-- Payment Numbers Section -->
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; border-left: 4px solid #E31E7B;">
+        <h4 style="margin-top: 0; color: #334155; margin-bottom: 5px;"><i class="fas fa-mobile-alt"></i> Payment Numbers (bKash &amp; Nagad)</h4>
+        <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 18px;">এই নম্বরগুলো স্টুডেন্ট ড্যাশবোর্ডে দেখানো হবে।</p>
+        <form action="{{ url_for('update_payment_numbers') }}" method="POST" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-size: 12px; font-weight: bold; color: #E31E7B;">bKash Number</label>
+                <input type="text" name="bkash_number" placeholder="01XXXXXXXXX"
+                       value="{{ bkash_number }}"
+                       style="width: 100%; padding: 12px; border: 1.5px solid #F9A8D4; border-radius: 8px; margin-top: 5px; font-family: monospace; font-size: 1rem;">
+            </div>
+            <div style="flex: 1; min-width: 200px;">
+                <label style="font-size: 12px; font-weight: bold; color: #F05829;">Nagad Number</label>
+                <input type="text" name="nagad_number" placeholder="01XXXXXXXXX"
+                       value="{{ nagad_number }}"
+                       style="width: 100%; padding: 12px; border: 1.5px solid #FDBA74; border-radius: 8px; margin-top: 5px; font-family: monospace; font-size: 1rem;">
+            </div>
+            <div>
+                <button type="submit"
+                        style="padding: 12px 24px; background: linear-gradient(135deg, #E31E7B, #F05829); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap;">
+                    <i class="fas fa-save"></i> Save Numbers
+                </button>
+            </div>
+        </form>
+    </div>
+
     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px;">
         <h4 style="margin-top: 0; color: #334155; margin-bottom: 15px;">Add New Center</h4>
         <form action="{{ url_for('add_center') }}" method="POST" style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -26,6 +53,12 @@
                        style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px; font-family: 'Kalpurush', sans-serif;">
             </div>
 
+            <div style="flex: 1; min-width: 180px;">
+                <label style="font-size: 12px; font-weight: bold; color: #64748b;">ফোন নম্বর (Center Phone)</label>
+                <input type="text" name="center_phone" placeholder="e.g. 01712345678" 
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px;">
+            </div>
+
             <div style="display: flex; align-items: flex-end;">
                 <button type="submit" style="background: #10b981; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer; height: 45px;">
                     <i class="fas fa-plus"></i> Add Center
@@ -41,6 +74,7 @@
                     <th style="padding: 15px 20px; width: 150px;">Code</th>
                     <th style="padding: 15px 20px;">Center Name (English)</th>
                     <th style="padding: 15px 20px;">সেন্টারের নাম (বাংলা)</th>
+                    <th style="padding: 15px 20px; width: 150px;">Phone</th>
                     <th style="padding: 15px 20px; text-align: center; width: 100px;">Action</th>
                 </tr>
             </thead>
@@ -50,6 +84,7 @@
                     <td style="padding: 15px 20px; font-weight: 700; color: #1e293b;">{{ c.center_code }}</td>
                     <td style="padding: 15px 20px; color: #475569;">{{ c.center_name_en }}</td>
                     <td style="padding: 15px 20px; color: #475569; font-family: 'Kalpurush', sans-serif;">{{ c.center_name_bn }}</td>
+                    <td style="padding: 15px 20px; color: #475569;">{{ c.center_phone or '-' }}</td>
                     <td style="padding: 15px 20px; text-align: center;">
                         <a href="{{ url_for('delete_center', center_id=c._id) }}" 
                            onclick="return confirm('Are you sure you want to delete this center?')"
@@ -60,7 +95,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4" style="padding: 30px; text-align: center; color: #94a3b8;">No centers added yet.</td>
+                    <td colspan="5" style="padding: 30px; text-align: center; color: #94a3b8;">No centers added yet.</td>
                 </tr>
                 {% endfor %}
             </tbody>

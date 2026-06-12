@@ -87,6 +87,83 @@
         word-break: break-word; /* Prevents overflow on narrow screens */
     }
 
+    /* Exam Centers Section */
+    .centers-section {
+        margin-top: 30px;
+        background: var(--white);
+        border-radius: 16px;
+        padding: 30px 20px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .centers-title {
+        font-size: 1.2rem;
+        color: var(--navy);
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .centers-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    @media (min-width: 768px) {
+        .centers-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .center-card {
+        background: #F8FAFC;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        transition: 0.2s;
+    }
+
+    .center-card:hover {
+        border-color: var(--gold);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+
+    .center-code {
+        display: inline-block;
+        background: var(--navy);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-bottom: 8px;
+        letter-spacing: 1px;
+    }
+
+    .center-name {
+        font-weight: 700;
+        color: var(--navy);
+        font-size: 1rem;
+    }
+
+    .center-name-en {
+        font-size: 0.8rem;
+        color: var(--slate);
+        margin-top: 2px;
+    }
+
+    .center-phone {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        color: var(--gold) !important;
+        font-weight: 700;
+        font-size: 0.9rem;
+        text-decoration: none !important;
+    }
+
+    .center-phone:hover { color: var(--navy) !important; }
+
     /* Social Section - Mobile Optimized */
     .social-section {
         margin-top: 30px;
@@ -156,6 +233,28 @@
             <p><a href="mailto:tbfbogura@gmail.com">tbfbogura@gmail.com</a></p>
         </div>
     </div>
+
+    {% if centers %}
+    <div class="centers-section">
+        <h2 class="centers-title"><i class="fas fa-map-marked-alt"></i> পরীক্ষা কেন্দ্রসমূহ ও যোগাযোগ নম্বর</h2>
+        <div class="centers-grid">
+            {% for c in centers %}
+            <div class="center-card">
+                <div class="center-code">{{ c.center_code }}</div>
+                <div class="center-name">{{ c.center_name_bn or c.center_name_en }}</div>
+                {% if c.center_name_bn and c.center_name_en %}
+                <div class="center-name-en">{{ c.center_name_en }}</div>
+                {% endif %}
+                {% if c.center_phone %}
+                <a href="tel:{{ c.center_phone }}" class="center-phone">
+                    <i class="fas fa-phone-alt"></i> {{ c.center_phone }}
+                </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <div class="social-section">
         <i class="fab fa-facebook" style="font-size: 2.5rem; color: #1877F2;"></i>

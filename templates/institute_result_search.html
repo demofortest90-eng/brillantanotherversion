@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    body { background: #f4f6f7; }
+    .search-container { max-width: 900px; margin: 40px auto; padding: 0 15px; }
+    .search-card { background: white; border-radius: 16px; padding: 35px; box-shadow: 0 8px 30px rgba(0,0,0,0.1); border-top: 5px solid #1B2631; }
+    .search-header { text-align: center; margin-bottom: 25px; }
+    .search-header h2 { font-size: 1.6rem; font-weight: 900; color: #1B2631; }
+    .search-header p { color: #7F8C8D; font-size: 14px; margin-top: 6px; }
+    .inp { width: 100%; padding: 13px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; outline: none; }
+    .inp:focus { border-color: #922B21; }
+    .btn-search { width: 100%; background: #922B21; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; letter-spacing: 0.5px; transition: 0.2s; }
+    .btn-search:hover { background: #7B241C; }
+
+    .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; font-weight: 600; }
+    .alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
+    .alert-danger { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+
+    .results-wrap { margin-top: 25px; }
+    .class-block { margin-bottom: 25px; }
+    .class-title { background: #1B2631; color: white; padding: 12px 18px; border-radius: 10px 10px 0 0; font-weight: 800; font-size: 1rem; }
+    .grade-block { background: white; border: 1px solid #e2e8f0; border-top: none; }
+    .grade-title { padding: 10px 18px; font-weight: 800; font-size: 0.9rem; border-bottom: 1px solid #e2e8f0; }
+    .grade-tp { background: #fef3c7; color: #92400e; }
+    .grade-general { background: #d1fae5; color: #065f46; }
+    .grade-suveccha { background: #dbeafe; color: #1e40af; }
+    .grade-quata { background: #fce7f3; color: #9d174d; }
+
+    table.result-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table.result-table th, table.result-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    table.result-table th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
+    table.result-table tr:last-child td { border-bottom: none; }
+    .roll-cell { font-weight: 800; color: #1B2631; }
+    .total-cell { font-weight: 800; color: #922B21; }
+
+    .not-published { text-align: center; padding: 50px 20px; background: white; border-radius: 16px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+</style>
+
+<div class="search-container">
+    <div class="search-card">
+        <div class="search-header">
+            <h2><i class="fas fa-school" style="color:#922B21;"></i> প্রতিষ্ঠান-ভিত্তিক বৃত্তি ফলাফল অনুসন্ধান</h2>
+            <p>শিক্ষকবৃন্দ এখানে নিজ প্রতিষ্ঠানের সকল বৃত্তিপ্রাপ্ত শিক্ষার্থীর তালিকা দেখতে পারবেন (শ্রেণি ও গ্রেড অনুযায়ী)</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}"><i class="fas fa-info-circle"></i> {{ message }}</div>
+        {% endfor %}
+        {% endwith %}
+
+        <form method="POST">
+            <input class="inp" type="text" name="institute_name" placeholder="শিক্ষা প্রতিষ্ঠানের নাম লিখুন (বাংলা/ইংরেজি)"
+                   value="{{ institute_name }}">
+            <button type="submit" class="btn-search"><i class="fas fa-search"></i> অনুসন্ধান করুন</button>
+        </form>
+
+        <a href="{{ url_for('public_result_search') }}"
+           style="display:block; text-align:center; margin-top:14px; background:#1B2631; color:white; padding:13px; border-radius:10px; font-weight:800; font-size:14px; text-decoration:none;">
+            <i class="fas fa-id-card"></i> রোল নম্বর দিয়ে অনুসন্ধান করুন
+        </a>
+    </div>
+
+    {% if search_done and is_published and grouped %}
+    <div class="results-wrap">
+        {% for cls, grades in grouped.items() %}
+        <div class="class-block">
+            <div class="class-title"><i class="fas fa-graduation-cap"></i> শ্রেণি: {{ cls }}</div>
+            {% for grade, students in grades.items() %}
+            <div class="grade-block">
+                <div class="grade-title grade-{{ grade|lower if grade in ['Talentpool','General','Suveccha','Quata'] else 'general' }}">
+                    {% if grade == 'Talentpool' %}ট্যালেন্টপুল বৃত্তি
+                    {% elif grade == 'General' %}সাধারণ বৃত্তি
+                    {% elif grade == 'Suveccha' %}শুভেচ্ছা বৃত্তি
+                    {% elif grade == 'Quata' %}কোটা বৃত্তি
+                    {% else %}{{ grade }}{% endif %}
+                    ({{ students|length }} জন)
+                </div>
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th>রোল</th>
+                            <th>নাম</th>
+                            <th>পিতার নাম</th>
+                            <th>মোট নম্বর</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students %}
+                        <tr>
+                            <td class="roll-cell">{{ s.roll_no }}</td>
+                            <td>{{ s.name_bn or s.name_en }}</td>
+                            <td>{{ s.father_bn or s.father_en }}</td>
+                            <td class="total-cell">{{ s.marks.total|default(0) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif search_done and not is_published %}
+    <div class="not-published">
+        <i class="fas fa-clock" style="font-size:2rem;color:#94a3b8;display:block;margin-bottom:10px;"></i>
+        ফলাফল এখনো প্রকাশিত হয়নি।
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
