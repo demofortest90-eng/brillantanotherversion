@@ -215,7 +215,13 @@
             </a>
             <div class="nav-label">ওয়েবসাইট কনটেন্ট</div>
             <a href="{{ url_for('admin_homepage') }}" class="{{ 'active' if request.endpoint == 'admin_homepage' }}">
-                <i class="fas fa-home"></i> হোমপেজ (বাণী সেকশন)
+                <i class="fas fa-users"></i> পরিচালনা পর্ষদ (বাণী)
+            </a>
+            <a href="{{ url_for('admin_home_settings') }}" class="{{ 'active' if request.endpoint == 'admin_home_settings' }}">
+                <i class="fas fa-home"></i> হোম পেজ সেটিংস
+            </a>
+            <a href="{{ url_for('admin_contact_settings') }}" class="{{ 'active' if request.endpoint == 'admin_contact_settings' }}">
+                <i class="fas fa-address-book"></i> যোগাযোগ পেজ সেটিংস
             </a>
             <a href="{{ url_for('admin_notices') }}" class="{{ 'active' if request.endpoint == 'admin_notices' }}">
                 <i class="fas fa-bullhorn"></i> নোটিশ ও সংবাদ

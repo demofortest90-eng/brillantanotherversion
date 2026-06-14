@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Contact Us | TBF 2026{% endblock %}
+{% block title %}যোগাযোগ | টিবিএফ ২০২৬{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -12,14 +12,13 @@
         --slate: #64748B;
     }
 
-    /* Hero Section - Optimized for Mobile */
     .contact-hero {
         background: linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.9)), 
-                    url('https://i.postimg.cc/HLFyVYC6/476177903-914342390890559-7329175491287224542-n.jpg');
+                    url('{{ contact_hero_image }}');
         background-size: cover;
         background-position: center;
         color: var(--white);
-        padding: 50px 15px; /* Reduced padding for mobile */
+        padding: 50px 15px;
         text-align: center;
     }
 
@@ -28,7 +27,6 @@
         margin-bottom: 10px; 
     }
 
-    /* Container for layout control */
     .contact-container {
         width: 100%;
         max-width: 1200px;
@@ -37,15 +35,14 @@
         box-sizing: border-box;
     }
 
-    /* Info Grid - Responsive column control */
     .info-grid {
         display: grid;
-        grid-template-columns: 1fr; /* Default to 1 column for mobile */
+        grid-template-columns: 1fr;
         gap: 20px;
     }
 
     @media (min-width: 768px) {
-        .info-grid { grid-template-columns: repeat(3, 1fr); } /* 3 columns for tablets/desktop */
+        .info-grid { grid-template-columns: repeat(3, 1fr); }
     }
 
     .contact-card {
@@ -84,10 +81,9 @@
         color: var(--slate); 
         line-height: 1.5; 
         text-decoration: none;
-        word-break: break-word; /* Prevents overflow on narrow screens */
+        word-break: break-word;
     }
 
-    /* Exam Centers Section */
     .centers-section {
         margin-top: 30px;
         background: var(--white);
@@ -164,7 +160,6 @@
 
     .center-phone:hover { color: var(--navy) !important; }
 
-    /* Social Section - Mobile Optimized */
     .social-section {
         margin-top: 30px;
         background: var(--white);
@@ -185,12 +180,11 @@
         text-decoration: none;
         font-weight: 700;
         margin-top: 15px;
-        width: 100%; /* Full width on mobile */
+        width: 100%;
         justify-content: center;
-        max-width: 300px; /* Limits width on desktop */
+        max-width: 300px;
     }
 
-    /* Map - Full width responsive */
     .map-wrapper {
         margin-top: 30px;
         border-radius: 16px;
@@ -217,20 +211,24 @@
         <div class="contact-card">
             <div class="icon-circle"><i class="fas fa-map-marker-alt"></i></div>
             <h3>অফিস ঠিকানা</h3>
-            <p>বিআরটিসি মার্কেট (২য় তলা), সাতমাথা রোড, বগুড়া সদর, বগুড়া-৫৮০০</p>
+            <p>{{ office_address }}</p>
         </div>
 
         <div class="contact-card">
             <div class="icon-circle"><i class="fas fa-phone-alt"></i></div>
             <h3>হটলাইন নম্বর</h3>
-            <p>মোবাইল: <a href="tel:+8801712282165">০১৭১২-২৮২১৬৫</a></p>
-            <p>অফিস: <a href="tel:+8801737191136">০১৭৩৭-১৯১১৩৬</a></p>
+            {% if phone_mobile %}
+            <p>মোবাইল: <a href="tel:{{ phone_mobile }}">{{ phone_mobile }}</a></p>
+            {% endif %}
+            {% if phone_office %}
+            <p>অফিস: <a href="tel:{{ phone_office }}">{{ phone_office }}</a></p>
+            {% endif %}
         </div>
 
         <div class="contact-card">
             <div class="icon-circle"><i class="fas fa-envelope"></i></div>
             <h3>ইমেইল সাপোর্ট</h3>
-            <p><a href="mailto:tbfbogura@gmail.com">tbfbogura@gmail.com</a></p>
+            <p><a href="mailto:{{ email_addr }}">{{ email_addr }}</a></p>
         </div>
     </div>
 
@@ -258,18 +256,20 @@
 
     <div class="social-section">
         <i class="fab fa-facebook" style="font-size: 2.5rem; color: #1877F2;"></i>
-        <h2 style="font-size: 1.3rem; margin: 10px 0;">অফিসিয়াল ফেসবুক পেজ</h2>
+        <h2 style="font-size: 1.3rem; margin: 10px 0;">অফিসিয়াল ফেসবুক পেজ</h2>
         <p style="font-size: 0.9rem;">আপডেট ও নোটিশ পেতে আমাদের পেজে যুক্ত থাকুন।</p>
-        <a href="https://www.facebook.com/thebrilliantsbogura" target="_blank" class="fb-link">
+        <a href="{{ facebook_url }}" target="_blank" class="fb-link">
             <i class="fab fa-facebook-f"></i> Visit Our Page
         </a>
     </div>
 
+    {% if map_embed_url %}
     <div class="map-wrapper">
         <iframe 
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3619.043681534407!2d89.3703663753719!3d24.845258577939762!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39fc551608988631%3A0xc06e00192e1b6f0!2sBRTC%20Market!5e0!3m2!1sen!2sbd!4v1715600000000!5m2!1sen!2sbd" 
+            src="{{ map_embed_url }}" 
             width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
         </iframe>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

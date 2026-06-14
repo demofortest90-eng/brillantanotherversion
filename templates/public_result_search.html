@@ -113,31 +113,6 @@
             </div>
 
             {% if student.marks %}
-            <div class="marks-section">
-                <div class="marks-title"><i class="fas fa-chart-bar"></i> বিষয়ভিত্তিক নম্বর</div>
-                <div class="marks-row">
-                    <div class="mark-box">
-                        <div class="mark-subject">বাংলা</div>
-                        <div class="mark-score">{{ student.marks.bangla|default(0) }}</div>
-                    </div>
-                    <div class="mark-box">
-                        <div class="mark-subject">ইংরেজি</div>
-                        <div class="mark-score">{{ student.marks.english|default(0) }}</div>
-                    </div>
-                    <div class="mark-box">
-                        <div class="mark-subject">গণিত</div>
-                        <div class="mark-score">{{ student.marks.math|default(0) }}</div>
-                    </div>
-                    <div class="mark-box">
-                        <div class="mark-subject">সা. জ্ঞান</div>
-                        <div class="mark-score">{{ student.marks.gk|default(0) }}</div>
-                    </div>
-                </div>
-                <div class="total-box">
-                    <div class="total-label">মোট নম্বর (১০০-এর মধ্যে)</div>
-                    <div class="total-num">{{ student.marks.total|default(0) }}</div>
-                </div>
-            </div>
 
             {% set g = student.scholarship_grade %}
             {% if g and g != 'Nothing' %}

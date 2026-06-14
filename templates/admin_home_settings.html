@@ -1,0 +1,144 @@
+{% extends "admin_base.html" %}
+{% block title %}হোম পেজ সেটিংস | অ্যাডমিন{% endblock %}
+
+{% block content %}
+<div style="max-width:900px;margin:0 auto;padding:20px 15px;">
+    <h2 style="font-size:1.5rem;margin-bottom:20px;"><i class="fas fa-home"></i> হোম পেজ ডায়নামিক সেটিংস</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }}" style="padding:12px 16px;border-radius:8px;margin-bottom:15px;font-weight:600;">{{ msg }}</div>
+    {% endfor %}
+    {% endwith %}
+
+    <!-- HERO SLIDES -->
+    <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0;">
+        <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-images"></i> কভার স্লাইড (হিরো ছবি)</h3>
+        {% set slides = s.hero_slides or [] %}
+        {% for url in slides %}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:#f8fafc;padding:10px;border-radius:8px;border:1px solid #e2e8f0;">
+            <img src="{{ url }}" style="width:80px;height:50px;object-fit:cover;border-radius:6px;">
+            <span style="flex:1;font-size:0.8rem;word-break:break-all;color:#475569;">{{ url }}</span>
+            <form method="POST">
+                <input type="hidden" name="action" value="remove_slide">
+                <input type="hidden" name="slide_url" value="{{ url }}">
+                <button type="submit" style="background:#fee2e2;color:#991b1b;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:700;"><i class="fas fa-trash"></i></button>
+            </form>
+        </div>
+        {% else %}
+        <p style="color:#94a3b8;font-size:0.9rem;">কোনো স্লাইড নেই।</p>
+        {% endfor %}
+        <form method="POST" style="margin-top:15px;display:flex;gap:10px;">
+            <input type="hidden" name="action" value="add_slide">
+            <input type="text" name="slide_url" placeholder="ছবির URL দিন (https://...)" style="flex:1;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            <button type="submit" style="background:#020617;color:#C5A059;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> যোগ করুন</button>
+        </form>
+    </div>
+
+    <!-- HERO TEXT -->
+    <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0;">
+        <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-heading"></i> হিরো টেক্সট</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="update_hero_text">
+            <div style="margin-bottom:12px;">
+                <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:5px;">শিরোনাম (HTML সাপোর্ট করে)</label>
+                <input type="text" name="hero_title" value="{{ s.hero_title or 'মেধার অন্বেষণে <br><span style=\"color: var(--gold);\">টিবিএফ ২০২৬</span>' }}" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:5px;">সাবটাইটেল</label>
+                <input type="text" name="hero_subtitle" value="{{ s.hero_subtitle or 'বগুড়ার মেধাবী শিক্ষার্থীদের জন্য এক বিশ্বস্ত ও আধুনিক প্লাটফর্ম।' }}" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <button type="submit" style="background:#020617;color:#C5A059;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;">আপডেট করুন</button>
+        </form>
+    </div>
+
+    <!-- IMPORTANT DATES -->
+    <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0;">
+        <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-calendar-alt"></i> গুরুত্বপূর্ণ তারিখ</h3>
+        {% set dates = s.important_dates or [] %}
+        {% for d in dates %}
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;">
+            <div style="background:#020617;color:#C5A059;padding:8px 14px;border-radius:8px;text-align:center;min-width:60px;{% if d.highlight %}background:#C5A059;color:#020617;{% endif %}">
+                <div style="font-size:1.1rem;font-weight:900;">{{ d.day }}</div>
+                <div style="font-size:0.7rem;font-weight:700;">{{ d.month }}</div>
+            </div>
+            <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.95rem;">{{ d.title }}</div>
+                <div style="font-size:0.8rem;color:#64748b;">{{ d.desc }}</div>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="action" value="remove_date">
+                <input type="hidden" name="date_index" value="{{ loop.index0 }}">
+                <button type="submit" style="background:#fee2e2;color:#991b1b;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:700;"><i class="fas fa-trash"></i></button>
+            </form>
+        </div>
+        {% else %}
+        <p style="color:#94a3b8;font-size:0.9rem;">কোনো তারিখ নেই।</p>
+        {% endfor %}
+        <form method="POST" style="margin-top:15px;">
+            <input type="hidden" name="action" value="add_date">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:10px;margin-bottom:10px;">
+                <input type="text" name="date_day" placeholder="দিন (যেমন: ২০)" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <input type="text" name="date_month" placeholder="মাস (মার্চ)" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <input type="text" name="date_title" placeholder="শিরোনাম" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <input type="text" name="date_desc" placeholder="বিস্তারিত বিবরণ" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <label style="font-size:0.85rem;font-weight:700;"><input type="checkbox" name="date_highlight"> হাইলাইট করুন (গোল্ড রং)</label>
+            <br><button type="submit" style="background:#020617;color:#C5A059;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;margin-top:10px;"><i class="fas fa-plus"></i> তারিখ যোগ করুন</button>
+        </form>
+    </div>
+
+    <!-- IMPACT/ABOUT SECTION -->
+    <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0;">
+        <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-star"></i> ইমপ্যাক্ট / অ্যাবাউট সেকশন</h3>
+        <form method="POST">
+            <input type="hidden" name="action" value="update_impact">
+            <div style="margin-bottom:12px;">
+                <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:5px;">সাইড ছবির URL</label>
+                <input type="text" name="impact_image" value="{{ s.impact_image or '' }}" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:5px;">শিরোনাম</label>
+                <input type="text" name="impact_title" value="{{ s.impact_title or '' }}" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:5px;">বিবরণ</label>
+                <textarea name="impact_text" rows="3" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">{{ s.impact_text or '' }}</textarea>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+                {% set stats = s.stats or [{"number":"","label":""},{"number":"","label":""}] %}
+                <input type="text" name="stat1_num" placeholder="স্ট্যাট ১ নম্বর" value="{{ stats[0].number if stats|length > 0 else '' }}" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <input type="text" name="stat1_label" placeholder="স্ট্যাট ১ লেবেল" value="{{ stats[0].label if stats|length > 0 else '' }}" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <input type="text" name="stat2_num" placeholder="স্ট্যাট ২ নম্বর" value="{{ stats[1].number if stats|length > 1 else '' }}" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+                <input type="text" name="stat2_label" placeholder="স্ট্যাট ২ লেবেল" value="{{ stats[1].label if stats|length > 1 else '' }}" style="padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            </div>
+            <button type="submit" style="background:#020617;color:#C5A059;border:none;padding:10px 20px;border-radius:8px;font-weight:700;cursor:pointer;">আপডেট করুন</button>
+        </form>
+    </div>
+
+    <!-- GALLERY -->
+    <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0;">
+        <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-photo-video"></i> গ্যালারি ছবিসমূহ</h3>
+        {% set gallery = s.gallery_images or [] %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:15px;">
+        {% for url in gallery %}
+        <div style="position:relative;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;">
+            <img src="{{ url }}" style="width:100%;height:90px;object-fit:cover;">
+            <form method="POST" style="position:absolute;top:4px;right:4px;">
+                <input type="hidden" name="action" value="remove_gallery">
+                <input type="hidden" name="gallery_url" value="{{ url }}">
+                <button type="submit" style="background:rgba(239,68,68,0.85);color:#fff;border:none;padding:4px 8px;border-radius:5px;cursor:pointer;font-size:0.75rem;"><i class="fas fa-times"></i></button>
+            </form>
+        </div>
+        {% else %}
+        <p style="color:#94a3b8;font-size:0.9rem;">কোনো ছবি নেই।</p>
+        {% endfor %}
+        </div>
+        <form method="POST" style="display:flex;gap:10px;">
+            <input type="hidden" name="action" value="add_gallery">
+            <input type="text" name="gallery_url" placeholder="ছবির URL দিন (https://...)" style="flex:1;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">
+            <button type="submit" style="background:#020617;color:#C5A059;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;"><i class="fas fa-plus"></i> যোগ করুন</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
