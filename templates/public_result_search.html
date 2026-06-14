@@ -7,9 +7,6 @@
     .search-header { text-align: center; margin-bottom: 25px; }
     .search-header h2 { font-size: 1.6rem; font-weight: 900; color: #1B2631; }
     .search-header p { color: #7F8C8D; font-size: 14px; margin-top: 6px; }
-    .tab-row { display: flex; gap: 8px; background: #f4f6f7; padding: 5px; border-radius: 10px; margin-bottom: 20px; }
-    .tab-btn { flex: 1; padding: 10px; border: none; background: none; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; color: #7F8C8D; transition: 0.2s; }
-    .tab-btn.active { background: #1B2631; color: white; }
     .inp { width: 100%; padding: 13px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; outline: none; }
     .inp:focus { border-color: #922B21; }
     .btn-search { width: 100%; background: #922B21; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; letter-spacing: 0.5px; transition: 0.2s; }
@@ -31,24 +28,19 @@
     .info-item { background: #f8fafc; padding: 10px 14px; border-radius: 8px; }
     .info-label { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
     .info-val { font-size: 14px; font-weight: 700; color: #1e293b; margin-top: 3px; }
-    .marks-section { background: #f8fafc; border-radius: 10px; padding: 16px; margin-top: 15px; }
-    .marks-title { font-size: 12px; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 12px; }
-    .marks-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
-    .mark-box { text-align: center; background: white; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; flex: 1; min-width: 60px; }
-    .mark-subject { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
-    .mark-score { font-size: 1.3rem; font-weight: 900; color: #1B2631; }
-    .total-box { background: #1B2631; color: white; border-radius: 10px; padding: 14px; text-align: center; margin-top: 12px; }
-    .total-label { font-size: 11px; opacity: 0.7; font-weight: 700; }
-    .total-num { font-size: 2rem; font-weight: 900; }
 
-    .scholarship-badge { text-align: center; padding: 12px; border-radius: 10px; font-size: 15px; font-weight: 800; margin-top: 12px; }
-    .sch-tp { background: #fef3c7; color: #92400e; }
-    .sch-gen { background: #d1fae5; color: #065f46; }
-    .sch-suv { background: #dbeafe; color: #1e40af; }
-    .sch-quata { background: #fce7f3; color: #9d174d; }
-    .sch-nothing { background: #f1f5f9; color: #64748b; }
+    .scholarship-badge { text-align: center; padding: 20px 16px; border-radius: 12px; font-size: 16px; font-weight: 800; margin-top: 10px; }
+    .sch-tp      { background: #fef3c7; color: #92400e; border: 2px solid #f59e0b; }
+    .sch-gen     { background: #d1fae5; color: #065f46; border: 2px solid #34d399; }
+    .sch-suv     { background: #dbeafe; color: #1e40af; border: 2px solid #60a5fa; }
+    .sch-quata   { background: #fce7f3; color: #9d174d; border: 2px solid #f472b6; }
+    .sch-nothing { background: #f1f5f9; color: #64748b; border: 2px solid #cbd5e1; }
 
-    .not-published { text-align: center; padding: 50px 20px; background: white; border-radius: 16px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .sch-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+    .sch-label { font-size: 12px; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .sch-value { font-size: 1.4rem; font-weight: 900; }
+
+    .pending-box { text-align: center; padding: 30px 20px; color: #94a3b8; }
 </style>
 
 <div class="search-container">
@@ -70,7 +62,6 @@
                    placeholder="রোল নম্বর লিখুন" value="{{ request.form.get('search_query', '') }}">
             <button type="submit" class="btn-search"><i class="fas fa-search"></i> ফলাফল খুঁজুন</button>
         </form>
-
 
         <a href="{{ url_for('institute_result_search') }}"
            style="display:block; text-align:center; margin-top:10px; background:#922B21; color:white; padding:13px; border-radius:10px; font-weight:800; font-size:14px; text-decoration:none;">
@@ -112,32 +103,51 @@
                 </div>
             </div>
 
-            {% if student.marks %}
-
+            {# ── Scholarship grade only — no marks shown ── #}
             {% set g = student.scholarship_grade %}
-            {% if g and g != 'Nothing' %}
-            <div class="scholarship-badge sch-{{ g|lower if g in ['Talentpool','General','Suveccha','Quata'] else 'nothing' }}">
-                <i class="fas fa-graduation-cap"></i>
-                🎉 অভিনন্দন! বৃত্তির ধরন:
-                <strong>
-                    {% if g == 'Talentpool' %}ট্যালেন্টপুল
-                    {% elif g == 'General' %}সাধারণ
-                    {% elif g == 'Suveccha' %}শুভেচ্ছা
-                    {% elif g == 'Quata' %}কোটা
-                    {% else %}{{ g }}{% endif %}
-                </strong>
-            </div>
+            {% if g %}
+                {% if g == 'Talentpool' %}
+                <div class="scholarship-badge sch-tp">
+                    <span class="sch-icon">🏆</span>
+                    <div class="sch-label">বৃত্তির ধরন</div>
+                    <div class="sch-value">ট্যালেন্টপুল</div>
+                </div>
+                {% elif g == 'General' %}
+                <div class="scholarship-badge sch-gen">
+                    <span class="sch-icon">🎓</span>
+                    <div class="sch-label">বৃত্তির ধরন</div>
+                    <div class="sch-value">সাধারণ</div>
+                </div>
+                {% elif g == 'Suveccha' %}
+                <div class="scholarship-badge sch-suv">
+                    <span class="sch-icon">🌟</span>
+                    <div class="sch-label">বৃত্তির ধরন</div>
+                    <div class="sch-value">শুভেচ্ছা</div>
+                </div>
+                {% elif g == 'Quata' %}
+                <div class="scholarship-badge sch-quata">
+                    <span class="sch-icon">🎖️</span>
+                    <div class="sch-label">বৃত্তির ধরন</div>
+                    <div class="sch-value">কোটা</div>
+                </div>
+                {% elif g == 'Nothing' %}
+                <div class="scholarship-badge sch-nothing">
+                    <span class="sch-icon">📋</span>
+                    <div class="sch-value">এবার বৃত্তির জন্য নির্বাচিত হয়নি।</div>
+                </div>
+                {% else %}
+                <div class="scholarship-badge sch-nothing">
+                    <span class="sch-icon">📋</span>
+                    <div class="sch-value">{{ g }}</div>
+                </div>
+                {% endif %}
             {% else %}
-            <div class="scholarship-badge sch-nothing">
-                এবার বৃত্তির জন্য নির্বাচিত হয়নি।
-            </div>
-            {% endif %}
-            {% else %}
-            <div style="text-align:center;padding:20px;color:#94a3b8;">
+            <div class="pending-box">
                 <i class="fas fa-clock" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
-                নম্বর এখনো এন্ট্রি করা হয়নি। অনুগ্রহ করে পরে আবার দেখুন।
+                ফলাফল এখনো প্রকাশিত হয়নি। অনুগ্রহ করে পরে আবার দেখুন।
             </div>
             {% endif %}
+
         </div>
     </div>
     {% endif %}

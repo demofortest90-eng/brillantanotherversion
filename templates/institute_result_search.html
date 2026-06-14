@@ -31,7 +31,6 @@
     table.result-table th { background: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; }
     table.result-table tr:last-child td { border-bottom: none; }
     .roll-cell { font-weight: 800; color: #1B2631; }
-    .total-cell { font-weight: 800; color: #922B21; }
 
     .not-published { text-align: center; padding: 50px 20px; background: white; border-radius: 16px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
 </style>
@@ -82,7 +81,6 @@
                             <th>রোল</th>
                             <th>নাম</th>
                             <th>পিতার নাম</th>
-                            <th>মোট নম্বর</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,7 +89,6 @@
                             <td class="roll-cell">{{ s.roll_no }}</td>
                             <td>{{ s.name_bn or s.name_en }}</td>
                             <td>{{ s.father_bn or s.father_en }}</td>
-                            <td class="total-cell">{{ s.marks.total|default(0) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
