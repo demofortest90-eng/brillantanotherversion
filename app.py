@@ -100,7 +100,63 @@ def landing():
         leaders = []
     if not leaders:
         leaders = DEFAULT_LEADERS
-    return render_template('landing.html', leaders=leaders)
+
+    # Dynamic homepage settings
+    try:
+        home_settings = mongo.db.home_settings.find_one({"key": "home"}) or {}
+    except Exception:
+        home_settings = {}
+
+    # Hero slides (cover images)
+    default_slides = [
+        "https://i.postimg.cc/V6dkdwcw/550584227_1306561844591582_7461480228133852539_n.jpg",
+        "https://i.postimg.cc/XYzp0LhM/Whats_App_Image_2026_01_31_at_1_57_28_AM1.jpg",
+        "https://i.postimg.cc/YCshwRPV/Whats_App_Image_2026_01_31_at_1_57_28_AM.jpg"
+    ]
+    hero_slides = home_settings.get("hero_slides", default_slides)
+
+    # Hero text
+    hero_title = home_settings.get("hero_title", "মেধার অন্বেষণে <br><span style=\"color: var(--gold);\">টিবিএফ ২০২৬</span>")
+    hero_subtitle = home_settings.get("hero_subtitle", "বগুড়ার মেধাবী শিক্ষার্থীদের জন্য এক বিশ্বস্ত ও আধুনিক প্লাটফর্ম।")
+
+    # Important dates
+    default_dates = [
+        {"day": "০১", "month": "ফেব্রু", "title": "আবেদন শুরু", "desc": "২০২৬ মেধা পরীক্ষার রেজিস্ট্রেশন শুরু।", "highlight": False},
+        {"day": "২০", "month": "মার্চ", "title": "শেষ সময়", "desc": "আবেদন ফরম জমা দেওয়ার চূড়ান্ত তারিখ।", "highlight": True},
+        {"day": "১৫", "month": "মে", "title": "পরীক্ষা", "desc": "সকাল ১০টায় নির্দিষ্ট কেন্দ্রে পরীক্ষা।", "highlight": False}
+    ]
+    important_dates = home_settings.get("important_dates", default_dates)
+
+    # About/Impact section
+    impact_image = home_settings.get("impact_image", "https://i.postimg.cc/63ypyKNx/550676924_1306637174584049_1345585347271334112_n.jpg")
+    impact_title = home_settings.get("impact_title", "শ্রেষ্ঠত্বের এক দশক")
+    impact_text = home_settings.get("impact_text", "২০১২ সাল থেকে আমরা কাজ করছি স্বচ্ছতা ও নিরপেক্ষতার সাথে। আমরা কেবল একটি পরীক্ষা নই, বরং মেধাবীদের আগামীর স্বপ্ন।")
+    stats = home_settings.get("stats", [
+        {"number": "৫০০০+", "label": "সফল শিক্ষার্থী"},
+        {"number": "১০০%", "label": "ডিজিটাল রেজাল্ট"}
+    ])
+
+    # Gallery images
+    default_gallery = [
+        "https://i.postimg.cc/0Qbybvq5/549605784_1306562557924844_5824319049134876797_n.jpg",
+        "https://i.postimg.cc/k4BgBCdd/549166921_1306562611258172_9183451457376780271_n.jpg",
+        "https://i.postimg.cc/ZRC5Cmhb/549606794_1306562667924833_1638799538323628393_n.jpg",
+        "https://i.postimg.cc/0QF2S481/550267765_1306562521258181_867733181360162386_n.jpg"
+    ]
+    gallery_images = home_settings.get("gallery_images", default_gallery)
+
+    return render_template('landing.html',
+        leaders=leaders,
+        hero_slides=hero_slides,
+        hero_title=hero_title,
+        hero_subtitle=hero_subtitle,
+        important_dates=important_dates,
+        impact_image=impact_image,
+        impact_title=impact_title,
+        impact_text=impact_text,
+        stats=stats,
+        gallery_images=gallery_images
+    )
 
 def upload_to_imgbb(file):
     api_key = "0bb1747f7045ccee9cc03c792b828a67"
@@ -499,9 +555,35 @@ def logout():
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     centers = list(mongo.db.centers.find().sort("center_code", 1))
+
+    # Dynamic contact settings
+    try:
+        contact_settings = mongo.db.contact_settings.find_one({"key": "contact"}) or {}
+    except Exception:
+        contact_settings = {}
+
+    contact_hero_image = contact_settings.get("hero_image", "https://i.postimg.cc/HLFyVYC6/476177903-914342390890559-7329175491287224542-n.jpg")
+    office_address = contact_settings.get("office_address", "বিআরটিসি মার্কেট (২য় তলা), সাতমাথা রোড, বগুড়া সদর, বগুড়া-৫৮০০")
+    phone_mobile = contact_settings.get("phone_mobile", "০১৭১২-২৮২১৬৫")
+    phone_office = contact_settings.get("phone_office", "০১৭৩৭-১৯১১৩৬")
+    email_addr = contact_settings.get("email", "tbfbogura@gmail.com")
+    facebook_url = contact_settings.get("facebook_url", "https://www.facebook.com/thebrilliantsbogura")
+    map_embed_url = contact_settings.get("map_embed_url", "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3619.043681534407!2d89.3703663753719!3d24.845258577939762!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39fc551608988631%3A0xc06e00192e1b6f0!2sBRTC%20Market!5e0!3m2!1sen!2sbd!4v1715600000000!5m2!1sen!2sbd")
+
+    ctx = dict(
+        centers=centers,
+        contact_hero_image=contact_hero_image,
+        office_address=office_address,
+        phone_mobile=phone_mobile,
+        phone_office=phone_office,
+        email_addr=email_addr,
+        facebook_url=facebook_url,
+        map_embed_url=map_embed_url
+    )
+
     if request.method == 'POST':
-        return render_template('contact.html', success=True, centers=centers)
-    return render_template('contact.html', centers=centers)
+        return render_template('contact.html', success=True, **ctx)
+    return render_template('contact.html', **ctx)
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -1600,6 +1682,113 @@ def admin_homepage_delete(leader_id):
     except Exception as e:
         flash(f"মুছে ফেলতে সমস্যা হয়েছে: {str(e)}", "danger")
     return redirect(url_for('admin_homepage'))
+
+
+# --- ADMIN: DYNAMIC HOME PAGE SETTINGS ---
+@app.route('/admin/home-settings', methods=['GET', 'POST'])
+def admin_home_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    if request.method == 'POST':
+        action = request.form.get('action', '')
+
+        if action == 'add_slide':
+            url = request.form.get('slide_url', '').strip()
+            if url:
+                mongo.db.home_settings.update_one(
+                    {"key": "home"}, {"$push": {"hero_slides": url}}, upsert=True)
+                flash("স্লাইড যোগ হয়েছে।", "success")
+
+        elif action == 'remove_slide':
+            url = request.form.get('slide_url', '').strip()
+            if url:
+                mongo.db.home_settings.update_one(
+                    {"key": "home"}, {"$pull": {"hero_slides": url}})
+                flash("স্লাইড মুছে ফেলা হয়েছে।", "info")
+
+        elif action == 'add_date':
+            date_entry = {
+                "day": request.form.get('date_day', '').strip(),
+                "month": request.form.get('date_month', '').strip(),
+                "title": request.form.get('date_title', '').strip(),
+                "desc": request.form.get('date_desc', '').strip(),
+                "highlight": request.form.get('date_highlight') == 'on'
+            }
+            if date_entry['day'] and date_entry['title']:
+                mongo.db.home_settings.update_one(
+                    {"key": "home"}, {"$push": {"important_dates": date_entry}}, upsert=True)
+                flash("তারিখ যোগ হয়েছে।", "success")
+
+        elif action == 'remove_date':
+            idx = int(request.form.get('date_index', -1))
+            settings = mongo.db.home_settings.find_one({"key": "home"}) or {}
+            dates = settings.get("important_dates", [])
+            if 0 <= idx < len(dates):
+                dates.pop(idx)
+                mongo.db.home_settings.update_one(
+                    {"key": "home"}, {"$set": {"important_dates": dates}})
+                flash("তারিখ মুছে ফেলা হয়েছে।", "info")
+
+        elif action == 'add_gallery':
+            url = request.form.get('gallery_url', '').strip()
+            if url:
+                mongo.db.home_settings.update_one(
+                    {"key": "home"}, {"$push": {"gallery_images": url}}, upsert=True)
+                flash("গ্যালারি ছবি যোগ হয়েছে।", "success")
+
+        elif action == 'remove_gallery':
+            url = request.form.get('gallery_url', '').strip()
+            if url:
+                mongo.db.home_settings.update_one(
+                    {"key": "home"}, {"$pull": {"gallery_images": url}})
+                flash("গ্যালারি ছবি মুছে ফেলা হয়েছে।", "info")
+
+        elif action == 'update_impact':
+            mongo.db.home_settings.update_one({"key": "home"}, {"$set": {
+                "impact_image": request.form.get("impact_image", "").strip(),
+                "impact_title": request.form.get("impact_title", "").strip(),
+                "impact_text": request.form.get("impact_text", "").strip(),
+            }}, upsert=True)
+            # Update stats
+            s1 = {"number": request.form.get("stat1_num","").strip(), "label": request.form.get("stat1_label","").strip()}
+            s2 = {"number": request.form.get("stat2_num","").strip(), "label": request.form.get("stat2_label","").strip()}
+            mongo.db.home_settings.update_one({"key": "home"}, {"$set": {"stats": [s1, s2]}}, upsert=True)
+            flash("ইমপ্যাক্ট সেকশন আপডেট হয়েছে।", "success")
+
+        elif action == 'update_hero_text':
+            mongo.db.home_settings.update_one({"key": "home"}, {"$set": {
+                "hero_title": request.form.get("hero_title", "").strip(),
+                "hero_subtitle": request.form.get("hero_subtitle", "").strip(),
+            }}, upsert=True)
+            flash("হিরো টেক্সট আপডেট হয়েছে।", "success")
+
+        return redirect(url_for('admin_home_settings'))
+
+    settings = mongo.db.home_settings.find_one({"key": "home"}) or {}
+    return render_template('admin_home_settings.html', s=settings)
+
+
+# --- ADMIN: DYNAMIC CONTACT PAGE SETTINGS ---
+@app.route('/admin/contact-settings', methods=['GET', 'POST'])
+def admin_contact_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    if request.method == 'POST':
+        data = {
+            "key": "contact",
+            "hero_image": request.form.get("hero_image", "").strip(),
+            "office_address": request.form.get("office_address", "").strip(),
+            "phone_mobile": request.form.get("phone_mobile", "").strip(),
+            "phone_office": request.form.get("phone_office", "").strip(),
+            "email": request.form.get("email", "").strip(),
+            "facebook_url": request.form.get("facebook_url", "").strip(),
+            "map_embed_url": request.form.get("map_embed_url", "").strip()
+        }
+        mongo.db.contact_settings.update_one({"key": "contact"}, {"$set": data}, upsert=True)
+        flash("যোগাযোগ পেজ আপডেট হয়েছে।", "success")
+        return redirect(url_for('admin_contact_settings'))
+    settings = mongo.db.contact_settings.find_one({"key": "contact"}) or {}
+    return render_template('admin_contact_settings.html', s=settings)
 
 
 # --- CENTER-WISE BULK APPROVAL (from dashboard filters) ---
