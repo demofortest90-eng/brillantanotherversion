@@ -4,6 +4,18 @@
 <div style="padding: 30px; font-family: 'Inter', sans-serif;">
     <h2 style="color: #2c3e50; margin-bottom: 25px;"><i class="fas fa-map-marker-alt"></i> Manage Exam Centers</h2>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div style="padding: 13px 16px; border-radius: 8px; margin-bottom: 18px; font-weight: 600;
+                        background: {% if category == 'success' %}#dcfce7{% elif category == 'info' %}#e0f2fe{% else %}#fee2e2{% endif %};
+                        color: {% if category == 'success' %}#166534{% elif category == 'info' %}#075985{% else %}#991b1b{% endif %};">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
 
     <!-- Payment Numbers Section -->
     <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 30px; border-left: 4px solid #E31E7B;">
@@ -100,6 +112,56 @@
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Center Group Section -->
+    <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 30px; border-left: 4px solid #6366f1;">
+        <h4 style="margin-top: 0; color: #334155; margin-bottom: 5px;"><i class="fas fa-layer-group"></i> কেন্দ্র গ্রুপ (Center Group)</h4>
+        <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 18px;">
+            একাধিক কেন্দ্রকে একসাথে একটি গ্রুপে যুক্ত করে নতুন একটা নাম দিন — সার্টিফিকেট ও বৃত্তি প্রসপেক্টাস পেজে এই কেন্দ্রগুলোর জন্য নিজ নিজ নাম না দেখিয়ে গ্রুপের নামটি দেখাবে।
+        </p>
+
+        <form action="{{ url_for('add_center_group') }}" method="POST" style="margin-bottom: 25px;">
+            <div style="margin-bottom: 15px; max-width: 420px;">
+                <label style="font-size: 12px; font-weight: bold; color: #64748b;">গ্রুপের নাম</label>
+                <input type="text" name="group_name" placeholder="যেমনঃ বগুড়া সদর জোন" required
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px; font-family: 'Kalpurush', sans-serif;">
+            </div>
+            <label style="font-size: 12px; font-weight: bold; color: #64748b; display:block; margin-bottom:8px;">কোন কোন কেন্দ্র এই গ্রুপে থাকবে</label>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px;">
+                {% for c in centers %}
+                {% set already = (c.center_code|string) in grouped_codes %}
+                <label style="display:flex; align-items:center; gap:8px; padding:9px 12px; border:1.5px solid {% if already %}#f1f5f9{% else %}#e2e8f0{% endif %}; border-radius:8px; cursor:{% if already %}not-allowed{% else %}pointer{% endif %}; background:{% if already %}#f8fafc{% else %}white{% endif %}; color:{% if already %}#cbd5e1{% else %}#334155{% endif %}; font-size:0.85rem;">
+                    <input type="checkbox" name="member_codes" value="{{ c.center_code }}" {% if already %}disabled{% endif %} style="width:16px; height:16px;">
+                    {{ c.center_code }} - {{ c.center_name_bn }}
+                    {% if already %}<span style="font-size:0.7rem; color:#94a3b8;">(গ্রুপে আছে)</span>{% endif %}
+                </label>
+                {% endfor %}
+            </div>
+            <button type="submit" style="background: #6366f1; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                <i class="fas fa-plus"></i> গ্রুপ তৈরি করুন
+            </button>
+        </form>
+
+        {% if center_groups %}
+        <div style="display: grid; gap: 12px;">
+            {% for g in center_groups %}
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-weight:800; color:#1e293b; font-family:'Kalpurush', sans-serif; margin-bottom:6px;">{{ g.group_name }}</div>
+                    <div style="font-size:0.8rem; color:#64748b;">{{ g.member_labels|join(' • ') }}</div>
+                </div>
+                <a href="{{ url_for('delete_center_group', group_id=g._id) }}"
+                   onclick="return confirm('আপনি কি নিশ্চিত এই গ্রুপটি মুছে ফেলতে চান?')"
+                   style="color: #ef4444; text-decoration: none; font-size: 1rem; padding-top:4px;" title="Delete Group">
+                    <i class="fas fa-trash-alt"></i>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="color:#94a3b8; font-size:0.85rem;">এখনো কোনো কেন্দ্র গ্রুপ তৈরি করা হয়নি।</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

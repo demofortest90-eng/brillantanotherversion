@@ -83,6 +83,15 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="input-box">
+            <label>Center</label>
+            <select name="center" class="custom-select">
+                <option value="">All Centers</option>
+                {% for c in centers %}
+                <option value="{{ c.center_code }}" {{ 'selected' if request.args.get('center') == c.center_code }}>{{ c.center_code }} - {{ c.center_name_bn }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <button type="submit" class="btn-filter">Apply Filter</button>
     </form>
 

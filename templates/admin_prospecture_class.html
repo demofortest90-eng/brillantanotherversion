@@ -55,7 +55,7 @@
         <select name="center">
             <option value="">All Centers</option>
             {% for c in all_centers %}
-            <option value="{{ c }}" {% if center_filter==c %}selected{% endif %}>{{ c }}</option>
+            <option value="{{ c }}" {% if center_filter==c %}selected{% endif %}>{{ center_display_map.get(c|string, c) }}</option>
             {% endfor %}
         </select>
     </div>
@@ -92,7 +92,7 @@
                 <div style="font-size:11px;color:#64748b;">{{ s.name_bn }}</div>
             </td>
             <td style="font-size:12px;">{{ s.institute_en or s.institute_bn }}</td>
-            <td style="font-size:12px;">{{ s.center_code }}</td>
+            <td style="font-size:12px;">{{ center_display_map.get(s.center_code|string, s.center_code) }}</td>
             <td>
                 {% if s.marks %}
                 <div class="marks-box">
