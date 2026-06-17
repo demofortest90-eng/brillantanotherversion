@@ -186,6 +186,129 @@ def api_upload_photo():
         return jsonify({"success": False, "message": "Image upload failed. Please try again."}), 500
     return jsonify({"success": True, "url": photo_url})
 
+# =====================================================================
+# DYNAMIC CENTER HELPERS — single source of truth for center names so
+# nothing in the project relies on a hardcoded center list anymore.
+# =====================================================================
+
+def get_center_name_map(lang='bn'):
+    """Returns {center_code(str): display_name} built live from the
+    'centers' collection. Replaces every hardcoded centers dict."""
+    result = {}
+    for c in mongo.db.centers.find():
+        code = str(c.get('center_code', ''))
+        if lang == 'en':
+            result[code] = c.get('center_name_en') or c.get('center_name_bn') or code
+        else:
+            result[code] = c.get('center_name_bn') or c.get('center_name_en') or code
+    return result
+
+SCHOLARSHIP_GRADES = ['Talentpool', 'General', 'Suveccha', 'Quata']
+
+# =====================================================================
+# ADMIT CARD SETTINGS — admin-editable signature & exam date/time
+# =====================================================================
+
+def get_admit_settings():
+    s = mongo.db.admit_settings.find_one({"key": "admit"}) or {}
+    return {
+        "signature_image": s.get("signature_image") or "https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png",
+        "signature_title": s.get("signature_title") or "পরীক্ষা নিয়ন্ত্রক",
+        "exam_datetime": s.get("exam_datetime") or "20 Jan 2026, 10:00 AM",
+    }
+
+# =====================================================================
+# PARTICIPANT SUMMARY REPORT HELPERS (gender x school/madrasha breakdown
+# + manually recorded exam-day attendance, matching the official sheet)
+# =====================================================================
+
+def _blank_breakdown():
+    return {"school": 0, "madrasha": 0, "total": 0}
+
+def build_center_participation(center_code, status_filter='Verified'):
+    """Registered-student counts for one center, split by gender x
+    institute type."""
+    match = {"center_code": center_code}
+    if status_filter == 'Verified':
+        match["status"] = "Verified"
+    elif status_filter == 'Pending':
+        match["status"] = {"$ne": "Verified"}
+
+    pipeline = [
+        {"$match": match},
+        {"$group": {
+            "_id": {"gender": "$gender", "type": "$institute_type"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    rows = list(mongo.db.students.aggregate(pipeline))
+
+    counts = {"male": _blank_breakdown(), "female": _blank_breakdown()}
+    for r in rows:
+        gid = (r["_id"].get("gender") or "").strip().lower()
+        tid = (r["_id"].get("type") or "").strip().lower()
+        gkey = "female" if gid == "female" else "male" if gid == "male" else "male"
+        tkey = "madrasha" if tid.startswith("madras") else "school"
+        counts[gkey][tkey] += r["count"]
+
+    for g in ("male", "female"):
+        counts[g]["total"] = counts[g]["school"] + counts[g]["madrasha"]
+    counts["total"] = {
+        "school": counts["male"]["school"] + counts["female"]["school"],
+        "madrasha": counts["male"]["madrasha"] + counts["female"]["madrasha"],
+        "total": counts["male"]["total"] + counts["female"]["total"],
+    }
+    return counts
+
+def get_exam_attendance(center_code, year):
+    """Manually recorded exam-day present count for one center/year."""
+    doc = mongo.db.exam_attendance.find_one({"center_code": center_code, "year": year}) or {}
+    counts = {
+        "male": {"school": doc.get("school_boys", 0), "madrasha": doc.get("madrasha_boys", 0)},
+        "female": {"school": doc.get("school_girls", 0), "madrasha": doc.get("madrasha_girls", 0)},
+    }
+    for g in ("male", "female"):
+        counts[g]["total"] = counts[g]["school"] + counts[g]["madrasha"]
+    counts["total"] = {
+        "school": counts["male"]["school"] + counts["female"]["school"],
+        "madrasha": counts["male"]["madrasha"] + counts["female"]["madrasha"],
+        "total": counts["male"]["total"] + counts["female"]["total"],
+    }
+    counts["saved"] = bool(doc)
+    return counts
+
+def build_full_center_report(status_filter, year, center_code=None):
+    """One row per center (or just the requested one) combining registered
+    counts with the manually recorded exam-day attendance, plus a grand
+    total. center_code of None/''/'ALL' means every center."""
+    if center_code and center_code != 'ALL':
+        centers = list(mongo.db.centers.find({"center_code": center_code}))
+    else:
+        centers = list(mongo.db.centers.find().sort("center_code", 1))
+
+    report_rows = []
+    for c in centers:
+        code = c.get('center_code')
+        report_rows.append({
+            "center_code": code,
+            "center_name_bn": c.get('center_name_bn'),
+            "center_name_en": c.get('center_name_en'),
+            "registered": build_center_participation(code, status_filter),
+            "attendance": get_exam_attendance(code, year),
+        })
+
+    grand = {
+        "registered": {"male": _blank_breakdown(), "female": _blank_breakdown(), "total": _blank_breakdown()},
+        "attendance": {"male": _blank_breakdown(), "female": _blank_breakdown(), "total": _blank_breakdown()},
+    }
+    for row in report_rows:
+        for section in ("registered", "attendance"):
+            for g in ("male", "female", "total"):
+                for k in ("school", "madrasha", "total"):
+                    grand[section][g][k] += row[section][g][k]
+
+    return report_rows, grand
+
 @app.route('/apply', methods=['GET', 'POST'])
 def apply():
     if request.method == 'POST':
@@ -223,7 +346,7 @@ def apply():
             serial_no = roll_no
 
             center_info = mongo.db.centers.find_one({"center_code": request.form.get('center_code')})
-            center_display_name = center_info.get('center_name', 'N/A') if center_info else 'N/A'
+            center_display_name = (center_info.get('center_name_bn') or center_info.get('center_name_en', 'N/A')) if center_info else 'N/A'
 
             student_data = {
                 "roll_no": str(roll_no),
@@ -377,7 +500,7 @@ def download_slip():
     if not student or not student.get('verification'):
         flash("দুঃখিত! আপনার একাউন্টটি এখনো ভেরিফাই করা হয়নি।", "danger")
         return redirect(url_for('dashboard'))
-    return render_template('payment_slip.html', student=student)
+    return render_template('payment_slip.html', student=student, admit_settings=get_admit_settings())
 
 @app.route('/download-admit', methods=['GET', 'POST'])
 def download_admit():
@@ -399,7 +522,8 @@ def download_admit():
 
             center_info = mongo.db.centers.find_one({"center_code": student.get('center_code')})
             center_display_name = center_info.get('center_name_bn') if center_info else student.get('center_code')
-            return render_template('admit_card.html', student=student, center_name=center_display_name)
+            return render_template('admit_card.html', student=student, center_name=center_display_name,
+                                   admit_settings=get_admit_settings())
         else:
             flash("এই রোল বা মোবাইল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।", "danger")
             return redirect(url_for('download_admit'))
@@ -537,13 +661,8 @@ def download_scholarship_certificate():
     if not grade or grade == 'Nothing':
         flash("দুঃখিত, আপনি এই বছর বৃত্তির জন্য নির্বাচিত হননি, তাই সার্টিফিকেট ডাউনলোড করা সম্ভব নয়।", "warning")
         return redirect(url_for('view_result'))
-    centers_mapping = {
-        "1": "Sariakandi", "2": "Gabtali", "3": "Khottapara",
-        "4": "Aria Bajar", "5": "Dhunat", "6": "Summit",
-        "7": "Sonka", "8": "Sukhanpukur", "9": "Sonatola"
-    }
     c_code = str(student.get('center_code', ''))
-    center_name = centers_mapping.get(c_code, "ব্রিলিয়ান্টস ফাউন্ডেশন সেন্টার")
+    center_name = get_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
     return render_template('certificate_design.html', student=student, center_name=center_name)
 
 @app.route('/logout')
@@ -720,6 +839,123 @@ def participant_summary():
                            status_filter=status_filter,
                            grand_total=grand_total)
 
+@app.route('/admin/participant-summary/report')
+def participant_summary_report():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    centers = list(mongo.db.centers.find().sort("center_code", 1))
+    selected_center = request.args.get('center', '').strip()
+    status_filter = request.args.get('status', 'Verified')
+    try:
+        year = int(request.args.get('year', datetime.now().year))
+    except (TypeError, ValueError):
+        year = datetime.now().year
+
+    report_rows, grand_total = [], None
+    if selected_center:
+        report_rows, grand_total = build_full_center_report(status_filter, year, selected_center)
+
+    return render_template('admin_participant_report.html',
+                           centers=centers,
+                           selected_center=selected_center,
+                           status_filter=status_filter,
+                           year=year,
+                           report_rows=report_rows,
+                           grand_total=grand_total)
+
+@app.route('/admin/participant-summary/save-attendance', methods=['POST'])
+def save_exam_attendance():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    center_code = request.form.get('center_code', '').strip()
+    try:
+        year = int(request.form.get('year'))
+    except (TypeError, ValueError):
+        year = datetime.now().year
+
+    def _to_int(v):
+        try:
+            return max(0, int(v))
+        except (TypeError, ValueError):
+            return 0
+
+    mongo.db.exam_attendance.update_one(
+        {"center_code": center_code, "year": year},
+        {"$set": {
+            "center_code": center_code,
+            "year": year,
+            "school_boys": _to_int(request.form.get('school_boys')),
+            "madrasha_boys": _to_int(request.form.get('madrasha_boys')),
+            "school_girls": _to_int(request.form.get('school_girls')),
+            "madrasha_girls": _to_int(request.form.get('madrasha_girls')),
+            "updated_at": datetime.utcnow()
+        }},
+        upsert=True
+    )
+    flash("পরীক্ষার দিনের উপস্থিতির সংখ্যা সংরক্ষণ করা হয়েছে।", "success")
+    return redirect(url_for('participant_summary_report',
+                            center=center_code,
+                            status=request.form.get('status_filter', 'Verified'),
+                            year=year))
+
+@app.route('/admin/participant-summary/print')
+def participant_summary_print():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    selected_center = request.args.get('center', 'ALL').strip()
+    status_filter = request.args.get('status', 'Verified')
+    try:
+        year = int(request.args.get('year', datetime.now().year))
+    except (TypeError, ValueError):
+        year = datetime.now().year
+    report_rows, grand_total = build_full_center_report(status_filter, year, selected_center)
+    return render_template('participant_summary_print.html',
+                           report_rows=report_rows, grand_total=grand_total,
+                           status_filter=status_filter, year=year,
+                           selected_center=selected_center, now=datetime.now())
+
+@app.route('/admin/participant-summary/download-csv')
+def participant_summary_download_csv():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    selected_center = request.args.get('center', 'ALL').strip()
+    status_filter = request.args.get('status', 'Verified')
+    try:
+        year = int(request.args.get('year', datetime.now().year))
+    except (TypeError, ValueError):
+        year = datetime.now().year
+    report_rows, grand_total = build_full_center_report(status_filter, year, selected_center)
+
+    output = io.StringIO()
+    output.write(u'\ufeff')
+    writer = csv.writer(output)
+    writer.writerow(['কেন্দ্র কোড', 'কেন্দ্রের নাম', 'লিঙ্গ',
+                     'স্কুল (নিবন্ধিত)', 'মাদ্রাসা (নিবন্ধিত)', 'মোট (নিবন্ধিত)',
+                     'স্কুল (পরীক্ষায় উপস্থিত)', 'মাদ্রাসা (পরীক্ষায় উপস্থিত)', 'মোট (পরীক্ষায় উপস্থিত)'])
+    gender_label = {"male": "ছেলে", "female": "মেয়ে", "total": "সর্বমোট"}
+    for row in report_rows:
+        for g in ("male", "female", "total"):
+            reg = row["registered"][g]
+            att = row["attendance"][g]
+            writer.writerow([
+                row["center_code"], row["center_name_bn"] or row["center_name_en"], gender_label[g],
+                reg["school"], reg["madrasha"], reg["total"],
+                att["school"], att["madrasha"], att["total"],
+            ])
+    if grand_total and len(report_rows) > 1:
+        for g in ("male", "female", "total"):
+            reg = grand_total["registered"][g]
+            att = grand_total["attendance"][g]
+            writer.writerow([
+                'সকল কেন্দ্র', 'গ্র্যান্ড টোটাল', gender_label[g],
+                reg["school"], reg["madrasha"], reg["total"],
+                att["school"], att["madrasha"], att["total"],
+            ])
+    output.seek(0)
+    fname = f"Participant_Summary_{selected_center}_{year}.csv"
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-disposition": f"attachment; filename={fname}"})
+
 @app.route('/admin/api/update_status', methods=['POST'])
 def update_status():
     if not session.get('admin_logged_in'):
@@ -879,9 +1115,16 @@ def approve_admits():
     if request.method == 'POST':
         student_ids = request.form.getlist('selected_students')
         action = request.form.get('action')
+        filter_center = request.form.get('filter_center', '').strip()
+        filter_class = request.form.get('filter_class', '').strip()
+        redirect_args = {}
+        if filter_center:
+            redirect_args['center'] = filter_center
+        if filter_class:
+            redirect_args['class'] = filter_class
         if not student_ids:
             flash("দয়া করে অন্তত একজন ছাত্র সিলেক্ট করুন!", "warning")
-            return redirect(url_for('approve_admits'))
+            return redirect(url_for('approve_admits', **redirect_args))
         try:
             status = True if action == 'approve' else False
             result = mongo.db.students.update_many(
@@ -894,9 +1137,21 @@ def approve_admits():
                 flash("কোনো পরিবর্তন করা হয়নি।", "info")
         except Exception as e:
             flash(f"সিস্টেম এরর: {str(e)}", "danger")
-        return redirect(url_for('approve_admits'))
-    students = list(mongo.db.students.find().sort("roll_no", 1))
-    return render_template('admin_approve_admits.html', students=students)
+        return redirect(url_for('approve_admits', **redirect_args))
+
+    filter_center = request.args.get('center', '').strip()
+    filter_class = request.args.get('class', '').strip()
+    query = {}
+    if filter_center:
+        query["center_code"] = filter_center
+    if filter_class:
+        query["student_class"] = filter_class
+    centers = list(mongo.db.centers.find().sort("center_code", 1))
+    available_classes = sorted([c for c in mongo.db.students.distinct("student_class") if c], key=str)
+    students = list(mongo.db.students.find(query).sort("roll_no", 1))
+    return render_template('admin_approve_admits.html', students=students, centers=centers,
+                           available_classes=available_classes,
+                           filter_center=filter_center, filter_class=filter_class)
 
 @app.route('/admin/scholarship/labels')
 def scholarship_labels():
@@ -984,6 +1239,22 @@ def delete_center(center_id):
         flash(f"An error occurred: {str(e)}", "danger")
     return redirect(url_for('manage_centers'))
 
+@app.route('/admin/admit-settings', methods=['GET', 'POST'])
+def admin_admit_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    if request.method == 'POST':
+        data = {
+            "key": "admit",
+            "signature_image": request.form.get("signature_image", "").strip(),
+            "signature_title": request.form.get("signature_title", "").strip() or "পরীক্ষা নিয়ন্ত্রক",
+            "exam_datetime": request.form.get("exam_datetime", "").strip(),
+        }
+        mongo.db.admit_settings.update_one({"key": "admit"}, {"$set": data}, upsert=True)
+        flash("এডমিট কার্ড সেটিংস সফলভাবে আপডেট হয়েছে। এখন থেকে সব এডমিট কার্ডে (একক ও বাল্ক) এই তথ্য দেখানো হবে।", "success")
+        return redirect(url_for('admin_admit_settings'))
+    return render_template('admin_admit_settings.html', s=get_admit_settings())
+
 @app.route('/admin/notices')
 def admin_notices():
     notices = mongo.db.notices.find().sort("_id", -1)
@@ -1054,11 +1325,8 @@ def serial_allocation():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     centers_list = [
-        {"code": "1", "name": "Sariakandi"}, {"code": "2", "name": "Gabtali"},
-        {"code": "3", "name": "Khottapara"}, {"code": "4", "name": "Aria Bajar"},
-        {"code": "5", "name": "Dhunat"}, {"code": "6", "name": "Summit (Sherpur)"},
-        {"code": "7", "name": "Sonka (Sherpur)"}, {"code": "8", "name": "Sukhanpukur"},
-        {"code": "9", "name": "Sonatola"}
+        {"code": c.get('center_code'), "name": c.get('center_name_en') or c.get('center_name_bn')}
+        for c in mongo.db.centers.find().sort("center_code", 1)
     ]
     if request.method == 'POST':
         try:
@@ -1155,13 +1423,8 @@ def print_certificate(student_id):
         if not student:
             flash("দুঃখিত, এই ছাত্রের তথ্য পাওয়া যায়নি!", "danger")
             return redirect(url_for('admin_certificates'))
-        centers_mapping = {
-            "1": "Sariakandi", "2": "Gabtali", "3": "Khottapara",
-            "4": "Aria Bajar", "5": "Dhunat", "6": "Summit",
-            "7": "Sonka", "8": "Sukhanpukur", "9": "Sonatola"
-        }
         c_code = str(student.get('center_code', ''))
-        center_name = centers_mapping.get(c_code, "ব্রিলিয়ান্টস ফাউন্ডেশন সেন্টার")
+        center_name = get_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
         return render_template('certificate_design.html', student=student, center_name=center_name)
     except Exception as e:
         flash(f"সার্টিফিকেট রেন্ডার করতে সমস্যা হয়েছে: {str(e)}", "danger")
@@ -1185,7 +1448,8 @@ def print_all_certificates():
     if not students:
         flash("প্রিন্ট করার মতো কোনো স্টুডেন্ট খুঁজে পাওয়া যায়নি!", "warning")
         return redirect(url_for('admin_certificates'))
-    return render_template('bulk_certificates_design.html', students=students)
+    center_names = get_center_name_map(lang='en')
+    return render_template('bulk_certificates_design.html', students=students, center_names=center_names)
 
 @app.route('/admin/attendance/print')
 def admin_attendance_print():
@@ -1210,19 +1474,24 @@ def bulk_admit_filter():
         return redirect(url_for('admin_login'))
     selected_class = request.args.get('class', '')
     selected_school = request.args.get('school', '')
+    selected_center = request.args.get('center', '')
     schools = mongo.db.students.distinct('institute_en')
+    centers = list(mongo.db.centers.find().sort("center_code", 1))
     classes = ["5", "6", "7", "8", "9"]
     students = []
-    if selected_class or selected_school:
+    if selected_class or selected_school or selected_center:
         query = {"status": "Verified"}
         if selected_class:
             query["student_class"] = selected_class
         if selected_school:
             query["institute_en"] = selected_school
+        if selected_center:
+            query["center_code"] = selected_center
         students = list(mongo.db.students.find(query).sort("roll_no", 1))
     return render_template('admin_bulk_filter.html',
-                           schools=schools, classes=classes, students=students,
-                           selected_class=selected_class, selected_school=selected_school)
+                           schools=schools, classes=classes, centers=centers, students=students,
+                           selected_class=selected_class, selected_school=selected_school,
+                           selected_center=selected_center)
 
 @app.route('/admin/bulk-admit-download')
 def bulk_admit_download():
@@ -1230,11 +1499,14 @@ def bulk_admit_download():
         return redirect(url_for('admin_login'))
     selected_class = request.args.get('class')
     selected_school = request.args.get('school')
+    selected_center = request.args.get('center')
     query = {"status": "Verified"}
     if selected_class:
         query["student_class"] = {"$in": [selected_class, str(selected_class), int(selected_class) if selected_class.isdigit() else selected_class]}
     if selected_school:
         query["institute_en"] = selected_school
+    if selected_center:
+        query["center_code"] = selected_center
     students = list(mongo.db.students.find(query).sort("roll_no", 1))
     for s in students:
         c_code = s.get('center_code')
@@ -1245,7 +1517,7 @@ def bulk_admit_download():
             s['center_name'] = "নির্ধারিত নয়"
     if not students:
         return "<script>alert('No students found for this selection!'); window.history.back();</script>"
-    return render_template('admin_print_engine.html', students=students)
+    return render_template('admin_print_engine.html', students=students, admit_settings=get_admit_settings())
 
 @app.route('/admin/export-filter')
 def export_filter_page():
@@ -1338,6 +1610,126 @@ def export_detailed_data():
     return Response(output.getvalue(), mimetype="text/csv",
                     headers={"Content-disposition": f"attachment; filename={filename}"})
 
+# =====================================================================
+# YEARLY ARCHIVE SYSTEM — preserves a permanent snapshot of each year's
+# participants & scholarship winners so the data survives even after
+# the live 'students' collection is reused for the next exam cycle.
+# =====================================================================
+
+def _archive_query(year, dataset):
+    query = {"archive_year": year}
+    if dataset == 'winners':
+        query["scholarship_grade"] = {"$in": SCHOLARSHIP_GRADES}
+    return list(mongo.db.archive_students.find(query).sort("roll_no", 1))
+
+@app.route('/admin/archive')
+def admin_archive():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    archived = list(mongo.db.archive_meta.find().sort("year", -1))
+    live_years = sorted({d.get('applied_at').year for d in mongo.db.students.find({}, {"applied_at": 1}) if d.get('applied_at')}, reverse=True)
+    archived_years_set = {a['year'] for a in archived}
+    return render_template('admin_archive.html',
+                           archived=archived, live_years=live_years,
+                           archived_years_set=archived_years_set,
+                           current_year=datetime.now().year)
+
+@app.route('/admin/archive/create', methods=['POST'])
+def create_archive():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    try:
+        year = int(request.form.get('year'))
+    except (TypeError, ValueError):
+        flash("সঠিক বছর উল্লেখ করুন।", "danger")
+        return redirect(url_for('admin_archive'))
+
+    start = datetime(year, 1, 1)
+    end = datetime(year + 1, 1, 1)
+    students = list(mongo.db.students.find({"applied_at": {"$gte": start, "$lt": end}}))
+    if not students:
+        flash(f"{year} সালের জন্য বর্তমান ডাটাবেজে কোনো শিক্ষার্থীর তথ্য পাওয়া যায়নি।", "warning")
+        return redirect(url_for('admin_archive'))
+
+    # পূর্বের আর্কাইভ থাকলে রিফ্রেশ করা হবে (মুছে নতুন করে কপি)
+    mongo.db.archive_students.delete_many({"archive_year": year})
+    archived_at = datetime.utcnow()
+    docs = []
+    for s in students:
+        doc = dict(s)
+        doc.pop('_id', None)
+        doc['archive_year'] = year
+        doc['archived_at'] = archived_at
+        docs.append(doc)
+    if docs:
+        mongo.db.archive_students.insert_many(docs)
+
+    total_winners = sum(1 for s in students if s.get('scholarship_grade') in SCHOLARSHIP_GRADES)
+    mongo.db.archive_meta.update_one(
+        {"year": year},
+        {"$set": {
+            "year": year,
+            "archived_at": archived_at,
+            "total_participants": len(students),
+            "total_winners": total_winners,
+        }},
+        upsert=True
+    )
+    flash(f"{year} সালের {len(students)} জন শিক্ষার্থীর তথ্য (এর মধ্যে {total_winners} জন বৃত্তিপ্রাপ্ত) সফলভাবে আর্কাইভ করা হয়েছে।", "success")
+    return redirect(url_for('admin_archive'))
+
+@app.route('/admin/archive/delete/<int:year>')
+def delete_archive(year):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    mongo.db.archive_students.delete_many({"archive_year": year})
+    mongo.db.archive_meta.delete_one({"year": year})
+    flash(f"{year} সালের আর্কাইভ মুছে ফেলা হয়েছে।", "info")
+    return redirect(url_for('admin_archive'))
+
+@app.route('/admin/archive/print/<int:year>')
+def archive_print(year):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    dataset = request.args.get('dataset', 'participants')
+    students = _archive_query(year, dataset)
+    meta = mongo.db.archive_meta.find_one({"year": year}) or {}
+    return render_template('archive_print.html', students=students, year=year,
+                           dataset=dataset, meta=meta, now=datetime.now())
+
+@app.route('/admin/archive/download-csv/<int:year>')
+def archive_download_csv(year):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    dataset = request.args.get('dataset', 'participants')
+    students = _archive_query(year, dataset)
+
+    output = io.StringIO()
+    output.write(u'\ufeff')
+    writer = csv.writer(output)
+    writer.writerow(['ক্রম', 'রোল নং', 'রেজি নং', 'নাম (বাংলা)', 'নাম (ইংরেজি)', 'পিতার নাম', 'মাতার নাম',
+                     'প্রতিষ্ঠান', 'প্রতিষ্ঠানের ধরন', 'শ্রেণি', 'পরীক্ষা কেন্দ্র', 'মোবাইল',
+                     'মোট নম্বর', 'বৃত্তি গ্রেড', 'স্ট্যাটাস'])
+    for idx, s in enumerate(students, 1):
+        marks = s.get('marks', {})
+        if not isinstance(marks, dict):
+            marks = {}
+        valid_marks = [m for m in [marks.get('bangla'), marks.get('english'), marks.get('math'), marks.get('gk')] if isinstance(m, (int, float))]
+        total_marks = sum(valid_marks) if valid_marks else ''
+        center_display = s.get('center_name') or s.get('center_code', '')
+        writer.writerow([
+            idx, s.get('roll_no', ''), s.get('reg_no', ''), s.get('name_bn', ''), s.get('name_en', ''),
+            s.get('father_en') or s.get('father_bn', ''), s.get('mother_en') or s.get('mother_bn', ''),
+            s.get('institute_en') or s.get('institute_bn', ''), s.get('institute_type', ''),
+            s.get('student_class', ''), center_display, s.get('mobile', ''),
+            total_marks, s.get('scholarship_grade', '') or '', s.get('status', '')
+        ])
+    output.seek(0)
+    label = 'Scholarship_Winners' if dataset == 'winners' else 'All_Participants'
+    fname = f"Archive_{year}_{label}.csv"
+    return Response(output.getvalue(), mimetype="text/csv",
+                    headers={"Content-disposition": f"attachment; filename={fname}"})
+
 @app.route('/student/download-application')
 def download_application_copy():
     student_roll = session.get('student_roll')
@@ -1348,15 +1740,11 @@ def download_application_copy():
         student = mongo.db.students.find_one({"roll_no": student_roll})
         if not student:
             return "ডাটা খুঁজে পাওয়া যায়নি!", 404
-        centers = {
-            "1": "Sariakandi", "2": "Gabtali", "3": "Khottapara",
-            "4": "Aria Bajar", "5": "Dhunat", "6": "Summit",
-            "7": "Sonka", "8": "Sukhanpukur", "9": "Sonatola"
-        }
         c_code = str(student.get('center_code', ''))
-        center_name = centers.get(c_code, "Unknown Center")
+        center_name = get_center_name_map(lang='en').get(c_code, "Unknown Center")
         now = datetime.now().strftime("%d %b %Y, %I:%M %p")
-        return render_template('application_copy.html', student=student, center_name=center_name, current_time=now)
+        return render_template('application_copy.html', student=student, center_name=center_name,
+                               current_time=now, admit_settings=get_admit_settings())
     except Exception as e:
         return f"Error occurred: {str(e)}", 500
 
