@@ -9,6 +9,10 @@
         <h2 style="margin: 0 0 5px 0; color: #1e293b;"><i class="fas fa-chart-bar"></i> Participant Summary</h2>
         <p style="margin: 0 0 20px 0; color: #64748b; font-size: 0.9rem;">কোন ইন্সটিটিউট / সেন্টার / ক্লাস থেকে কতজন পরীক্ষার্থী, তা এক নজরে দেখুন।</p>
 
+        <a href="{{ url_for('participant_summary_report') }}" style="display:inline-flex; align-items:center; gap:8px; background:#0f172a; color:#fff; padding:11px 20px; border-radius:8px; font-weight:700; font-size:0.85rem; text-decoration:none; margin-bottom:18px;">
+            <i class="fas fa-file-download"></i> কেন্দ্র-ভিত্তিক বিস্তারিত রিপোর্ট ও PDF/CSV ডাউনলোড
+        </a>
+
         <form method="GET" style="display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
             <div>
                 <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">VIEW BY</label>

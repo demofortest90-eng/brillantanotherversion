@@ -24,6 +24,19 @@
     .btn-revoke { background: #ef4444; color: white; }
     .btn-action:hover { opacity: 0.9; transform: translateY(-1px); }
 
+    /* Filter Bar */
+    .filter-bar {
+        background: white; padding: 18px 20px; border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px;
+        display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+        border: 1px solid #e2e8f0;
+    }
+    .filter-bar .f-group { display: flex; flex-direction: column; gap: 5px; }
+    .filter-bar label { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .filter-bar select { padding: 9px 12px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-weight: 600; min-width: 180px; }
+    .btn-filter { background: #1e293b; color: white; padding: 10px 22px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+    .btn-clear { color: #ef4444; font-weight: 700; text-decoration: none; padding: 10px 6px; }
+
     /* Table Styling */
     .table-container { background: white; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden; }
     .approve-table { width: 100%; border-collapse: collapse; text-align: left; }
@@ -39,11 +52,43 @@
         <p style="color: #64748b;">Select students to enable their Admit Card download button.</p>
     </div>
 
+    {% set center_map = {} %}
+    {% for c in centers %}{% set _ = center_map.update({c.center_code: (c.center_name_bn or c.center_name_en)}) %}{% endfor %}
+
+    <form method="GET" class="filter-bar">
+        <div class="f-group">
+            <label>কেন্দ্র (Center)</label>
+            <select name="center">
+                <option value="">সকল কেন্দ্র (All Centers)</option>
+                {% for c in centers %}
+                <option value="{{ c.center_code }}" {% if filter_center == c.center_code %}selected{% endif %}>
+                    {{ c.center_code }} - {{ c.center_name_bn }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="f-group">
+            <label>শ্রেণী (Class)</label>
+            <select name="class">
+                <option value="">সকল শ্রেণী (All Classes)</option>
+                {% for cl in available_classes %}
+                <option value="{{ cl }}" {% if filter_class == cl %}selected{% endif %}>Class {{ cl }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> ফিল্টার করুন</button>
+        {% if filter_center or filter_class %}
+        <a href="{{ url_for('approve_admits') }}" class="btn-clear">✕ ফিল্টার মুছুন</a>
+        {% endif %}
+    </form>
+
     <form method="POST" id="approvalForm">
+        <input type="hidden" name="filter_center" value="{{ filter_center }}">
+        <input type="hidden" name="filter_class" value="{{ filter_class }}">
         <div class="bulk-action-bar">
             <div class="select-all-container">
                 <input type="checkbox" id="masterCheckbox" style="width: 20px; height: 20px; cursor: pointer;">
-                <label for="masterCheckbox">Select All Students</label>
+                <label for="masterCheckbox">Select All Students ({{ students|length }})</label>
             </div>
 
             <div class="btn-group">
@@ -77,7 +122,7 @@
                         <td style="font-weight: 700;">{{ s.roll_no }}</td>
                         <td>{{ s.name_en }}</td>
                         <td>Class {{ s.student_class }}</td>
-                        <td>{{ s.center_code }}</td>
+                        <td>{{ center_map.get(s.center_code, s.center_code) }}</td>
                         <td>
                             {% if s.admit_approved %}
                                 <span style="color: #059669; font-weight: 800; font-size: 12px;">
@@ -91,6 +136,9 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    {% if not students %}
+                    <tr><td colspan="6" style="text-align:center; padding:30px; color:#94a3b8;">এই ফিল্টারে কোনো শিক্ষার্থী পাওয়া যায়নি।</td></tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>

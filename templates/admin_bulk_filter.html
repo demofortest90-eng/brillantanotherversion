@@ -64,17 +64,26 @@
         <form action="{{ url_for('bulk_admit_filter') }}" method="GET" class="filter-grid">
             <div class="form-group">
                 <label>Select Class</label>
-                <select name="class" class="form-control" required>
-                    <option value="">Choose Class...</option>
+                <select name="class" class="form-control">
+                    <option value="">Choose Class... (Optional)</option>
                     {% for c in classes %}
                     <option value="{{ c }}" {% if selected_class == c %}selected{% endif %}>Grade {{ c }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group">
+                <label>Select Center</label>
+                <select name="center" class="form-control">
+                    <option value="">All Centers (সকল কেন্দ্র)</option>
+                    {% for c in centers %}
+                    <option value="{{ c.center_code }}" {% if selected_center == c.center_code %}selected{% endif %}>{{ c.center_code }} - {{ c.center_name_bn }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Select School</label>
-                <select name="school" class="form-control" required>
-                    <option value="">Choose School...</option>
+                <select name="school" class="form-control">
+                    <option value="">All Schools (Optional)</option>
                     {% for s in schools %}
                     <option value="{{ s }}" {% if selected_school == s %}selected{% endif %}>{{ s }}</option>
                     {% endfor %}
@@ -89,7 +98,11 @@
     {% if students %}
     <div class="result-card">
         <div class="status-bar">
-            <span>Showing results for <b>Grade {{ selected_class }}</b> - <b>{{ selected_school }}</b> (Total: {{ students|length }})</span>
+            <span>Showing results
+                {% if selected_class %} for <b>Grade {{ selected_class }}</b>{% endif %}
+                {% if selected_center %} - Center <b>{{ selected_center }}</b>{% endif %}
+                {% if selected_school %} - <b>{{ selected_school }}</b>{% endif %}
+                (Total: {{ students|length }})</span>
             <button onclick="printBulk()" class="btn-print-all">
                 <i class="fas fa-print"></i> Generate & Print All Admits
             </button>
@@ -125,11 +138,11 @@
             </table>
         </div>
     </div>
-    {% elif request.args.get('class') %}
+    {% elif request.args.get('class') or request.args.get('center') or request.args.get('school') %}
     <div style="text-align: center; padding: 60px 20px; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
         <i class="fas fa-search-minus" style="font-size: 50px; color: #cbd5e1; margin-bottom: 20px;"></i>
         <h3 style="color: #64748b;">No matching students found!</h3>
-        <p style="color: #94a3b8;">Please check the filters or ensure students are verified for this class/school.</p>
+        <p style="color: #94a3b8;">Please check the filters or ensure students are verified for this class/center/school.</p>
     </div>
     {% endif %}
 </div>
@@ -139,10 +152,15 @@
         // URL প্যারামিটারগুলো ডাইনামিকভাবে সেট করা
         const selectedClass = "{{ selected_class }}";
         const selectedSchool = "{{ selected_school }}";
-        
-        if (selectedClass && selectedSchool) {
-            // আপনার প্রিন্ট ইঞ্জিন রুটে রিডাইরেক্ট করবে
-            const url = "{{ url_for('bulk_admit_download') }}?class=" + encodeURIComponent(selectedClass) + "&school=" + encodeURIComponent(selectedSchool);
+        const selectedCenter = "{{ selected_center }}";
+
+        const params = new URLSearchParams();
+        if (selectedClass) params.set('class', selectedClass);
+        if (selectedSchool) params.set('school', selectedSchool);
+        if (selectedCenter) params.set('center', selectedCenter);
+
+        if (params.toString()) {
+            const url = "{{ url_for('bulk_admit_download') }}?" + params.toString();
             window.open(url, '_blank');
         } else {
             alert("Please select filters first!");

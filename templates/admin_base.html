@@ -155,7 +155,7 @@
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2 style="font-size: 1.3rem; color: white;">টিবিএফ <span style="color: var(--accent);">অ্যাডমিন</span></h2>
-            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">কন্ট্রোল প্যানেল v2.0</p>
+            <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 5px;">কন্ট্রোল প্যানেল v5.0</p>
         </div>
 
         <nav class="sidebar-nav">
@@ -210,8 +210,14 @@
             <a href="{{ url_for('bulk_admit_filter') }}" class="{{ 'active' if request.endpoint == 'bulk_admit_filter' }}">
                 <i class="fas fa-id-card"></i> এডমিট ডাউনলোড
             </a>
+            <a href="{{ url_for('admin_admit_settings') }}" class="{{ 'active' if request.endpoint == 'admin_admit_settings' }}">
+                <i class="fas fa-signature"></i> এডমিট কার্ড সেটিংস
+            </a>
             <a href="{{ url_for('export_filter_page') }}" class="{{ 'active' if request.endpoint in ['export_filter_page','export_detailed_data'] }}">
                 <i class="fas fa-file-csv"></i> ডাটা ডাউনলোড (CSV)
+            </a>
+            <a href="{{ url_for('admin_archive') }}" class="{{ 'active' if request.endpoint in ['admin_archive','create_archive','delete_archive','archive_print','archive_download_csv'] }}">
+                <i class="fas fa-box-archive"></i> ডাটা আর্কাইভ
             </a>
             <div class="nav-label">ওয়েবসাইট কনটেন্ট</div>
             <a href="{{ url_for('admin_homepage') }}" class="{{ 'active' if request.endpoint == 'admin_homepage' }}">

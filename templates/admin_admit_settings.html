@@ -1,0 +1,131 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Admit Card Settings | Admin{% endblock %}
+
+{% block content %}
+<style>
+    @import url('https://fonts.maateen.me/kalpurush/font.css');
+    .admin-wrapper { padding: 30px; background: #f4f7f6; min-height: 100vh; }
+    .page-head h1 { margin: 0; color: #1e293b; font-size: 1.6rem; }
+    .page-head p { color: #64748b; margin-top: 6px; }
+
+    .settings-card {
+        background: white; padding: 30px; border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); max-width: 720px;
+        border-top: 5px solid #2c3e50; margin-top: 20px;
+    }
+    .field-block { margin-bottom: 26px; }
+    .field-block label {
+        display: block; font-weight: 700; color: #334155; margin-bottom: 10px; font-size: 0.95rem;
+    }
+    .field-hint { font-size: 0.8rem; color: #94a3b8; margin-top: 6px; }
+    .form-control {
+        width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+        font-size: 0.95rem; outline: none; transition: 0.3s; font-family: 'Kalpurush', sans-serif;
+    }
+    .form-control:focus { border-color: #2c3e50; box-shadow: 0 0 0 3px rgba(44,62,80,0.1); }
+
+    .sig-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+    .sig-preview-box {
+        width: 170px; height: 60px; border: 1.5px dashed #cbd5e1; border-radius: 8px;
+        background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .sig-preview-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .upload-status { font-size: 0.82rem; margin-top: 6px; color: #64748b; }
+
+    .btn-save {
+        background: #10b981; color: white; border: none; padding: 13px 30px;
+        border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.95rem;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .btn-save:hover { background: #059669; }
+
+    .flash-msg { padding: 13px 16px; border-radius: 8px; margin-bottom: 18px; font-weight: 600; }
+    .flash-success { background: #dcfce7; color: #166534; }
+    .flash-danger, .flash-warning { background: #fee2e2; color: #991b1b; }
+    .flash-info { background: #e0f2fe; color: #075985; }
+
+    .preview-note {
+        margin-top: 25px; padding: 14px 18px; background: #f0f9ff; border-radius: 8px;
+        font-size: 0.85rem; color: #0369a1; border-left: 3px solid #0ea5e9;
+    }
+</style>
+
+<div class="admin-wrapper">
+    <div class="page-head">
+        <h1><i class="fas fa-signature"></i> এডমিট কার্ড সেটিংস</h1>
+        <p>এডমিট কার্ডে দেখানো স্বাক্ষর, পদবী এবং পরীক্ষার তারিখ/সময় এখান থেকে পরিবর্তন করুন। পরিবর্তনগুলো একক ও বাল্ক — দুই ধরনের এডমিট কার্ডেই সাথে সাথে প্রতিফলিত হবে।</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" class="settings-card">
+        <div class="field-block">
+            <label>স্বাক্ষরের ছবি (Signature Image)</label>
+            <div class="sig-row">
+                <div class="sig-preview-box">
+                    <img id="sigPreview" src="{{ s.signature_image }}" alt="signature preview">
+                </div>
+                <div>
+                    <input type="file" id="sigFileInput" accept="image/*">
+                    <div class="upload-status" id="sigUploadStatus">নতুন স্বাক্ষরের ছবি দিতে চাইলে এখানে আপলোড করুন।</div>
+                </div>
+            </div>
+            <input type="hidden" name="signature_image" id="signatureImageField" value="{{ s.signature_image }}">
+        </div>
+
+        <div class="field-block">
+            <label>স্বাক্ষরের নিচের পদবী (Title)</label>
+            <input type="text" name="signature_title" class="form-control" value="{{ s.signature_title }}" placeholder="যেমনঃ পরীক্ষা নিয়ন্ত্রক">
+        </div>
+
+        <div class="field-block">
+            <label>পরীক্ষার তারিখ ও সময়</label>
+            <input type="text" name="exam_datetime" class="form-control" value="{{ s.exam_datetime }}" placeholder="যেমনঃ ২০ জানুয়ারি ২০২৬, সকাল ১০:০০">
+            <div class="field-hint">এডমিট কার্ডে "Date & Time" ফিল্ডে এই লেখাটি ঠিক যেমন আছে তেমনি দেখানো হবে।</div>
+        </div>
+
+        <button type="submit" class="btn-save"><i class="fas fa-save"></i> সংরক্ষণ করুন</button>
+    </form>
+
+    <div class="preview-note" style="max-width:720px;">
+        <i class="fas fa-info-circle"></i> পরিবর্তনগুলো সংরক্ষণের সাথে সাথে নতুন কোনো ছাত্রের এডমিট কার্ড ডাউনলোড করলে স্বয়ংক্রিয়ভাবে নতুন তথ্য দেখাবে — আলাদাভাবে কিছু রিডিপ্লয় করতে হবে না।
+    </div>
+</div>
+
+<script>
+document.getElementById('sigFileInput').addEventListener('change', function (e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('photo', file);
+    const statusEl = document.getElementById('sigUploadStatus');
+    statusEl.textContent = 'আপলোড হচ্ছে...';
+    statusEl.style.color = '#64748b';
+
+    fetch("{{ url_for('api_upload_photo') }}", { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('signatureImageField').value = data.url;
+                document.getElementById('sigPreview').src = data.url;
+                statusEl.textContent = 'আপলোড সফল হয়েছে ✓';
+                statusEl.style.color = '#059669';
+            } else {
+                statusEl.textContent = 'আপলোড ব্যর্থ হয়েছে, আবার চেষ্টা করুন।';
+                statusEl.style.color = '#dc2626';
+            }
+        })
+        .catch(() => {
+            statusEl.textContent = 'আপলোড ব্যর্থ হয়েছে, আবার চেষ্টা করুন।';
+            statusEl.style.color = '#dc2626';
+        });
+});
+</script>
+{% endblock %}

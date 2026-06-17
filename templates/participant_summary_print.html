@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>Participant Summary Report</title>
+    <style>
+        @import url('https://fonts.maateen.me/kalpurush/font.css');
+
+        @page { size: A4 portrait; margin: 14mm 12mm; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Kalpurush', Arial, sans-serif;
+            color: #000; margin: 0; padding: 0;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+
+        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 16px; }
+        .org-bn { font-size: 22px; font-weight: 900; margin: 0; }
+        .org-en { font-size: 13px; font-weight: 700; margin: 2px 0; color: #333; }
+        .report-title { font-size: 16px; font-weight: 800; text-decoration: underline; margin-top: 8px; }
+        .meta-line { font-size: 12px; margin-top: 6px; color: #333; }
+
+        .center-section { margin-bottom: 18px; page-break-inside: avoid; }
+        .center-name { font-size: 14px; font-weight: 800; margin-bottom: 6px; }
+        .center-name .code { font-weight: 600; color: #444; font-size: 12px; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        th, td { border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 12px; }
+        th { background: #e2e8f0 !important; font-weight: 800; }
+        td.row-label { text-align: left; font-weight: 800; padding-left: 10px; }
+        .grp-divider { border-right: 2px solid #000 !important; }
+        tr.grand-row td { font-weight: 900; background: #f1f5f9 !important; }
+
+        .grand-section { margin-top: 22px; border-top: 3px double #000; padding-top: 14px; page-break-inside: avoid; }
+        .grand-title { font-size: 15px; font-weight: 900; margin-bottom: 8px; text-align: center; }
+
+        .footer-note { margin-top: 24px; font-size: 11px; color: #555; text-align: right; }
+
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="header">
+        <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
+        <div class="org-en">The Brilliants Foundation, Bogura</div>
+        <div class="report-title">Participant Summary Report (অংশগ্রহণকারীর সারসংক্ষেপ)</div>
+        <div class="meta-line">
+            শিক্ষাবর্ষ: {{ year }} &nbsp;|&nbsp;
+            স্ট্যাটাস: {% if status_filter == 'Verified' %}ভেরিফাইড{% elif status_filter == 'Pending' %}পেন্ডিং{% else %}সকল{% endif %} &nbsp;|&nbsp;
+            {% if selected_center == 'ALL' %}সকল কেন্দ্র{% else %}কেন্দ্র: {{ report_rows[0].center_name_bn if report_rows else selected_center }}{% endif %}
+        </div>
+    </div>
+
+    {% for row in report_rows %}
+    <div class="center-section">
+        <div class="center-name">কেন্দ্রের নাম: {{ row.center_name_bn or row.center_name_en }} <span class="code">(কোড: {{ row.center_code }})</span></div>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">লিঙ্গ</th>
+                    <th colspan="3" class="grp-divider">নিবন্ধিত শিক্ষার্থী</th>
+                    <th colspan="3">পরীক্ষার বিবরণ (উপস্থিত)</th>
+                </tr>
+                <tr>
+                    <th>স্কুল</th><th>মাদ্রাসা</th><th class="grp-divider">মোট</th>
+                    <th>স্কুল</th><th>মাদ্রাসা</th><th>মোট</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="row-label">ছেলে</td>
+                    <td>{{ row.registered.male.school }}</td><td>{{ row.registered.male.madrasha }}</td><td class="grp-divider">{{ row.registered.male.total }}</td>
+                    <td>{{ row.attendance.male.school }}</td><td>{{ row.attendance.male.madrasha }}</td><td>{{ row.attendance.male.total }}</td>
+                </tr>
+                <tr>
+                    <td class="row-label">মেয়ে</td>
+                    <td>{{ row.registered.female.school }}</td><td>{{ row.registered.female.madrasha }}</td><td class="grp-divider">{{ row.registered.female.total }}</td>
+                    <td>{{ row.attendance.female.school }}</td><td>{{ row.attendance.female.madrasha }}</td><td>{{ row.attendance.female.total }}</td>
+                </tr>
+                <tr class="grand-row">
+                    <td class="row-label">সর্বমোট</td>
+                    <td>{{ row.registered.total.school }}</td><td>{{ row.registered.total.madrasha }}</td><td class="grp-divider">{{ row.registered.total.total }}</td>
+                    <td>{{ row.attendance.total.school }}</td><td>{{ row.attendance.total.madrasha }}</td><td>{{ row.attendance.total.total }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+    {% if grand_total and report_rows|length > 1 %}
+    <div class="grand-section">
+        <div class="grand-title">সর্বমোট (সকল কেন্দ্র মিলিয়ে)</div>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">লিঙ্গ</th>
+                    <th colspan="3" class="grp-divider">নিবন্ধিত শিক্ষার্থী</th>
+                    <th colspan="3">পরীক্ষার বিবরণ (উপস্থিত)</th>
+                </tr>
+                <tr>
+                    <th>স্কুল</th><th>মাদ্রাসা</th><th class="grp-divider">মোট</th>
+                    <th>স্কুল</th><th>মাদ্রাসা</th><th>মোট</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="row-label">ছেলে</td>
+                    <td>{{ grand_total.registered.male.school }}</td><td>{{ grand_total.registered.male.madrasha }}</td><td class="grp-divider">{{ grand_total.registered.male.total }}</td>
+                    <td>{{ grand_total.attendance.male.school }}</td><td>{{ grand_total.attendance.male.madrasha }}</td><td>{{ grand_total.attendance.male.total }}</td>
+                </tr>
+                <tr>
+                    <td class="row-label">মেয়ে</td>
+                    <td>{{ grand_total.registered.female.school }}</td><td>{{ grand_total.registered.female.madrasha }}</td><td class="grp-divider">{{ grand_total.registered.female.total }}</td>
+                    <td>{{ grand_total.attendance.female.school }}</td><td>{{ grand_total.attendance.female.madrasha }}</td><td>{{ grand_total.attendance.female.total }}</td>
+                </tr>
+                <tr class="grand-row">
+                    <td class="row-label">সর্বমোট</td>
+                    <td>{{ grand_total.registered.total.school }}</td><td>{{ grand_total.registered.total.madrasha }}</td><td class="grp-divider">{{ grand_total.registered.total.total }}</td>
+                    <td>{{ grand_total.attendance.total.school }}</td><td>{{ grand_total.attendance.total.madrasha }}</td><td>{{ grand_total.attendance.total.total }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    {% if not report_rows %}
+    <p style="text-align:center; color:#777; margin-top:40px;">এই কেন্দ্রের জন্য কোনো তথ্য পাওয়া যায়নি।</p>
+    {% endif %}
+
+    <div class="footer-note">প্রিন্ট করা হয়েছে: {{ now.strftime('%d %B %Y, %I:%M %p') }}</div>
+
+</body>
+</html>

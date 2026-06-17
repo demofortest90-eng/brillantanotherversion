@@ -111,10 +111,9 @@
 
             <div class="field roll-no">{{ student.roll_no }}</div>
             
-            {# সেন্টারের নাম দেখানোর জন্য লজিক (যদি ব্যাকএন্ড থেকে না আসে) #}
+            {# কেন্দ্রের নাম — ব্যাকএন্ড থেকে ডাইনামিক ভাবে আসে (centers কালেকশন থেকে) #}
             <div class="field center-name">
-                {% set mapping = {"1": "Sariakandi", "2": "Gabtali", "3": "Khottapara", "4": "Aria Bajar", "5": "Dhunat", "6": "Summit", "7": "Sonka", "8": "Sukhanpukur", "9": "Sonatola"} %}
-                {{ mapping.get(student.center_code|string, "Brilliants Center") }}
+                {{ center_names.get(student.center_code|string, "Brilliants Center") }}
             </div>
 
             <div class="field scholarship-grade">{{ student.scholarship_grade or 'General' }}</div>

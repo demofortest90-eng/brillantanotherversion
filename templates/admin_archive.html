@@ -1,0 +1,103 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Data Archive | Admin{% endblock %}
+
+{% block content %}
+<style>
+    .arc-wrapper { padding: 25px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
+    .arc-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 22px; }
+    .arc-title { margin: 0 0 5px 0; color: #1e293b; }
+    .arc-sub { margin: 0 0 18px 0; color: #64748b; font-size: 0.9rem; }
+
+    .create-form { display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap; }
+    .create-form label { font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px; text-transform: uppercase; }
+    .create-form input { padding: 11px; border: 1px solid #e2e8f0; border-radius: 8px; width: 140px; font-weight: 700; }
+    .btn-create { background: #4f46e5; color: white; border: none; padding: 11px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .btn-create:hover { background: #4338ca; }
+    .live-years-hint { font-size: 0.82rem; color: #94a3b8; margin-top: 10px; }
+
+    .flash-msg { padding: 13px 16px; border-radius: 8px; margin-bottom: 18px; font-weight: 600; }
+    .flash-success { background: #dcfce7; color: #166534; }
+    .flash-danger, .flash-warning { background: #fee2e2; color: #991b1b; }
+    .flash-info { background: #e0f2fe; color: #075985; }
+
+    .archive-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 18px; }
+    .archive-tile { background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); padding: 20px; border-top: 5px solid #4f46e5; }
+    .archive-tile .year-num { font-size: 1.5rem; font-weight: 900; color: #1e293b; }
+    .archive-tile .archived-date { font-size: 0.78rem; color: #94a3b8; margin-bottom: 14px; }
+    .stat-row { display: flex; gap: 12px; margin-bottom: 16px; }
+    .stat-box { flex: 1; text-align: center; background: #f8fafc; border-radius: 8px; padding: 10px; }
+    .stat-box .num { font-size: 1.2rem; font-weight: 800; color: #1e293b; }
+    .stat-box .lbl { font-size: 0.72rem; color: #64748b; }
+
+    .dl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .btn-dl-mini { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px; border-radius: 7px; font-size: 0.78rem; font-weight: 700; text-decoration: none; }
+    .btn-p-pdf { background: #fee2e2; color: #b91c1c; }
+    .btn-p-csv { background: #dcfce7; color: #166534; }
+    .btn-w-pdf { background: #fef3c7; color: #92400e; }
+    .btn-w-csv { background: #e0e7ff; color: #4338ca; }
+
+    .delete-link { display: block; text-align: center; margin-top: 12px; font-size: 0.78rem; color: #ef4444; text-decoration: none; font-weight: 600; }
+    .delete-link:hover { text-decoration: underline; }
+
+    .empty-hint { text-align: center; padding: 50px 20px; color: #94a3b8; }
+</style>
+
+<div class="arc-wrapper">
+    <div class="arc-card">
+        <h2 class="arc-title"><i class="fas fa-box-archive"></i> ডাটা আর্কাইভ</h2>
+        <p class="arc-sub">প্রতি বছরের শেষে এই বছরের সকল অংশগ্রহণকারী ও বৃত্তিপ্রাপ্ত শিক্ষার্থীর তথ্য স্থায়ীভাবে সংরক্ষণ করুন — পরবর্তী বছরের রেজিস্ট্রেশন শুরু হলেও এই আর্কাইভ করা তথ্য অক্ষত থাকবে এবং যখন প্রয়োজন তখন PDF/CSV ডাউনলোড করা যাবে।</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-msg flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('create_archive') }}" class="create-form">
+            <div>
+                <label>বছর</label>
+                <input type="number" name="year" value="{{ current_year }}" required>
+            </div>
+            <button type="submit" class="btn-create"><i class="fas fa-plus-circle"></i> আর্কাইভ তৈরি / রিফ্রেশ করুন</button>
+        </form>
+        {% if live_years %}
+        <div class="live-years-hint">বর্তমান ডাটাবেজে এই বছরগুলোর শিক্ষার্থীর তথ্য আছে: <b>{{ live_years|join(', ') }}</b></div>
+        {% endif %}
+    </div>
+
+    {% if archived %}
+    <div class="archive-grid">
+        {% for a in archived %}
+        <div class="archive-tile">
+            <div class="year-num">{{ a.year }}</div>
+            <div class="archived-date">আর্কাইভ করা হয়েছে: {{ a.archived_at.strftime('%d %b %Y, %I:%M %p') if a.archived_at else '' }}</div>
+
+            <div class="stat-row">
+                <div class="stat-box"><div class="num">{{ a.total_participants or 0 }}</div><div class="lbl">অংশগ্রহণকারী</div></div>
+                <div class="stat-box"><div class="num">{{ a.total_winners or 0 }}</div><div class="lbl">বৃত্তিপ্রাপ্ত</div></div>
+            </div>
+
+            <div class="dl-grid">
+                <a class="btn-dl-mini btn-p-pdf" target="_blank" href="{{ url_for('archive_print', year=a.year, dataset='participants') }}"><i class="fas fa-file-pdf"></i> অংশগ্রহণকারী PDF</a>
+                <a class="btn-dl-mini btn-p-csv" href="{{ url_for('archive_download_csv', year=a.year, dataset='participants') }}"><i class="fas fa-file-csv"></i> অংশগ্রহণকারী CSV</a>
+                <a class="btn-dl-mini btn-w-pdf" target="_blank" href="{{ url_for('archive_print', year=a.year, dataset='winners') }}"><i class="fas fa-file-pdf"></i> বৃত্তিপ্রাপ্ত PDF</a>
+                <a class="btn-dl-mini btn-w-csv" href="{{ url_for('archive_download_csv', year=a.year, dataset='winners') }}"><i class="fas fa-file-csv"></i> বৃত্তিপ্রাপ্ত CSV</a>
+            </div>
+
+            <a class="delete-link" href="{{ url_for('delete_archive', year=a.year) }}" onclick="return confirm('আপনি কি নিশ্চিত {{ a.year }} সালের আর্কাইভ মুছে ফেলতে চান? এই কাজটি পূর্বাবস্থায় ফেরানো যাবে না।');">
+                <i class="fas fa-trash"></i> এই আর্কাইভ মুছে ফেলুন
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="arc-card empty-hint">
+        <i class="fas fa-box-open" style="font-size: 36px; margin-bottom: 12px; display:block;"></i>
+        এখনো কোনো বছরের তথ্য আর্কাইভ করা হয়নি। উপরে বছর লিখে "আর্কাইভ তৈরি করুন" বাটনে ক্লিক করুন।
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

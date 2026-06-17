@@ -1,0 +1,239 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Center-wise Participant Report | Admin{% endblock %}
+
+{% block content %}
+<style>
+    .pr-wrapper { padding: 25px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
+    .pr-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 22px; }
+    .pr-title { margin: 0 0 5px 0; color: #1e293b; }
+    .pr-sub { margin: 0 0 18px 0; color: #64748b; font-size: 0.9rem; }
+
+    .pr-filter-form { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .pr-filter-form label { font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px; text-transform: uppercase; }
+    .pr-filter-form select, .pr-filter-form input { padding: 11px; border: 1px solid #e2e8f0; border-radius: 8px; min-width: 190px; font-weight: 600; }
+    .pr-btn { background: #1e293b; color: white; border: none; padding: 11px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+
+    .center-block { border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 22px; overflow: hidden; }
+    .center-block-head { background: #0f172a; color: white; padding: 14px 20px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .center-block-head .code-badge { background: rgba(255,255,255,0.15); padding: 3px 10px; border-radius: 6px; font-size: 0.8rem; }
+
+    table.pr-table { width: 100%; border-collapse: collapse; }
+    table.pr-table th, table.pr-table td { border: 1px solid #e2e8f0; padding: 11px 10px; text-align: center; font-size: 0.92rem; }
+    table.pr-table th { background: #f1f5f9; color: #334155; font-weight: 700; }
+    table.pr-table td.row-label { text-align: left; font-weight: 700; background: #f8fafc; color: #1e293b; }
+    table.pr-table .grp-registered { background: #eff6ff; }
+    table.pr-table .grp-attendance { background: #fefce8; }
+    table.pr-table tr.total-row td { background: #f0fdf4; font-weight: 800; color: #166534; }
+    table.pr-table input.att-input {
+        width: 60px; text-align: center; border: 1.5px solid #cbd5e1; border-radius: 6px;
+        padding: 6px 4px; font-weight: 700; font-size: 0.92rem;
+    }
+    table.pr-table input.att-input:focus { border-color: #0ea5e9; outline: none; }
+
+    .save-bar { padding: 14px 20px; background: #fefce8; display: flex; justify-content: flex-end; }
+    .btn-save-att { background: #ca8a04; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .btn-save-att:hover { background: #a16207; }
+
+    .download-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .btn-dl { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.88rem; }
+    .btn-pdf { background: #dc2626; color: white; }
+    .btn-pdf:hover { background: #b91c1c; }
+    .btn-csv { background: #15803d; color: white; }
+    .btn-csv:hover { background: #166534; }
+
+    .empty-hint { text-align: center; padding: 50px 20px; color: #94a3b8; }
+    .saved-pill { font-size: 0.72rem; padding: 3px 9px; border-radius: 20px; font-weight: 700; margin-left: 8px; }
+    .pill-saved { background: #dcfce7; color: #166534; }
+    .pill-unsaved { background: #fef3c7; color: #92400e; }
+</style>
+
+<div class="pr-wrapper">
+    <div class="pr-card">
+        <h2 class="pr-title"><i class="fas fa-layer-group"></i> কেন্দ্র-ভিত্তিক বিস্তারিত রিপোর্ট</h2>
+        <p class="pr-sub">প্রতিটি কেন্দ্রে লিঙ্গ ও স্কুল/মাদ্রাসা অনুযায়ী নিবন্ধিত পরীক্ষার্থী এবং পরীক্ষার দিনের উপস্থিতির সংখ্যা — PDF অথবা CSV ফরম্যাটে ডাউনলোডযোগ্য।</p>
+
+        <form method="GET" class="pr-filter-form">
+            <div>
+                <label>কেন্দ্র</label>
+                <select name="center">
+                    <option value="">-- নির্বাচন করুন --</option>
+                    <option value="ALL" {% if selected_center == 'ALL' %}selected{% endif %}>সকল কেন্দ্র (একসাথে)</option>
+                    {% for c in centers %}
+                    <option value="{{ c.center_code }}" {% if selected_center == c.center_code %}selected{% endif %}>{{ c.center_code }} - {{ c.center_name_bn }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>স্ট্যাটাস</label>
+                <select name="status">
+                    <option value="Verified" {% if status_filter == 'Verified' %}selected{% endif %}>ভেরিফাইড শিক্ষার্থী</option>
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>সকল শিক্ষার্থী</option>
+                    <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>পেন্ডিং শিক্ষার্থী</option>
+                </select>
+            </div>
+            <div>
+                <label>বছর</label>
+                <input type="number" name="year" value="{{ year }}">
+            </div>
+            <div>
+                <button type="submit" class="pr-btn"><i class="fas fa-search"></i> দেখুন</button>
+            </div>
+        </form>
+    </div>
+
+    {% if not selected_center %}
+    <div class="pr-card empty-hint">
+        <i class="fas fa-hand-point-up" style="font-size: 36px; margin-bottom: 12px; display:block;"></i>
+        একটি কেন্দ্র বা "সকল কেন্দ্র" নির্বাচন করে রিপোর্ট দেখুন।
+    </div>
+
+    {% elif selected_center == 'ALL' %}
+        {% for row in report_rows %}
+        <div class="center-block">
+            <div class="center-block-head">
+                <span><span class="code-badge">{{ row.center_code }}</span> &nbsp; {{ row.center_name_bn or row.center_name_en }}</span>
+            </div>
+            {% include "_participant_report_table.html" %}
+        </div>
+        {% endfor %}
+
+        {% if report_rows %}
+        <div class="center-block">
+            <div class="center-block-head" style="background:#166534;">সর্বমোট (সকল কেন্দ্র মিলিয়ে)</div>
+            <table class="pr-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2">লিঙ্গ</th>
+                        <th colspan="3" class="grp-registered">নিবন্ধিত শিক্ষার্থী</th>
+                        <th colspan="3" class="grp-attendance">পরীক্ষার বিবরণ (উপস্থিত)</th>
+                    </tr>
+                    <tr>
+                        <th class="grp-registered">স্কুল</th><th class="grp-registered">মাদ্রাসা</th><th class="grp-registered">মোট</th>
+                        <th class="grp-attendance">স্কুল</th><th class="grp-attendance">মাদ্রাসা</th><th class="grp-attendance">মোট</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="row-label">ছেলে</td>
+                        <td>{{ grand_total.registered.male.school }}</td><td>{{ grand_total.registered.male.madrasha }}</td><td>{{ grand_total.registered.male.total }}</td>
+                        <td>{{ grand_total.attendance.male.school }}</td><td>{{ grand_total.attendance.male.madrasha }}</td><td>{{ grand_total.attendance.male.total }}</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">মেয়ে</td>
+                        <td>{{ grand_total.registered.female.school }}</td><td>{{ grand_total.registered.female.madrasha }}</td><td>{{ grand_total.registered.female.total }}</td>
+                        <td>{{ grand_total.attendance.female.school }}</td><td>{{ grand_total.attendance.female.madrasha }}</td><td>{{ grand_total.attendance.female.total }}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="row-label">সর্বমোট</td>
+                        <td>{{ grand_total.registered.total.school }}</td><td>{{ grand_total.registered.total.madrasha }}</td><td>{{ grand_total.registered.total.total }}</td>
+                        <td>{{ grand_total.attendance.total.school }}</td><td>{{ grand_total.attendance.total.madrasha }}</td><td>{{ grand_total.attendance.total.total }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="download-bar">
+            <a class="btn-dl btn-pdf" target="_blank" href="{{ url_for('participant_summary_print', center='ALL', status=status_filter, year=year) }}"><i class="fas fa-file-pdf"></i> সব কেন্দ্রের রিপোর্ট প্রিন্ট / PDF</a>
+            <a class="btn-dl btn-csv" href="{{ url_for('participant_summary_download_csv', center='ALL', status=status_filter, year=year) }}"><i class="fas fa-file-csv"></i> সব কেন্দ্রের রিপোর্ট CSV</a>
+        </div>
+        <p style="color:#94a3b8; font-size:0.85rem; margin-top:10px;">প্রতিটি কেন্দ্রের "পরীক্ষার বিবরণ" সংখ্যা পরিবর্তন করতে সেই কেন্দ্রটি আলাদাভাবে নির্বাচন করুন।</p>
+        {% else %}
+        <div class="pr-card empty-hint">কোনো কেন্দ্র যুক্ত করা হয়নি। প্রথমে "কেন্দ্র ব্যবস্থাপনা" থেকে কেন্দ্র যুক্ত করুন।</div>
+        {% endif %}
+
+    {% else %}
+        {% set row = report_rows[0] if report_rows else None %}
+        {% if not row %}
+        <div class="pr-card empty-hint">এই কেন্দ্র কোডটি খুঁজে পাওয়া যায়নি।</div>
+        {% else %}
+        <div class="center-block">
+            <div class="center-block-head">
+                <span><span class="code-badge">{{ row.center_code }}</span> &nbsp; {{ row.center_name_bn or row.center_name_en }}</span>
+                {% if row.attendance.saved %}
+                <span class="saved-pill pill-saved"><i class="fas fa-check"></i> {{ year }} সালের উপস্থিতি সংরক্ষিত আছে</span>
+                {% else %}
+                <span class="saved-pill pill-unsaved">{{ year }} সালের উপস্থিতির সংখ্যা এখনো দেওয়া হয়নি</span>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="{{ url_for('save_exam_attendance') }}">
+                <input type="hidden" name="center_code" value="{{ row.center_code }}">
+                <input type="hidden" name="year" value="{{ year }}">
+                <input type="hidden" name="status_filter" value="{{ status_filter }}">
+
+                <table class="pr-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">লিঙ্গ</th>
+                            <th colspan="3" class="grp-registered">নিবন্ধিত শিক্ষার্থী (Registered)</th>
+                            <th colspan="3" class="grp-attendance">পরীক্ষার বিবরণ — উপস্থিত (Exam Day Present)</th>
+                        </tr>
+                        <tr>
+                            <th class="grp-registered">স্কুল</th><th class="grp-registered">মাদ্রাসা</th><th class="grp-registered">মোট</th>
+                            <th class="grp-attendance">স্কুল</th><th class="grp-attendance">মাদ্রাসা</th><th class="grp-attendance">মোট</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="row-label">ছেলে</td>
+                            <td>{{ row.registered.male.school }}</td><td>{{ row.registered.male.madrasha }}</td><td>{{ row.registered.male.total }}</td>
+                            <td><input type="number" min="0" class="att-input" name="school_boys" value="{{ row.attendance.male.school }}" data-row="male"></td>
+                            <td><input type="number" min="0" class="att-input" name="madrasha_boys" value="{{ row.attendance.male.madrasha }}" data-row="male"></td>
+                            <td class="att-total" data-row-total="male">{{ row.attendance.male.total }}</td>
+                        </tr>
+                        <tr>
+                            <td class="row-label">মেয়ে</td>
+                            <td>{{ row.registered.female.school }}</td><td>{{ row.registered.female.madrasha }}</td><td>{{ row.registered.female.total }}</td>
+                            <td><input type="number" min="0" class="att-input" name="school_girls" value="{{ row.attendance.female.school }}" data-row="female"></td>
+                            <td><input type="number" min="0" class="att-input" name="madrasha_girls" value="{{ row.attendance.female.madrasha }}" data-row="female"></td>
+                            <td class="att-total" data-row-total="female">{{ row.attendance.female.total }}</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td class="row-label">সর্বমোট</td>
+                            <td>{{ row.registered.total.school }}</td><td>{{ row.registered.total.madrasha }}</td><td>{{ row.registered.total.total }}</td>
+                            <td id="gtSchool">{{ row.attendance.total.school }}</td>
+                            <td id="gtMadrasha">{{ row.attendance.total.madrasha }}</td>
+                            <td id="gtTotal">{{ row.attendance.total.total }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="save-bar">
+                    <button type="submit" class="btn-save-att"><i class="fas fa-save"></i> পরীক্ষার দিনের উপস্থিতি সংরক্ষণ করুন</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="download-bar">
+            <a class="btn-dl btn-pdf" target="_blank" href="{{ url_for('participant_summary_print', center=row.center_code, status=status_filter, year=year) }}"><i class="fas fa-file-pdf"></i> এই কেন্দ্রের রিপোর্ট প্রিন্ট / PDF</a>
+            <a class="btn-dl btn-csv" href="{{ url_for('participant_summary_download_csv', center=row.center_code, status=status_filter, year=year) }}"><i class="fas fa-file-csv"></i> এই কেন্দ্রের রিপোর্ট CSV</a>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+
+<script>
+// লাইভ টোটাল হিসাব (সংরক্ষণ করার আগেই দেখানোর জন্য)
+document.querySelectorAll('input.att-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+        const maleSchool = parseInt(document.querySelector('input[name="school_boys"]')?.value) || 0;
+        const maleMadrasha = parseInt(document.querySelector('input[name="madrasha_boys"]')?.value) || 0;
+        const femaleSchool = parseInt(document.querySelector('input[name="school_girls"]')?.value) || 0;
+        const femaleMadrasha = parseInt(document.querySelector('input[name="madrasha_girls"]')?.value) || 0;
+
+        const maleRow = document.querySelector('[data-row-total="male"]');
+        const femaleRow = document.querySelector('[data-row-total="female"]');
+        if (maleRow) maleRow.textContent = maleSchool + maleMadrasha;
+        if (femaleRow) femaleRow.textContent = femaleSchool + femaleMadrasha;
+
+        const gtSchool = document.getElementById('gtSchool');
+        const gtMadrasha = document.getElementById('gtMadrasha');
+        const gtTotal = document.getElementById('gtTotal');
+        if (gtSchool) gtSchool.textContent = maleSchool + femaleSchool;
+        if (gtMadrasha) gtMadrasha.textContent = maleMadrasha + femaleMadrasha;
+        if (gtTotal) gtTotal.textContent = maleSchool + maleMadrasha + femaleSchool + femaleMadrasha;
+    });
+});
+</script>
+{% endblock %}

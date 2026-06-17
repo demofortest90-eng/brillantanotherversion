@@ -127,7 +127,7 @@
                         <td class="label">Exam Center</td>
                         <td>: {{ student.center_name }}</td> 
                     </tr>
-                    <tr><td class="label">Date & Time</td><td>: 20 Jan 2026, 10:00 AM</td></tr>
+                    <tr><td class="label">Date & Time</td><td>: {{ admit_settings.exam_datetime if admit_settings else '20 Jan 2026, 10:00 AM' }}</td></tr>
                 </table>
                 <div class="photo-area">
                     <div class="photo-box">
@@ -151,8 +151,8 @@
 
             <div class="footer-sig">
                 <div class="sig-wrapper">
-                    <img src="https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png" class="footer-sig-img">
-                    <div class="sig-line">পরীক্ষা নিয়ন্ত্রক</div>
+                    <img src="{{ admit_settings.signature_image if admit_settings else 'https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png' }}" class="footer-sig-img">
+                    <div class="sig-line">{{ admit_settings.signature_title if admit_settings else 'পরীক্ষা নিয়ন্ত্রক' }}</div>
                 </div>
             </div>
         </div>
