@@ -191,6 +191,20 @@ def api_upload_photo():
 # nothing in the project relies on a hardcoded center list anymore.
 # =====================================================================
 
+def center_code_filter(value):
+    """Robust, case/space-tolerant match query for center_code. Some
+    historical records may have inconsistent casing/whitespace, so every
+    center filter in the project should use this instead of an exact
+    string match."""
+    v = str(value).strip()
+    variants = {v, v.upper(), v.lower()}
+    if v.isdigit():
+        try:
+            variants.add(int(v))
+        except ValueError:
+            pass
+    return {"$in": list(variants)}
+
 def get_center_name_map(lang='bn'):
     """Returns {center_code(str): display_name} built live from the
     'centers' collection. Replaces every hardcoded centers dict."""
@@ -202,6 +216,25 @@ def get_center_name_map(lang='bn'):
         else:
             result[code] = c.get('center_name_bn') or c.get('center_name_en') or code
     return result
+
+def get_grouped_center_name_map(lang='bn'):
+    """Like get_center_name_map, but a center that belongs to a Center
+    Group shows the group's own name instead of its individual name —
+    used wherever a 'combined' center identity should appear (certificate,
+    prospectus)."""
+    base = get_center_name_map(lang=lang)
+    for g in mongo.db.center_groups.find():
+        gname = g.get('group_name', '')
+        for code in g.get('member_codes', []):
+            base[str(code)] = gname
+    return base
+
+def get_grouped_centers_set():
+    """Set of all center_codes (as strings) that currently belong to any group."""
+    codes = set()
+    for g in mongo.db.center_groups.find():
+        codes.update(str(c) for c in g.get('member_codes', []))
+    return codes
 
 SCHOLARSHIP_GRADES = ['Talentpool', 'General', 'Suveccha', 'Quata']
 
@@ -228,7 +261,7 @@ def _blank_breakdown():
 def build_center_participation(center_code, status_filter='Verified'):
     """Registered-student counts for one center, split by gender x
     institute type."""
-    match = {"center_code": center_code}
+    match = {"center_code": center_code_filter(center_code)}
     if status_filter == 'Verified':
         match["status"] = "Verified"
     elif status_filter == 'Pending':
@@ -662,7 +695,7 @@ def download_scholarship_certificate():
         flash("দুঃখিত, আপনি এই বছর বৃত্তির জন্য নির্বাচিত হননি, তাই সার্টিফিকেট ডাউনলোড করা সম্ভব নয়।", "warning")
         return redirect(url_for('view_result'))
     c_code = str(student.get('center_code', ''))
-    center_name = get_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
+    center_name = get_grouped_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
     return render_template('certificate_design.html', student=student, center_name=center_name)
 
 @app.route('/logout')
@@ -1009,9 +1042,11 @@ def entry_marks():
     if not session.get('admin_logged_in'):
         return redirect(url_for('admin_login'))
     institutes = list(mongo.db.institutions.find().sort("name", 1))
+    centers = list(mongo.db.centers.find().sort("center_code", 1))
     f_roll = request.args.get('roll_no')
     f_class = request.args.get('class')
     f_inst = request.args.get('institute')
+    f_center = request.args.get('center')
     query = {"status": "Verified"}
     if f_roll:
         query["roll_no"] = f_roll
@@ -1020,10 +1055,12 @@ def entry_marks():
             query["student_class"] = f_class
         if f_inst:
             query["institute_en"] = f_inst
+        if f_center:
+            query["center_code"] = center_code_filter(f_center)
     students = []
-    if f_roll or f_class:
+    if f_roll or f_class or f_center:
         students = list(mongo.db.students.find(query).sort("roll_no", 1))
-    return render_template('admin_marks_entry.html', students=students, institutes=institutes)
+    return render_template('admin_marks_entry.html', students=students, institutes=institutes, centers=centers)
 
 @app.route('/admin/save-bulk-marks', methods=['POST'])
 def save_bulk_marks():
@@ -1143,11 +1180,11 @@ def approve_admits():
     filter_class = request.args.get('class', '').strip()
     query = {}
     if filter_center:
-        query["center_code"] = filter_center
+        query["center_code"] = center_code_filter(filter_center)
     if filter_class:
         query["student_class"] = filter_class
     centers = list(mongo.db.centers.find().sort("center_code", 1))
-    available_classes = sorted([c for c in mongo.db.students.distinct("student_class") if c], key=str)
+    available_classes = ["5", "6", "7", "8", "9"]
     students = list(mongo.db.students.find(query).sort("roll_no", 1))
     return render_template('admin_approve_admits.html', students=students, centers=centers,
                            available_classes=available_classes,
@@ -1181,7 +1218,58 @@ def manage_centers():
     nagad_s = mongo.db.settings.find_one({"key": "nagad_number"})
     bkash_number = bkash_s['value'] if bkash_s else ''
     nagad_number = nagad_s['value'] if nagad_s else ''
-    return render_template('admin_center.html', centers=centers, bkash_number=bkash_number, nagad_number=nagad_number)
+
+    center_name_map = get_center_name_map()
+    groups_raw = list(mongo.db.center_groups.find().sort("group_name", 1))
+    grouped_codes = set()
+    center_groups = []
+    for g in groups_raw:
+        codes = g.get('member_codes', [])
+        grouped_codes.update(str(c) for c in codes)
+        center_groups.append({
+            "_id": g["_id"],
+            "group_name": g.get("group_name", ""),
+            "member_codes": codes,
+            "member_labels": [f"{c} - {center_name_map.get(str(c), c)}" for c in codes],
+        })
+
+    return render_template('admin_center.html', centers=centers, bkash_number=bkash_number,
+                           nagad_number=nagad_number, center_groups=center_groups,
+                           grouped_codes=grouped_codes)
+
+@app.route('/admin/add-center-group', methods=['POST'])
+def add_center_group():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    group_name = request.form.get('group_name', '').strip()
+    member_codes = [c.strip() for c in request.form.getlist('member_codes') if c.strip()]
+    if not group_name or not member_codes:
+        flash("গ্রুপের নাম এবং অন্তত একটি কেন্দ্র নির্বাচন করা আবশ্যক।", "danger")
+        return redirect(url_for('manage_centers'))
+
+    already_grouped = set()
+    for g in mongo.db.center_groups.find():
+        already_grouped.update(str(c) for c in g.get('member_codes', []))
+    conflicting = [c for c in member_codes if c in already_grouped]
+    if conflicting:
+        flash(f"এই কেন্দ্রগুলো ইতিমধ্যে অন্য একটি গ্রুপে আছে: {', '.join(conflicting)}। আগে সেই গ্রুপ থেকে বাদ দিন (গ্রুপ মুছে ফেলুন)।", "danger")
+        return redirect(url_for('manage_centers'))
+
+    mongo.db.center_groups.insert_one({
+        "group_name": group_name,
+        "member_codes": member_codes,
+        "created_at": datetime.utcnow()
+    })
+    flash(f"'{group_name}' গ্রুপ সফলভাবে তৈরি হয়েছে। এখন সার্টিফিকেট ও প্রসপেক্টাস পেজে এই কেন্দ্রগুলোর জন্য '{group_name}' নামটি দেখাবে।", "success")
+    return redirect(url_for('manage_centers'))
+
+@app.route('/admin/delete-center-group/<group_id>')
+def delete_center_group(group_id):
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    mongo.db.center_groups.delete_one({"_id": ObjectId(group_id)})
+    flash("কেন্দ্র গ্রুপ মুছে ফেলা হয়েছে।", "info")
+    return redirect(url_for('manage_centers'))
 
 @app.route('/admin/update-payment-numbers', methods=['POST'])
 def update_payment_numbers():
@@ -1424,7 +1512,7 @@ def print_certificate(student_id):
             flash("দুঃখিত, এই ছাত্রের তথ্য পাওয়া যায়নি!", "danger")
             return redirect(url_for('admin_certificates'))
         c_code = str(student.get('center_code', ''))
-        center_name = get_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
+        center_name = get_grouped_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
         return render_template('certificate_design.html', student=student, center_name=center_name)
     except Exception as e:
         flash(f"সার্টিফিকেট রেন্ডার করতে সমস্যা হয়েছে: {str(e)}", "danger")
@@ -1448,7 +1536,7 @@ def print_all_certificates():
     if not students:
         flash("প্রিন্ট করার মতো কোনো স্টুডেন্ট খুঁজে পাওয়া যায়নি!", "warning")
         return redirect(url_for('admin_certificates'))
-    center_names = get_center_name_map(lang='en')
+    center_names = get_grouped_center_name_map(lang='en')
     return render_template('bulk_certificates_design.html', students=students, center_names=center_names)
 
 @app.route('/admin/attendance/print')
@@ -1486,7 +1574,7 @@ def bulk_admit_filter():
         if selected_school:
             query["institute_en"] = selected_school
         if selected_center:
-            query["center_code"] = selected_center
+            query["center_code"] = center_code_filter(selected_center)
         students = list(mongo.db.students.find(query).sort("roll_no", 1))
     return render_template('admin_bulk_filter.html',
                            schools=schools, classes=classes, centers=centers, students=students,
@@ -1506,7 +1594,7 @@ def bulk_admit_download():
     if selected_school:
         query["institute_en"] = selected_school
     if selected_center:
-        query["center_code"] = selected_center
+        query["center_code"] = center_code_filter(selected_center)
     students = list(mongo.db.students.find(query).sort("roll_no", 1))
     for s in students:
         c_code = s.get('center_code')
@@ -1545,7 +1633,7 @@ def export_detailed_data():
     if selected_school:
         query['institute_en'] = selected_school
     if selected_center:
-        query['center_code'] = selected_center
+        query['center_code'] = center_code_filter(selected_center)
     if selected_grade:
         if selected_grade == 'Nothing':
             query['scholarship_grade'] = {"$in": [None, "Nothing", ""]}
@@ -1554,7 +1642,12 @@ def export_detailed_data():
     if selected_year and selected_year.isdigit():
         year = int(selected_year)
         query['applied_at'] = {"$gte": datetime(year, 1, 1), "$lt": datetime(year + 1, 1, 1)}
-    sort_field = [("applied_at", 1)] if sort_by == "year" else [("roll_no", 1)]
+    if sort_by == "year":
+        sort_field = [("applied_at", 1)]
+    elif sort_by == "institute_class":
+        sort_field = [("institute_en", 1), ("student_class", 1), ("roll_no", 1)]
+    else:
+        sort_field = [("roll_no", 1)]
     try:
         students = list(mongo.db.students.find(query).sort(sort_field))
     except Exception as e:
@@ -1797,17 +1890,19 @@ def admin_prospecture_class(student_class):
     if grade_filter:
         query["scholarship_grade"] = grade_filter
     if center_filter:
-        query["center_code"] = center_filter
+        query["center_code"] = center_code_filter(center_filter)
 
     students = list(mongo.db.students.find(query).sort([("scholarship_grade", 1), ("marks.total", -1)]))
     all_centers = mongo.db.students.distinct("center_code")
+    center_display_map = get_grouped_center_name_map(lang='bn')
 
     return render_template('admin_prospecture_class.html',
                            students=students,
                            student_class=student_class,
                            grade_filter=grade_filter,
                            center_filter=center_filter,
-                           all_centers=all_centers)
+                           all_centers=all_centers,
+                           center_display_map=center_display_map)
 
 
 @app.route('/admin/prospecture/class/<student_class>/download-csv')
@@ -1823,9 +1918,10 @@ def download_prospecture_csv(student_class):
     if grade_filter:
         query["scholarship_grade"] = grade_filter
     if center_filter:
-        query["center_code"] = center_filter
+        query["center_code"] = center_code_filter(center_filter)
 
     students = list(mongo.db.students.find(query).sort([("scholarship_grade", 1), ("marks.total", -1)]))
+    center_display_map = get_grouped_center_name_map(lang='bn')
 
     output = io.StringIO()
     output.write(u'\ufeff')
@@ -1834,6 +1930,7 @@ def download_prospecture_csv(student_class):
                      'Bangla', 'English', 'Math', 'GK', 'Total', 'Scholarship Grade'])
     for idx, s in enumerate(students, 1):
         marks = s.get('marks') or {}
+        center_display = center_display_map.get(str(s.get('center_code', '')), s.get('center_code', ''))
         writer.writerow([
             idx,
             s.get('roll_no', ''),
@@ -1841,7 +1938,7 @@ def download_prospecture_csv(student_class):
             s.get('name_en', ''),
             s.get('name_bn', ''),
             s.get('institute_en') or s.get('institute_bn', ''),
-            s.get('center_code', ''),
+            center_display,
             marks.get('bangla', ''),
             marks.get('english', ''),
             marks.get('math', ''),
@@ -1856,6 +1953,7 @@ def download_prospecture_csv(student_class):
     filename += ".csv"
     return Response(output.getvalue(), mimetype="text/csv",
                     headers={"Content-disposition": f"attachment; filename={filename}"})
+
 
 
 @app.route('/admin/prospecture/search-result', methods=['GET', 'POST'])
