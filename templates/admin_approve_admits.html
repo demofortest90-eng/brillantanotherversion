@@ -68,6 +68,15 @@
             </select>
         </div>
         <div class="f-group">
+            <label>শিক্ষা প্রতিষ্ঠান (Institute)</label>
+            <select name="institute">
+                <option value="">সকল প্রতিষ্ঠান (All Institutes)</option>
+                {% for i in institutes %}
+                <option value="{{ i }}" {% if filter_institute == i %}selected{% endif %}>{{ i }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="f-group">
             <label>শ্রেণী (Class)</label>
             <select name="class">
                 <option value="">সকল শ্রেণী (All Classes)</option>
@@ -77,7 +86,7 @@
             </select>
         </div>
         <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> ফিল্টার করুন</button>
-        {% if filter_center or filter_class %}
+        {% if filter_center or filter_class or filter_institute %}
         <a href="{{ url_for('approve_admits') }}" class="btn-clear">✕ ফিল্টার মুছুন</a>
         {% endif %}
     </form>
@@ -85,6 +94,7 @@
     <form method="POST" id="approvalForm">
         <input type="hidden" name="filter_center" value="{{ filter_center }}">
         <input type="hidden" name="filter_class" value="{{ filter_class }}">
+        <input type="hidden" name="filter_institute" value="{{ filter_institute }}">
         <div class="bulk-action-bar">
             <div class="select-all-container">
                 <input type="checkbox" id="masterCheckbox" style="width: 20px; height: 20px; cursor: pointer;">
@@ -109,6 +119,7 @@
                         <th>Roll No</th>
                         <th>Student Name</th>
                         <th>Class</th>
+                        <th>Institute</th>
                         <th>Center</th>
                         <th>Download Status</th>
                     </tr>
@@ -122,6 +133,7 @@
                         <td style="font-weight: 700;">{{ s.roll_no }}</td>
                         <td>{{ s.name_en }}</td>
                         <td>Class {{ s.student_class }}</td>
+                        <td style="font-size: 12px;">{{ s.institute_en or s.institute_bn }}</td>
                         <td>{{ center_map.get(s.center_code, s.center_code) }}</td>
                         <td>
                             {% if s.admit_approved %}
@@ -137,7 +149,7 @@
                     </tr>
                     {% endfor %}
                     {% if not students %}
-                    <tr><td colspan="6" style="text-align:center; padding:30px; color:#94a3b8;">এই ফিল্টারে কোনো শিক্ষার্থী পাওয়া যায়নি।</td></tr>
+                    <tr><td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">এই ফিল্টারে কোনো শিক্ষার্থী পাওয়া যায়নি।</td></tr>
                     {% endif %}
                 </tbody>
             </table>

@@ -163,7 +163,7 @@
             <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint == 'admin_dashboard' }}">
                 <i class="fas fa-th-large"></i> ড্যাশবোর্ড
             </a>
-            <a href="{{ url_for('participant_summary') }}" class="{{ 'active' if request.endpoint == 'participant_summary' }}">
+            <a href="{{ url_for('participant_summary') }}" class="{{ 'active' if request.endpoint in ['participant_summary','institute_class_summary'] }}">
                 <i class="fas fa-chart-bar"></i> অংশগ্রহণকারীর সারসংক্ষেপ
             </a>
 
@@ -192,7 +192,7 @@
             <a href="{{ url_for('manage_results') }}" class="{{ 'active' if request.endpoint == 'manage_results' }}">
                 <i class="fas fa-poll"></i> ফলাফল রেজিস্ট্রি
             </a>
-            <a href="{{ url_for('admin_prospecture') }}" class="{{ 'active' if request.endpoint in ['admin_prospecture','admin_prospecture_class'] }}">
+            <a href="{{ url_for('admin_prospecture') }}" class="{{ 'active' if request.endpoint in ['admin_prospecture','admin_prospecture_class','admin_prospecture_album'] }}">
                 <i class="fas fa-graduation-cap"></i> বৃত্তি (প্রসপেক্টাস)
             </a>
             <a href="{{ url_for('admin_prospecture_result_search') }}" class="{{ 'active' if request.endpoint == 'admin_prospecture_result_search' }}">

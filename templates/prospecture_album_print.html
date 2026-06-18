@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>Scholarship Prospecture Album - Class {{ student_class }}</title>
+    <style>
+        @import url('https://fonts.maateen.me/kalpurush/font.css');
+
+        @page { size: A4 portrait; margin: 12mm 16mm 14mm 10mm; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Kalpurush', 'Noto Sans Bengali', Arial, sans-serif;
+            color: #111; margin: 0; padding: 0;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+
+        /* Top organization strip (consistent with the rest of the app's print pages) */
+        .org-strip { text-align: center; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 10px; }
+        .org-bn { font-size: 16px; font-weight: 900; margin: 0; }
+        .org-en { font-size: 10.5px; font-weight: 700; margin: 2px 0; color: #333; }
+
+        /* Decorative album title bar — echoes the grey gradient header in the
+           original printed booklet, complete with soft corner circles and a
+           vertical branding strip along its right edge. */
+        .album-title-bar {
+            position: relative;
+            text-align: center;
+            margin-bottom: 6mm;
+            padding: 5mm 22mm 5mm 8mm;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #f3f3f3 0%, #e3e3e3 55%, #f6f6f6 100%);
+            border: 1px solid #d4d4d4;
+            overflow: hidden;
+        }
+        .album-title-bar::before, .album-title-bar::after {
+            content: ''; position: absolute; border-radius: 50%;
+            background: radial-gradient(circle, #cfcfcf 0%, transparent 72%);
+        }
+        .album-title-bar::before { width: 26mm; height: 26mm; top: -12mm; left: -10mm; }
+        .album-title-bar::after { width: 16mm; height: 16mm; bottom: -8mm; left: 30mm; }
+        .album-title { font-size: 14px; font-weight: 900; margin: 0; position: relative; z-index: 1; }
+        .album-meta { font-size: 10px; color: #444; margin-top: 4px; position: relative; z-index: 1; }
+        .sidebar-brand {
+            position: absolute; top: 0; right: 0; height: 100%; width: 16mm;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .sidebar-brand span {
+            writing-mode: vertical-rl; text-orientation: mixed;
+            font-family: Georgia, 'Times New Roman', serif; font-style: italic;
+            font-size: 9.5px; letter-spacing: 1.2px; color: #555; white-space: nowrap;
+        }
+
+        /* Grade section badge — a soft organic "speech bubble" marker inserted
+           inline within the photo grid wherever the merit category changes. */
+        .album-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3mm 2mm; }
+
+        .grade-badge-cell { display: flex; align-items: center; justify-content: center; break-inside: avoid; page-break-inside: avoid; }
+        .grade-badge {
+            width: 100%; aspect-ratio: 1 / 1;
+            border-radius: 48% 48% 48% 6%;
+            background: radial-gradient(circle at 35% 30%, #fbfbfb 0%, #d8d8d8 80%);
+            border: 1px solid #b9b9b9;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 1mm;
+        }
+        .grade-badge .gb-top { font-size: 6px; font-weight: 700; color: #555; line-height: 1.2; }
+        .grade-badge .gb-name { font-size: 8px; font-weight: 900; color: #000; line-height: 1.2; margin-top: 0.5mm; }
+
+        /* Student photo card */
+        .photo-card { break-inside: avoid; page-break-inside: avoid; text-align: center; }
+        .photo-frame {
+            width: 100%; aspect-ratio: 1 / 1.15;
+            border: 1px solid #444; overflow: hidden; background: #1a1a1a;
+        }
+        .photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(100%) contrast(1.05); }
+        .card-name { font-weight: 800; font-size: 7.6px; color: #000; line-height: 1.25; margin-top: 0.8mm; }
+        .card-inst { font-size: 6.7px; color: #333; line-height: 1.2; }
+        .card-center { font-size: 6.3px; color: #555; line-height: 1.2; }
+
+        /* Footer */
+        .album-footer { margin-top: 8mm; text-align: center; }
+        .album-quote { font-size: 9.5px; font-style: italic; font-weight: 700; color: #222; }
+        .album-pagenum {
+            width: 7mm; height: 7mm; border-radius: 50%; border: 1px solid #444;
+            display: flex; align-items: center; justify-content: center;
+            margin: 2.5mm auto 0; font-size: 9px; font-weight: 800;
+        }
+
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="org-strip">
+        <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
+        <div class="org-en">The Brilliants Foundation, Bogura</div>
+    </div>
+
+    <div class="album-title-bar">
+        <div class="album-title">{{ year|bn_num }} সালের {{ total|bn_num }} জন বৃত্তিপ্রাপ্ত ছাত্র-ছাত্রীদের অ্যালবাম</div>
+        <div class="album-meta">
+            শ্রেণি: {{ student_class|bn_num }}
+            {% if grade_filter %} &nbsp;|&nbsp; মেধা শ্রেণী: {{ grade_bn_labels.get(grade_filter, grade_filter) }}{% endif %}
+            {% if center_filter %} &nbsp;|&nbsp; কেন্দ্র: {{ center_display_map.get(center_filter|string, center_filter) }}{% endif %}
+        </div>
+        <div class="sidebar-brand"><span>The Brilliants Foundation, Bogura.</span></div>
+    </div>
+
+    {% if grouped %}
+    <div class="album-grid">
+        {% for grade, students_in_grade in grouped.items() %}
+            <div class="grade-badge-cell">
+                <div class="grade-badge">
+                    <span class="gb-top">মেধা শ্রেণী</span>
+                    <span class="gb-name">{{ grade_bn_labels.get(grade, grade) }}</span>
+                </div>
+            </div>
+            {% for s in students_in_grade %}
+            <div class="photo-card">
+                <div class="photo-frame">
+                    <img src="{{ s.photo_url }}" alt="{{ s.name_en }}"
+                         onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 115%27><rect width=%27100%27 height=%27115%27 fill=%27%23111%27/><circle cx=%2750%27 cy=%2742%27 r=%2222%27 fill=%27%23333%27/><path d=%27M12 112 Q50 70 88 112 Z%27 fill=%27%23333%27/></svg>'">
+                </div>
+                <div class="card-name">{{ s.name_bn or s.name_en }}</div>
+                <div class="card-inst">{{ s.institute_bn or s.institute_en }}</div>
+                <div class="card-center">{{ center_display_map.get(s.center_code|string, s.center_code) }}</div>
+            </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align:center; color:#777; margin-top:40px;">এই ফিল্টারে কোনো বৃত্তিপ্রাপ্ত শিক্ষার্থী পাওয়া যায়নি।</p>
+    {% endif %}
+
+    <div class="album-footer">
+        <div class="album-quote">"মেধার আলোয় আলোকিত হোক আগামীর প্রতিটি পথ"</div>
+        <div class="album-pagenum">{{ student_class|bn_num }}</div>
+    </div>
+
+</body>
+</html>

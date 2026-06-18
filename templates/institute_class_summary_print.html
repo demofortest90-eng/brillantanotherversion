@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>Institute & Class-wise Participation Report</title>
+    <style>
+        @import url('https://fonts.maateen.me/kalpurush/font.css');
+
+        @page { size: A4 portrait; margin: 14mm 12mm; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Kalpurush', Arial, sans-serif;
+            color: #000; margin: 0; padding: 0;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+
+        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 16px; }
+        .org-bn { font-size: 22px; font-weight: 900; margin: 0; }
+        .org-en { font-size: 13px; font-weight: 700; margin: 2px 0; color: #333; }
+        .report-title { font-size: 16px; font-weight: 800; text-decoration: underline; margin-top: 8px; }
+        .meta-line { font-size: 12px; margin-top: 6px; color: #333; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        th, td { border: 1px solid #000; padding: 6px 4px; text-align: center; font-size: 11.5px; }
+        th { background: #e2e8f0 !important; font-weight: 800; }
+        td.inst-label { text-align: left; padding-left: 8px; }
+        td.inst-label .inst-en { font-weight: 800; }
+        td.inst-label .inst-bn { font-size: 10.5px; color: #444; }
+        tr.grand-row td { font-weight: 900; background: #f1f5f9 !important; }
+        td.total-col { font-weight: 800; }
+
+        .footer-note { margin-top: 20px; font-size: 11px; color: #555; text-align: right; }
+
+        @media print { .no-print { display: none; } }
+    </style>
+</head>
+<body onload="window.print()">
+
+    <div class="header">
+        <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
+        <div class="org-en">The Brilliants Foundation, Bogura</div>
+        <div class="report-title">Institute &amp; Class-wise Participation Report (প্রতিষ্ঠান ও শ্রেণী অনুযায়ী রিপোর্ট)</div>
+        <div class="meta-line">
+            স্ট্যাটাস: {% if status_filter == 'Verified' %}ভেরিফাইড{% elif status_filter == 'Pending' %}পেন্ডিং{% else %}সকল{% endif %}
+            {% if center_filter %} &nbsp;|&nbsp; কেন্দ্র: {{ center_label }}{% endif %}
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:24px;">#</th>
+                <th style="text-align:left; min-width:160px;">শিক্ষা প্রতিষ্ঠান</th>
+                {% for c in classes_order %}
+                <th>শ্রেণী {{ c }}</th>
+                {% endfor %}
+                {% if grand_total.other > 0 %}<th>অন্যান্য</th>{% endif %}
+                <th>মোট</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in institute_rows %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td class="inst-label">
+                    <div class="inst-en">{{ row.institute_en }}</div>
+                    {% if row.institute_bn %}<div class="inst-bn">{{ row.institute_bn }}</div>{% endif %}
+                </td>
+                {% for c in classes_order %}
+                <td>{{ row.classes[c] }}</td>
+                {% endfor %}
+                {% if grand_total.other > 0 %}<td>{{ row.other }}</td>{% endif %}
+                <td class="total-col">{{ row.total }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="grand-row">
+                <td colspan="2" style="text-align:left;">সর্বমোট (Grand Total)</td>
+                {% for c in classes_order %}
+                <td>{{ grand_total.classes[c] }}</td>
+                {% endfor %}
+                {% if grand_total.other > 0 %}<td>{{ grand_total.other }}</td>{% endif %}
+                <td>{{ grand_total.total }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if not institute_rows %}
+    <p style="text-align:center; color:#777; margin-top:40px;">কোনো তথ্য পাওয়া যায়নি।</p>
+    {% endif %}
+
+    <div class="footer-note">প্রিন্ট করা হয়েছে: {{ now.strftime('%d %B %Y, %I:%M %p') }}</div>
+
+</body>
+</html>

@@ -1,0 +1,122 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Institute & Class-wise Participant Report | Admin{% endblock %}
+
+{% block content %}
+<style>
+    .ics-wrapper { padding: 25px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
+    .ics-card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 22px; }
+    .ics-title { margin: 0 0 5px 0; color: #1e293b; }
+    .ics-sub { margin: 0 0 18px 0; color: #64748b; font-size: 0.9rem; }
+    .back-link { color: #6366f1; text-decoration: none; font-weight: 700; font-size: 13px; display: inline-block; margin-bottom: 14px; }
+
+    .ics-filter-form { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+    .ics-filter-form label { font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px; text-transform: uppercase; }
+    .ics-filter-form select { padding: 11px; border: 1px solid #e2e8f0; border-radius: 8px; min-width: 200px; font-weight: 600; }
+    .ics-btn { background: #1e293b; color: white; border: none; padding: 11px 22px; border-radius: 8px; font-weight: 700; cursor: pointer; }
+    .btn-clear { color: #ef4444; font-weight: 700; text-decoration: none; padding: 11px 6px; }
+
+    table.ics-table { width: 100%; border-collapse: collapse; }
+    table.ics-table th, table.ics-table td { border: 1px solid #e2e8f0; padding: 11px 10px; text-align: center; font-size: 0.9rem; }
+    table.ics-table th { background: #f1f5f9; color: #334155; font-weight: 700; }
+    table.ics-table td.inst-label { text-align: left; }
+    table.ics-table td.inst-label .inst-en { font-weight: 700; color: #1e293b; }
+    table.ics-table td.inst-label .inst-bn { color: #64748b; font-size: 0.82rem; margin-top: 2px; }
+    table.ics-table td.idx-col { color: #94a3b8; width: 36px; }
+    table.ics-table tr.grand-row td { background: #f0fdf4; font-weight: 800; color: #166534; }
+    table.ics-table td.total-col { font-weight: 800; color: #1e293b; background: #f8fafc; }
+
+    .download-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    .btn-dl { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 0.88rem; }
+    .btn-pdf { background: #dc2626; color: white; }
+    .btn-pdf:hover { background: #b91c1c; }
+    .btn-csv { background: #15803d; color: white; }
+    .btn-csv:hover { background: #166534; }
+
+    .empty-hint { text-align: center; padding: 50px 20px; color: #94a3b8; }
+</style>
+
+<div class="ics-wrapper">
+    <a href="{{ url_for('participant_summary') }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Participant Summary</a>
+
+    <div class="ics-card">
+        <h2 class="ics-title"><i class="fas fa-school"></i> ইন্সটিটিউট ও শ্রেণী (৫–৯) ভিত্তিক রিপোর্ট</h2>
+        <p class="ics-sub">প্রতিটি শিক্ষা প্রতিষ্ঠান থেকে শ্রেণী ৫ থেকে ৯ পর্যন্ত কতজন শিক্ষার্থী নিবন্ধিত হয়েছে — PDF অথবা CSV ফরম্যাটে ডাউনলোডযোগ্য।</p>
+
+        <form method="GET" class="ics-filter-form">
+            <div>
+                <label>কেন্দ্র</label>
+                <select name="center">
+                    <option value="">সকল কেন্দ্র (All Centers)</option>
+                    {% for c in centers %}
+                    <option value="{{ c.center_code }}" {% if center_filter == c.center_code %}selected{% endif %}>{{ c.center_code }} - {{ c.center_name_bn }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label>স্ট্যাটাস</label>
+                <select name="status">
+                    <option value="Verified" {% if status_filter == 'Verified' %}selected{% endif %}>ভেরিফাইড শিক্ষার্থী</option>
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>সকল শিক্ষার্থী</option>
+                    <option value="Pending" {% if status_filter == 'Pending' %}selected{% endif %}>পেন্ডিং শিক্ষার্থী</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit" class="ics-btn"><i class="fas fa-search"></i> দেখুন</button>
+            </div>
+            {% if center_filter %}
+            <a href="{{ url_for('institute_class_summary', status=status_filter) }}" class="btn-clear">✕ কেন্দ্র ফিল্টার মুছুন</a>
+            {% endif %}
+        </form>
+    </div>
+
+    {% if institute_rows %}
+    <div class="ics-card">
+        <table class="ics-table">
+            <thead>
+                <tr>
+                    <th rowspan="1" style="width:36px;">#</th>
+                    <th style="text-align:left; min-width:240px;">শিক্ষা প্রতিষ্ঠান (Institute)</th>
+                    {% for c in classes_order %}
+                    <th>শ্রেণী {{ c }}</th>
+                    {% endfor %}
+                    {% if grand_total.other > 0 %}<th>অন্যান্য</th>{% endif %}
+                    <th>মোট</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in institute_rows %}
+                <tr>
+                    <td class="idx-col">{{ loop.index }}</td>
+                    <td class="inst-label">
+                        <div class="inst-en">{{ row.institute_en }}</div>
+                        {% if row.institute_bn %}<div class="inst-bn">{{ row.institute_bn }}</div>{% endif %}
+                    </td>
+                    {% for c in classes_order %}
+                    <td>{{ row.classes[c] }}</td>
+                    {% endfor %}
+                    {% if grand_total.other > 0 %}<td>{{ row.other }}</td>{% endif %}
+                    <td class="total-col">{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="grand-row">
+                    <td colspan="2" style="text-align:left;">সর্বমোট (Grand Total)</td>
+                    {% for c in classes_order %}
+                    <td>{{ grand_total.classes[c] }}</td>
+                    {% endfor %}
+                    {% if grand_total.other > 0 %}<td>{{ grand_total.other }}</td>{% endif %}
+                    <td>{{ grand_total.total }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="download-bar">
+            <a class="btn-dl btn-pdf" target="_blank" href="{{ url_for('institute_class_summary_print', status=status_filter, center=center_filter) }}"><i class="fas fa-file-pdf"></i> প্রিন্ট / PDF ডাউনলোড</a>
+            <a class="btn-dl btn-csv" href="{{ url_for('institute_class_summary_download_csv', status=status_filter, center=center_filter) }}"><i class="fas fa-file-csv"></i> CSV ডাউনলোড</a>
+        </div>
+    </div>
+    {% else %}
+    <div class="ics-card empty-hint">এই ফিল্টারে কোনো তথ্য পাওয়া যায়নি।</div>
+    {% endif %}
+</div>
+{% endblock %}

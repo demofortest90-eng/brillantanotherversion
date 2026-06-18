@@ -122,10 +122,17 @@
         </p>
 
         <form action="{{ url_for('add_center_group') }}" method="POST" style="margin-bottom: 25px;">
-            <div style="margin-bottom: 15px; max-width: 420px;">
-                <label style="font-size: 12px; font-weight: bold; color: #64748b;">গ্রুপের নাম</label>
-                <input type="text" name="group_name" placeholder="যেমনঃ বগুড়া সদর জোন" required
-                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px; font-family: 'Kalpurush', sans-serif;">
+            <div style="display:flex; gap:15px; flex-wrap:wrap; margin-bottom: 15px;">
+                <div style="flex:1; min-width:300px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #64748b;">গ্রুপের নাম (ইংরেজি) — সার্টিফিকেটে দেখাবে</label>
+                    <input type="text" name="group_name_en" placeholder="e.g. Bogura Sadar Zone" required
+                           style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px;">
+                </div>
+                <div style="flex:1; min-width:300px;">
+                    <label style="font-size: 12px; font-weight: bold; color: #64748b;">গ্রুপের নাম (বাংলা) — প্রসপেক্টাসে দেখাবে</label>
+                    <input type="text" name="group_name_bn" placeholder="যেমনঃ বগুড়া সদর জোন" required
+                           style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; margin-top: 5px; font-family: 'Kalpurush', sans-serif;">
+                </div>
             </div>
             <label style="font-size: 12px; font-weight: bold; color: #64748b; display:block; margin-bottom:8px;">কোন কোন কেন্দ্র এই গ্রুপে থাকবে</label>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 18px;">
@@ -148,7 +155,13 @@
             {% for g in center_groups %}
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; flex-wrap:wrap;">
                 <div>
-                    <div style="font-weight:800; color:#1e293b; font-family:'Kalpurush', sans-serif; margin-bottom:6px;">{{ g.group_name }}</div>
+                    <div style="font-weight:800; color:#1e293b; font-family:'Kalpurush', sans-serif; margin-bottom:4px;">
+                        {{ g.group_name_bn }} <span style="color:#94a3b8; font-weight:600; font-family:'Inter',sans-serif; font-size:0.82rem;">/ {{ g.group_name_en }}</span>
+                    </div>
+                    <div style="font-size:0.72rem; color:#94a3b8; margin-bottom:6px;">
+                        <span style="background:#eef2ff; color:#4338ca; padding:2px 8px; border-radius:10px; margin-right:6px;">সার্টিফিকেটে: {{ g.group_name_en }}</span>
+                        <span style="background:#ecfdf5; color:#047857; padding:2px 8px; border-radius:10px;">প্রসপেক্টাসে: {{ g.group_name_bn }}</span>
+                    </div>
                     <div style="font-size:0.8rem; color:#64748b;">{{ g.member_labels|join(' • ') }}</div>
                 </div>
                 <a href="{{ url_for('delete_center_group', group_id=g._id) }}"

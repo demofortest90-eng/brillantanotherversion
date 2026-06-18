@@ -61,6 +61,10 @@
     </div>
     <button type="submit"><i class="fas fa-filter"></i> Filter</button>
     <a href="{{ url_for('admin_prospecture_class', student_class=student_class) }}" style="padding:9px 15px;border-radius:8px;border:1px solid #e2e8f0;color:#475569;text-decoration:none;font-size:13px;font-weight:700;">Clear</a>
+    <a href="{{ url_for('admin_prospecture_album', student_class=student_class) }}?grade={{ grade_filter }}&center={{ center_filter }}"
+       class="btn-action" style="background:#1B2631 !important;">
+        <i class="fas fa-images"></i> ছবি অ্যালবাম দেখুন / PDF
+    </a>
     <a href="{{ url_for('download_prospecture_csv', student_class=student_class) }}?grade={{ grade_filter }}&center={{ center_filter }}"
        class="btn-action btn-csv-dl">
         <i class="fas fa-file-csv"></i> CSV Download

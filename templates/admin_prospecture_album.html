@@ -1,0 +1,98 @@
+{% extends "admin_base.html" %}
+{% block content %}
+<style>
+    .alb-wrap { padding: 25px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif; }
+    .back-link { color: #6366f1; text-decoration: none; font-weight: 700; font-size:13px; }
+    .alb-header { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 20px; flex-wrap: wrap; gap: 12px; }
+    .alb-header h2 { margin: 0; font-weight: 800; color: #1e293b; }
+    .alb-header .count-badge { background:#6366f1; color:white; padding:3px 12px; border-radius:20px; font-size:14px; margin-left:10px; }
+
+    .filter-bar { background: white; border-radius: 12px; padding: 15px 20px; border: 1px solid #e2e8f0; display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; align-items: flex-end; }
+    .filter-bar select { padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e0; font-size:13px; min-width:170px; }
+    .filter-bar button, .filter-bar .btn-action { background: #6366f1; color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size:13px; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+    .btn-pdf { background: #dc2626 !important; }
+    .btn-pdf:hover { background: #b91c1c !important; }
+
+    .grade-section { background: white; border-radius: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 22px; overflow: hidden; }
+    .grade-section-head { padding: 14px 20px; background: linear-gradient(90deg, #1B2631 0%, #34495E 100%); color: white; font-weight: 800; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+    .grade-section-head .gcount { background: rgba(255,255,255,0.15); padding: 3px 12px; border-radius: 20px; font-size: 13px; }
+
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; padding: 20px; }
+    .photo-card { text-align: center; }
+    .photo-frame { width: 100%; aspect-ratio: 3/3.6; border-radius: 8px; overflow: hidden; border: 1.5px solid #e2e8f0; background: #1e293b; margin-bottom: 8px; }
+    .photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card-name { font-weight: 800; font-size: 13px; color: #1e293b; line-height: 1.3; }
+    .card-inst { font-size: 11.5px; color: #475569; margin-top: 2px; }
+    .card-center { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+    .card-roll { font-size: 10.5px; color: #6366f1; font-weight: 700; margin-top: 3px; }
+
+    .empty-hint { text-align: center; padding: 60px; background: white; border-radius: 14px; border: 1px solid #e2e8f0; color: #94a3b8; }
+</style>
+
+<div class="alb-wrap">
+    <a href="{{ url_for('admin_prospecture_class', student_class=student_class) }}" class="back-link"><i class="fas fa-arrow-left"></i> Back to Class {{ student_class }} List</a>
+
+    <div class="alb-header">
+        <h2><i class="fas fa-images" style="color:#6366f1;"></i> Class {{ student_class }} — Photo Album / প্রসপেক্টাস অ্যালবাম
+            <span class="count-badge">{{ total }} students</span>
+        </h2>
+        <a href="{{ url_for('admin_prospecture_album_print', student_class=student_class, grade=grade_filter, center=center_filter) }}" target="_blank" class="btn-action btn-pdf">
+            <i class="fas fa-file-pdf"></i> Download / Print PDF
+        </a>
+    </div>
+
+    <form method="GET" class="filter-bar">
+        <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">GRADE</label>
+            <select name="grade">
+                <option value="">All Grades</option>
+                <option value="Talentpool" {% if grade_filter=='Talentpool' %}selected{% endif %}>Talentpool</option>
+                <option value="General" {% if grade_filter=='General' %}selected{% endif %}>General</option>
+                <option value="Suveccha" {% if grade_filter=='Suveccha' %}selected{% endif %}>Suveccha</option>
+                <option value="Quata" {% if grade_filter=='Quata' %}selected{% endif %}>Quata</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">CENTER</label>
+            <select name="center">
+                <option value="">All Centers</option>
+                {% for c in all_centers %}
+                <option value="{{ c }}" {% if center_filter==c %}selected{% endif %}>{{ center_display_map.get(c|string, c) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit"><i class="fas fa-filter"></i> Filter</button>
+        <a href="{{ url_for('admin_prospecture_album', student_class=student_class) }}" style="padding:9px 15px;border-radius:8px;border:1px solid #e2e8f0;color:#475569;text-decoration:none;font-size:13px;font-weight:700;">Clear</a>
+    </form>
+
+    {% if grouped %}
+        {% for grade, students_in_grade in grouped.items() %}
+        <div class="grade-section">
+            <div class="grade-section-head">
+                <span><i class="fas fa-medal"></i> মেধা শ্রেণী: {{ grade_bn_labels.get(grade, grade) }} ({{ grade }})</span>
+                <span class="gcount">{{ students_in_grade|length }} জন</span>
+            </div>
+            <div class="photo-grid">
+                {% for s in students_in_grade %}
+                <div class="photo-card">
+                    <div class="photo-frame">
+                        <img src="{{ s.photo_url }}" alt="{{ s.name_en }}"
+                             onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 120%27><rect width=%27100%27 height=%27120%27 fill=%27%231e293b%27/><circle cx=%2750%27 cy=%2745%27 r=%2222%27 fill=%27%23475569%27/><path d=%27M15 115 Q50 75 85 115 Z%27 fill=%27%23475569%27/></svg>'">
+                    </div>
+                    <div class="card-name">{{ s.name_bn or s.name_en }}</div>
+                    <div class="card-inst">{{ s.institute_bn or s.institute_en }}</div>
+                    <div class="card-center">{{ center_display_map.get(s.center_code|string, s.center_code) }}</div>
+                    <div class="card-roll">Roll: {{ s.roll_no }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-hint">
+        <i class="fas fa-images" style="font-size:2.5rem; color:#cbd5e0; margin-bottom:12px; display:block;"></i>
+        <h3 style="color:#64748b;">No scholarship students found for this filter</h3>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
