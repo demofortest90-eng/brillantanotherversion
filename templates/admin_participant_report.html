@@ -51,7 +51,7 @@
 <div class="pr-wrapper">
     <div class="pr-card">
         <h2 class="pr-title"><i class="fas fa-layer-group"></i> কেন্দ্র-ভিত্তিক বিস্তারিত রিপোর্ট</h2>
-        <p class="pr-sub">প্রতিটি কেন্দ্রে লিঙ্গ ও স্কুল/মাদ্রাসা অনুযায়ী নিবন্ধিত পরীক্ষার্থী এবং পরীক্ষার দিনের উপস্থিতির সংখ্যা — PDF অথবা CSV ফরম্যাটে ডাউনলোডযোগ্য।</p>
+        <p class="pr-sub">প্রতিটি কেন্দ্রে শ্রেণি ও স্কুল/মাদ্রাসা অনুযায়ী নিবন্ধিত পরীক্ষার্থী এবং পরীক্ষার দিনের উপস্থিতির সংখ্যা — PDF অথবা CSV ফরম্যাটে ডাউনলোডযোগ্য।</p>
 
         <form method="GET" class="pr-filter-form">
             <div>
@@ -104,7 +104,7 @@
             <table class="pr-table">
                 <thead>
                     <tr>
-                        <th rowspan="2">লিঙ্গ</th>
+                        <th rowspan="2">শ্রেণি</th>
                         <th colspan="3" class="grp-registered">নিবন্ধিত শিক্ষার্থী</th>
                         <th colspan="3" class="grp-attendance">পরীক্ষার বিবরণ (উপস্থিত)</th>
                     </tr>
@@ -114,20 +114,17 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% for cls in grand_total.classes %}
                     <tr>
-                        <td class="row-label">ছেলে</td>
-                        <td>{{ grand_total.registered.male.school }}</td><td>{{ grand_total.registered.male.madrasha }}</td><td>{{ grand_total.registered.male.total }}</td>
-                        <td>{{ grand_total.attendance.male.school }}</td><td>{{ grand_total.attendance.male.madrasha }}</td><td>{{ grand_total.attendance.male.total }}</td>
+                        <td class="row-label">{{ cls.class_name }}</td>
+                        <td>{{ cls.registered.school }}</td><td>{{ cls.registered.madrasha }}</td><td>{{ cls.registered.total }}</td>
+                        <td>{{ cls.attendance.school }}</td><td>{{ cls.attendance.madrasha }}</td><td>{{ cls.attendance.total }}</td>
                     </tr>
-                    <tr>
-                        <td class="row-label">মেয়ে</td>
-                        <td>{{ grand_total.registered.female.school }}</td><td>{{ grand_total.registered.female.madrasha }}</td><td>{{ grand_total.registered.female.total }}</td>
-                        <td>{{ grand_total.attendance.female.school }}</td><td>{{ grand_total.attendance.female.madrasha }}</td><td>{{ grand_total.attendance.female.total }}</td>
-                    </tr>
+                    {% endfor %}
                     <tr class="total-row">
                         <td class="row-label">সর্বমোট</td>
-                        <td>{{ grand_total.registered.total.school }}</td><td>{{ grand_total.registered.total.madrasha }}</td><td>{{ grand_total.registered.total.total }}</td>
-                        <td>{{ grand_total.attendance.total.school }}</td><td>{{ grand_total.attendance.total.madrasha }}</td><td>{{ grand_total.attendance.total.total }}</td>
+                        <td>{{ grand_total.registered_total.school }}</td><td>{{ grand_total.registered_total.madrasha }}</td><td>{{ grand_total.registered_total.total }}</td>
+                        <td>{{ grand_total.attendance_total.school }}</td><td>{{ grand_total.attendance_total.madrasha }}</td><td>{{ grand_total.attendance_total.total }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -150,7 +147,7 @@
         <div class="center-block">
             <div class="center-block-head">
                 <span><span class="code-badge">{{ row.center_code }}</span> &nbsp; {{ row.center_name_bn or row.center_name_en }}</span>
-                {% if row.attendance.saved %}
+                {% if row.attendance_saved %}
                 <span class="saved-pill pill-saved"><i class="fas fa-check"></i> {{ year }} সালের উপস্থিতি সংরক্ষিত আছে</span>
                 {% else %}
                 <span class="saved-pill pill-unsaved">{{ year }} সালের উপস্থিতির সংখ্যা এখনো দেওয়া হয়নি</span>
@@ -161,11 +158,13 @@
                 <input type="hidden" name="center_code" value="{{ row.center_code }}">
                 <input type="hidden" name="year" value="{{ year }}">
                 <input type="hidden" name="status_filter" value="{{ status_filter }}">
+                {# backend reads each class's inputs using these keys #}
+                <input type="hidden" name="class_keys" value="{{ row.classes | map(attribute='class_key') | join(',') }}">
 
                 <table class="pr-table">
                     <thead>
                         <tr>
-                            <th rowspan="2">লিঙ্গ</th>
+                            <th rowspan="2">শ্রেণি</th>
                             <th colspan="3" class="grp-registered">নিবন্ধিত শিক্ষার্থী (Registered)</th>
                             <th colspan="3" class="grp-attendance">পরীক্ষার বিবরণ — উপস্থিত (Exam Day Present)</th>
                         </tr>
@@ -175,26 +174,21 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for cls in row.classes %}
                         <tr>
-                            <td class="row-label">ছেলে</td>
-                            <td>{{ row.registered.male.school }}</td><td>{{ row.registered.male.madrasha }}</td><td>{{ row.registered.male.total }}</td>
-                            <td><input type="number" min="0" class="att-input" name="school_boys" value="{{ row.attendance.male.school }}" data-row="male"></td>
-                            <td><input type="number" min="0" class="att-input" name="madrasha_boys" value="{{ row.attendance.male.madrasha }}" data-row="male"></td>
-                            <td class="att-total" data-row-total="male">{{ row.attendance.male.total }}</td>
+                            <td class="row-label">{{ cls.class_name }}</td>
+                            <td>{{ cls.registered.school }}</td><td>{{ cls.registered.madrasha }}</td><td>{{ cls.registered.total }}</td>
+                            <td><input type="number" min="0" class="att-input" name="school_{{ cls.class_key }}" value="{{ cls.attendance.school }}" data-class="{{ cls.class_key }}" data-type="school"></td>
+                            <td><input type="number" min="0" class="att-input" name="madrasha_{{ cls.class_key }}" value="{{ cls.attendance.madrasha }}" data-class="{{ cls.class_key }}" data-type="madrasha"></td>
+                            <td class="att-total" data-class-total="{{ cls.class_key }}">{{ cls.attendance.total }}</td>
                         </tr>
-                        <tr>
-                            <td class="row-label">মেয়ে</td>
-                            <td>{{ row.registered.female.school }}</td><td>{{ row.registered.female.madrasha }}</td><td>{{ row.registered.female.total }}</td>
-                            <td><input type="number" min="0" class="att-input" name="school_girls" value="{{ row.attendance.female.school }}" data-row="female"></td>
-                            <td><input type="number" min="0" class="att-input" name="madrasha_girls" value="{{ row.attendance.female.madrasha }}" data-row="female"></td>
-                            <td class="att-total" data-row-total="female">{{ row.attendance.female.total }}</td>
-                        </tr>
+                        {% endfor %}
                         <tr class="total-row">
                             <td class="row-label">সর্বমোট</td>
-                            <td>{{ row.registered.total.school }}</td><td>{{ row.registered.total.madrasha }}</td><td>{{ row.registered.total.total }}</td>
-                            <td id="gtSchool">{{ row.attendance.total.school }}</td>
-                            <td id="gtMadrasha">{{ row.attendance.total.madrasha }}</td>
-                            <td id="gtTotal">{{ row.attendance.total.total }}</td>
+                            <td>{{ row.registered_total.school }}</td><td>{{ row.registered_total.madrasha }}</td><td>{{ row.registered_total.total }}</td>
+                            <td id="gtSchool">{{ row.attendance_total.school }}</td>
+                            <td id="gtMadrasha">{{ row.attendance_total.madrasha }}</td>
+                            <td id="gtTotal">{{ row.attendance_total.total }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -214,26 +208,33 @@
 </div>
 
 <script>
-// লাইভ টোটাল হিসাব (সংরক্ষণ করার আগেই দেখানোর জন্য)
-document.querySelectorAll('input.att-input').forEach(inp => {
-    inp.addEventListener('input', () => {
-        const maleSchool = parseInt(document.querySelector('input[name="school_boys"]')?.value) || 0;
-        const maleMadrasha = parseInt(document.querySelector('input[name="madrasha_boys"]')?.value) || 0;
-        const femaleSchool = parseInt(document.querySelector('input[name="school_girls"]')?.value) || 0;
-        const femaleMadrasha = parseInt(document.querySelector('input[name="madrasha_girls"]')?.value) || 0;
+// লাইভ টোটাল হিসাব (শ্রেণি-ভিত্তিক, সংরক্ষণ করার আগেই দেখানোর জন্য)
+function recalcAttendance() {
+    let grandSchool = 0, grandMadrasha = 0;
+    const classKeys = new Set();
+    document.querySelectorAll('input.att-input').forEach(i => classKeys.add(i.dataset.class));
 
-        const maleRow = document.querySelector('[data-row-total="male"]');
-        const femaleRow = document.querySelector('[data-row-total="female"]');
-        if (maleRow) maleRow.textContent = maleSchool + maleMadrasha;
-        if (femaleRow) femaleRow.textContent = femaleSchool + femaleMadrasha;
+    classKeys.forEach(key => {
+        const school = parseInt(document.querySelector('input[data-class="' + key + '"][data-type="school"]')?.value) || 0;
+        const madrasha = parseInt(document.querySelector('input[data-class="' + key + '"][data-type="madrasha"]')?.value) || 0;
 
-        const gtSchool = document.getElementById('gtSchool');
-        const gtMadrasha = document.getElementById('gtMadrasha');
-        const gtTotal = document.getElementById('gtTotal');
-        if (gtSchool) gtSchool.textContent = maleSchool + femaleSchool;
-        if (gtMadrasha) gtMadrasha.textContent = maleMadrasha + femaleMadrasha;
-        if (gtTotal) gtTotal.textContent = maleSchool + maleMadrasha + femaleSchool + femaleMadrasha;
+        const rowTotal = document.querySelector('[data-class-total="' + key + '"]');
+        if (rowTotal) rowTotal.textContent = school + madrasha;
+
+        grandSchool += school;
+        grandMadrasha += madrasha;
     });
+
+    const gtSchool = document.getElementById('gtSchool');
+    const gtMadrasha = document.getElementById('gtMadrasha');
+    const gtTotal = document.getElementById('gtTotal');
+    if (gtSchool) gtSchool.textContent = grandSchool;
+    if (gtMadrasha) gtMadrasha.textContent = grandMadrasha;
+    if (gtTotal) gtTotal.textContent = grandSchool + grandMadrasha;
+}
+
+document.querySelectorAll('input.att-input').forEach(inp => {
+    inp.addEventListener('input', recalcAttendance);
 });
 </script>
 {% endblock %}

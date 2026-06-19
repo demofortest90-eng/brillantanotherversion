@@ -58,7 +58,7 @@
         <table>
             <thead>
                 <tr>
-                    <th rowspan="2">লিঙ্গ</th>
+                    <th rowspan="2">শ্রেণি</th>
                     <th colspan="3" class="grp-divider">নিবন্ধিত শিক্ষার্থী</th>
                     <th colspan="3">পরীক্ষার বিবরণ (উপস্থিত)</th>
                 </tr>
@@ -68,20 +68,17 @@
                 </tr>
             </thead>
             <tbody>
+                {% for cls in row.classes %}
                 <tr>
-                    <td class="row-label">ছেলে</td>
-                    <td>{{ row.registered.male.school }}</td><td>{{ row.registered.male.madrasha }}</td><td class="grp-divider">{{ row.registered.male.total }}</td>
-                    <td>{{ row.attendance.male.school }}</td><td>{{ row.attendance.male.madrasha }}</td><td>{{ row.attendance.male.total }}</td>
+                    <td class="row-label">{{ cls.class_name }}</td>
+                    <td>{{ cls.registered.school }}</td><td>{{ cls.registered.madrasha }}</td><td class="grp-divider">{{ cls.registered.total }}</td>
+                    <td>{{ cls.attendance.school }}</td><td>{{ cls.attendance.madrasha }}</td><td>{{ cls.attendance.total }}</td>
                 </tr>
-                <tr>
-                    <td class="row-label">মেয়ে</td>
-                    <td>{{ row.registered.female.school }}</td><td>{{ row.registered.female.madrasha }}</td><td class="grp-divider">{{ row.registered.female.total }}</td>
-                    <td>{{ row.attendance.female.school }}</td><td>{{ row.attendance.female.madrasha }}</td><td>{{ row.attendance.female.total }}</td>
-                </tr>
+                {% endfor %}
                 <tr class="grand-row">
                     <td class="row-label">সর্বমোট</td>
-                    <td>{{ row.registered.total.school }}</td><td>{{ row.registered.total.madrasha }}</td><td class="grp-divider">{{ row.registered.total.total }}</td>
-                    <td>{{ row.attendance.total.school }}</td><td>{{ row.attendance.total.madrasha }}</td><td>{{ row.attendance.total.total }}</td>
+                    <td>{{ row.registered_total.school }}</td><td>{{ row.registered_total.madrasha }}</td><td class="grp-divider">{{ row.registered_total.total }}</td>
+                    <td>{{ row.attendance_total.school }}</td><td>{{ row.attendance_total.madrasha }}</td><td>{{ row.attendance_total.total }}</td>
                 </tr>
             </tbody>
         </table>
@@ -94,7 +91,7 @@
         <table>
             <thead>
                 <tr>
-                    <th rowspan="2">লিঙ্গ</th>
+                    <th rowspan="2">শ্রেণি</th>
                     <th colspan="3" class="grp-divider">নিবন্ধিত শিক্ষার্থী</th>
                     <th colspan="3">পরীক্ষার বিবরণ (উপস্থিত)</th>
                 </tr>
@@ -104,20 +101,17 @@
                 </tr>
             </thead>
             <tbody>
+                {% for cls in grand_total.classes %}
                 <tr>
-                    <td class="row-label">ছেলে</td>
-                    <td>{{ grand_total.registered.male.school }}</td><td>{{ grand_total.registered.male.madrasha }}</td><td class="grp-divider">{{ grand_total.registered.male.total }}</td>
-                    <td>{{ grand_total.attendance.male.school }}</td><td>{{ grand_total.attendance.male.madrasha }}</td><td>{{ grand_total.attendance.male.total }}</td>
+                    <td class="row-label">{{ cls.class_name }}</td>
+                    <td>{{ cls.registered.school }}</td><td>{{ cls.registered.madrasha }}</td><td class="grp-divider">{{ cls.registered.total }}</td>
+                    <td>{{ cls.attendance.school }}</td><td>{{ cls.attendance.madrasha }}</td><td>{{ cls.attendance.total }}</td>
                 </tr>
-                <tr>
-                    <td class="row-label">মেয়ে</td>
-                    <td>{{ grand_total.registered.female.school }}</td><td>{{ grand_total.registered.female.madrasha }}</td><td class="grp-divider">{{ grand_total.registered.female.total }}</td>
-                    <td>{{ grand_total.attendance.female.school }}</td><td>{{ grand_total.attendance.female.madrasha }}</td><td>{{ grand_total.attendance.female.total }}</td>
-                </tr>
+                {% endfor %}
                 <tr class="grand-row">
                     <td class="row-label">সর্বমোট</td>
-                    <td>{{ grand_total.registered.total.school }}</td><td>{{ grand_total.registered.total.madrasha }}</td><td class="grp-divider">{{ grand_total.registered.total.total }}</td>
-                    <td>{{ grand_total.attendance.total.school }}</td><td>{{ grand_total.attendance.total.madrasha }}</td><td>{{ grand_total.attendance.total.total }}</td>
+                    <td>{{ grand_total.registered_total.school }}</td><td>{{ grand_total.registered_total.madrasha }}</td><td class="grp-divider">{{ grand_total.registered_total.total }}</td>
+                    <td>{{ grand_total.attendance_total.school }}</td><td>{{ grand_total.attendance_total.madrasha }}</td><td>{{ grand_total.attendance_total.total }}</td>
                 </tr>
             </tbody>
         </table>
