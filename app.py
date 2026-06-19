@@ -302,9 +302,40 @@ def get_admit_settings():
 def _blank_breakdown():
     return {"school": 0, "madrasha": 0, "total": 0}
 
-def build_center_participation(center_code, status_filter='Verified'):
-    """Registered-student counts for one center, split by gender x
-    institute type."""
+# Bangla labels for each class; falls back to "শ্রেণি <n>" for anything else.
+CLASS_LABELS_BN = {
+    "5": "পঞ্চম শ্রেণি",
+    "6": "ষষ্ঠ শ্রেণি",
+    "7": "সপ্তম শ্রেণি",
+    "8": "অষ্টম শ্রেণি",
+    "9": "নবম শ্রেণি",
+    "10": "দশম শ্রেণি",
+}
+# Classes always shown in the report (so the sheet is consistent even with 0 students).
+DEFAULT_REPORT_CLASSES = ["5", "6", "7", "8", "9"]
+
+def class_label_bn(cls):
+    cls = str(cls).strip()
+    return CLASS_LABELS_BN.get(cls, f"শ্রেণি {cls}")
+
+def get_report_class_list():
+    """Ordered list of class keys (as strings) to show in the participant
+    report — the union of the default 5-9 set and any other classes that
+    actually exist in the student data. Sorted numerically where possible."""
+    found = [str(c).strip() for c in mongo.db.students.distinct("student_class") if str(c).strip()]
+    keys = set(found) | set(DEFAULT_REPORT_CLASSES)
+
+    def _sort_key(k):
+        try:
+            return (0, int(k))
+        except (TypeError, ValueError):
+            return (1, k)
+
+    return sorted(keys, key=_sort_key)
+
+def build_center_participation(center_code, class_keys, status_filter='Verified'):
+    """Registered-student counts for one center, split by class x
+    institute type. Returns { class_key: {school, madrasha, total} }."""
     match = {"center_code": center_code_filter(center_code)}
     if status_filter == 'Verified':
         match["status"] = "Verified"
@@ -314,76 +345,108 @@ def build_center_participation(center_code, status_filter='Verified'):
     pipeline = [
         {"$match": match},
         {"$group": {
-            "_id": {"gender": "$gender", "type": "$institute_type"},
+            "_id": {"cls": "$student_class", "type": "$institute_type"},
             "count": {"$sum": 1}
         }}
     ]
     rows = list(mongo.db.students.aggregate(pipeline))
 
-    counts = {"male": _blank_breakdown(), "female": _blank_breakdown()}
+    counts = {str(k): _blank_breakdown() for k in class_keys}
     for r in rows:
-        gid = (r["_id"].get("gender") or "").strip().lower()
+        # student_class may be stored as int or str — normalise to str.
+        ckey = str(r["_id"].get("cls") or "").strip()
+        if not ckey:
+            continue
         tid = (r["_id"].get("type") or "").strip().lower()
-        gkey = "female" if gid == "female" else "male" if gid == "male" else "male"
         tkey = "madrasha" if tid.startswith("madras") else "school"
-        counts[gkey][tkey] += r["count"]
+        if ckey not in counts:
+            counts[ckey] = _blank_breakdown()
+        counts[ckey][tkey] += r["count"]
 
-    for g in ("male", "female"):
-        counts[g]["total"] = counts[g]["school"] + counts[g]["madrasha"]
-    counts["total"] = {
-        "school": counts["male"]["school"] + counts["female"]["school"],
-        "madrasha": counts["male"]["madrasha"] + counts["female"]["madrasha"],
-        "total": counts["male"]["total"] + counts["female"]["total"],
-    }
+    for k in counts:
+        counts[k]["total"] = counts[k]["school"] + counts[k]["madrasha"]
     return counts
 
-def get_exam_attendance(center_code, year):
-    """Manually recorded exam-day present count for one center/year."""
+def get_exam_attendance_raw(center_code, year):
+    """Returns (stored_classes_dict, saved_bool) for one center/year.
+    stored_classes_dict = { class_key: {school, madrasha} }."""
     doc = mongo.db.exam_attendance.find_one({"center_code": center_code, "year": year}) or {}
-    counts = {
-        "male": {"school": doc.get("school_boys", 0), "madrasha": doc.get("madrasha_boys", 0)},
-        "female": {"school": doc.get("school_girls", 0), "madrasha": doc.get("madrasha_girls", 0)},
-    }
-    for g in ("male", "female"):
-        counts[g]["total"] = counts[g]["school"] + counts[g]["madrasha"]
-    counts["total"] = {
-        "school": counts["male"]["school"] + counts["female"]["school"],
-        "madrasha": counts["male"]["madrasha"] + counts["female"]["madrasha"],
-        "total": counts["male"]["total"] + counts["female"]["total"],
-    }
-    counts["saved"] = bool(doc)
-    return counts
+    return (doc.get("classes", {}) or {}), bool(doc)
 
 def build_full_center_report(status_filter, year, center_code=None):
     """One row per center (or just the requested one) combining registered
-    counts with the manually recorded exam-day attendance, plus a grand
-    total. center_code of None/''/'ALL' means every center."""
+    counts with the manually recorded exam-day attendance, broken down by
+    class, plus a grand total. center_code of None/''/'ALL' means every
+    center. Every center uses the same ordered class list so rows line up."""
     if center_code and center_code != 'ALL':
         centers = list(mongo.db.centers.find({"center_code": center_code}))
     else:
         centers = list(mongo.db.centers.find().sort("center_code", 1))
 
+    class_keys = get_report_class_list()
+
     report_rows = []
     for c in centers:
         code = c.get('center_code')
+        reg = build_center_participation(code, class_keys, status_filter)
+        stored_att, saved = get_exam_attendance_raw(code, year)
+
+        classes = []
+        reg_total = _blank_breakdown()
+        att_total = _blank_breakdown()
+        for k in class_keys:
+            r = reg.get(str(k), _blank_breakdown())
+            a_raw = stored_att.get(str(k), {}) or {}
+            a_school = int(a_raw.get("school", 0) or 0)
+            a_madrasha = int(a_raw.get("madrasha", 0) or 0)
+            a = {"school": a_school, "madrasha": a_madrasha, "total": a_school + a_madrasha}
+            classes.append({
+                "class_key": str(k),
+                "class_name": class_label_bn(k),
+                "registered": r,
+                "attendance": a,
+            })
+            for fld in ("school", "madrasha", "total"):
+                reg_total[fld] += r[fld]
+                att_total[fld] += a[fld]
+
         report_rows.append({
             "center_code": code,
             "center_name_bn": c.get('center_name_bn'),
             "center_name_en": c.get('center_name_en'),
-            "registered": build_center_participation(code, status_filter),
-            "attendance": get_exam_attendance(code, year),
+            "classes": classes,
+            "registered_total": reg_total,
+            "attendance_total": att_total,
+            "attendance_saved": saved,
         })
 
-    grand = {
-        "registered": {"male": _blank_breakdown(), "female": _blank_breakdown(), "total": _blank_breakdown()},
-        "attendance": {"male": _blank_breakdown(), "female": _blank_breakdown(), "total": _blank_breakdown()},
-    }
-    for row in report_rows:
-        for section in ("registered", "attendance"):
-            for g in ("male", "female", "total"):
-                for k in ("school", "madrasha", "total"):
-                    grand[section][g][k] += row[section][g][k]
+    # Grand total — aligned class-by-class across all centers.
+    grand_classes = []
+    grand_reg_total = _blank_breakdown()
+    grand_att_total = _blank_breakdown()
+    for idx, k in enumerate(class_keys):
+        g_reg = _blank_breakdown()
+        g_att = _blank_breakdown()
+        for row in report_rows:
+            cls = row["classes"][idx]
+            for fld in ("school", "madrasha", "total"):
+                g_reg[fld] += cls["registered"][fld]
+                g_att[fld] += cls["attendance"][fld]
+        grand_classes.append({
+            "class_key": str(k),
+            "class_name": class_label_bn(k),
+            "registered": g_reg,
+            "attendance": g_att,
+        })
+        for fld in ("school", "madrasha", "total"):
+            grand_reg_total[fld] += g_reg[fld]
+            grand_att_total[fld] += g_att[fld]
 
+    grand = {
+        "classes": grand_classes,
+        "registered_total": grand_reg_total,
+        "attendance_total": grand_att_total,
+    }
     return report_rows, grand
 
 @app.route('/apply', methods=['GET', 'POST'])
@@ -975,16 +1038,26 @@ def save_exam_attendance():
         except (TypeError, ValueError):
             return 0
 
+    class_keys = [k.strip() for k in request.form.get('class_keys', '').split(',') if k.strip()]
+    classes = {}
+    for k in class_keys:
+        classes[k] = {
+            "school": _to_int(request.form.get(f'school_{k}')),
+            "madrasha": _to_int(request.form.get(f'madrasha_{k}')),
+        }
+
     mongo.db.exam_attendance.update_one(
         {"center_code": center_code, "year": year},
         {"$set": {
             "center_code": center_code,
             "year": year,
-            "school_boys": _to_int(request.form.get('school_boys')),
-            "madrasha_boys": _to_int(request.form.get('madrasha_boys')),
-            "school_girls": _to_int(request.form.get('school_girls')),
-            "madrasha_girls": _to_int(request.form.get('madrasha_girls')),
+            "classes": classes,
             "updated_at": datetime.utcnow()
+        },
+         # drop legacy gender-based fields if this doc was saved by the old version
+         "$unset": {
+            "school_boys": "", "madrasha_boys": "",
+            "school_girls": "", "madrasha_girls": ""
         }},
         upsert=True
     )
@@ -1025,28 +1098,42 @@ def participant_summary_download_csv():
     output = io.StringIO()
     output.write(u'\ufeff')
     writer = csv.writer(output)
-    writer.writerow(['কেন্দ্র কোড', 'কেন্দ্রের নাম', 'লিঙ্গ',
+    writer.writerow(['কেন্দ্র কোড', 'কেন্দ্রের নাম', 'শ্রেণি',
                      'স্কুল (নিবন্ধিত)', 'মাদ্রাসা (নিবন্ধিত)', 'মোট (নিবন্ধিত)',
                      'স্কুল (পরীক্ষায় উপস্থিত)', 'মাদ্রাসা (পরীক্ষায় উপস্থিত)', 'মোট (পরীক্ষায় উপস্থিত)'])
-    gender_label = {"male": "ছেলে", "female": "মেয়ে", "total": "সর্বমোট"}
     for row in report_rows:
-        for g in ("male", "female", "total"):
-            reg = row["registered"][g]
-            att = row["attendance"][g]
+        cname = row["center_name_bn"] or row["center_name_en"]
+        for cls in row["classes"]:
+            reg = cls["registered"]
+            att = cls["attendance"]
             writer.writerow([
-                row["center_code"], row["center_name_bn"] or row["center_name_en"], gender_label[g],
+                row["center_code"], cname, cls["class_name"],
                 reg["school"], reg["madrasha"], reg["total"],
                 att["school"], att["madrasha"], att["total"],
             ])
+        rt = row["registered_total"]
+        at = row["attendance_total"]
+        writer.writerow([
+            row["center_code"], cname, 'সর্বমোট',
+            rt["school"], rt["madrasha"], rt["total"],
+            at["school"], at["madrasha"], at["total"],
+        ])
     if grand_total and len(report_rows) > 1:
-        for g in ("male", "female", "total"):
-            reg = grand_total["registered"][g]
-            att = grand_total["attendance"][g]
+        for cls in grand_total["classes"]:
+            reg = cls["registered"]
+            att = cls["attendance"]
             writer.writerow([
-                'সকল কেন্দ্র', 'গ্র্যান্ড টোটাল', gender_label[g],
+                'সকল কেন্দ্র', 'গ্র্যান্ড টোটাল', cls["class_name"],
                 reg["school"], reg["madrasha"], reg["total"],
                 att["school"], att["madrasha"], att["total"],
             ])
+        rt = grand_total["registered_total"]
+        at = grand_total["attendance_total"]
+        writer.writerow([
+            'সকল কেন্দ্র', 'গ্র্যান্ড টোটাল', 'সর্বমোট',
+            rt["school"], rt["madrasha"], rt["total"],
+            at["school"], at["madrasha"], at["total"],
+        ])
     output.seek(0)
     fname = f"Participant_Summary_{selected_center}_{year}.csv"
     return Response(output.getvalue(), mimetype="text/csv",
