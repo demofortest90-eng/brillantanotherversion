@@ -156,6 +156,8 @@ def landing():
     ]
     gallery_images = home_settings.get("gallery_images", default_gallery)
 
+    registration_open = is_registration_open()
+
     return render_template('landing.html',
         leaders=leaders,
         hero_slides=hero_slides,
@@ -166,7 +168,8 @@ def landing():
         impact_title=impact_title,
         impact_text=impact_text,
         stats=stats,
-        gallery_images=gallery_images
+        gallery_images=gallery_images,
+        registration_open=registration_open
     )
 
 def upload_to_imgbb(file):
@@ -253,11 +256,14 @@ def get_grouped_centers_set():
     return codes
 
 SCHOLARSHIP_GRADES = ['Talentpool', 'General', 'Suveccha', 'Quata']
+# Note: 'Quata' is the legacy internal/DB value for this grade (kept as-is so
+# existing student records aren't affected). Its DISPLAYED label everywhere
+# in the UI is "মেধাবৃত্তি" (Medha Britti), not "কোটা" (Quota).
 GRADE_BN_LABELS = {
     'Talentpool': 'ট্যালেন্টপুল',
     'General': 'সাধারণ',
     'Suveccha': 'শুভেচ্ছা',
-    'Quata': 'কোটা',
+    'Quata': 'মেধাবৃত্তি',
 }
 
 def get_prospecture_students(student_class, grade_filter='', center_filter=''):
@@ -449,8 +455,23 @@ def build_full_center_report(status_filter, year, center_code=None):
     }
     return report_rows, grand
 
+def is_registration_open():
+    """Admin-controlled registration on/off switch. Open by default unless
+    explicitly turned off from the admin panel."""
+    setting = mongo.db.settings.find_one({"key": "registration_open"})
+    return setting['value'] if setting else True
+
+
 @app.route('/apply', methods=['GET', 'POST'])
 def apply():
+    registration_open = is_registration_open()
+
+    if not registration_open:
+        closed_message = mongo.db.settings.find_one({"key": "registration_closed_message"})
+        closed_message = (closed_message['value'] if closed_message and closed_message.get('value')
+                           else "এই মুহূর্তে নতুন আবেদন গ্রহণ বন্ধ রয়েছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন অথবা কর্তৃপক্ষের সাথে যোগাযোগ করুন।")
+        return render_template("registration_closed.html", closed_message=closed_message)
+
     if request.method == 'POST':
         try:
             password = request.form.get('password')
@@ -464,10 +485,9 @@ def apply():
                 flash("মোবাইল নম্বর অবশ্যই দিতে হবে!", "danger")
                 return redirect(request.url)
 
-            existing_student = mongo.db.students.find_one({"mobile": mobile_number})
-            if existing_student:
-                flash("এই মোবাইল নম্বর দিয়ে ইতিমধ্যে একটি আবেদন জমা দেওয়া হয়েছে। একটি নম্বর দিয়ে শুধুমাত্র একবার রেজিস্ট্রেশন করা যাবে।", "danger")
-                return redirect(request.url)
+            # Note: multiple applications from the same mobile number are
+            # intentionally allowed (e.g. one guardian applying for several
+            # children), so there is no duplicate-mobile check here.
 
             photo_url = request.form.get('photo_url', '').strip()
             photo_file = request.files.get('photo')
@@ -645,15 +665,14 @@ def download_slip():
 @app.route('/download-admit', methods=['GET', 'POST'])
 def download_admit():
     if request.method == 'POST':
-        query = request.form.get('search_query', '').strip()
-        if not query:
-            flash("অনুগ্রহ করে রোল বা মোবাইল নম্বর লিখুন।", "warning")
+        roll_query = request.form.get('roll_no', '').strip()
+        mobile_query = request.form.get('mobile', '').strip()
+
+        if not roll_query or not mobile_query:
+            flash("অনুগ্রহ করে রোল নম্বর ও মোবাইল নম্বর উভয়ই লিখুন।", "warning")
             return redirect(url_for('download_admit'))
 
-        if len(query) == 11 and query.isdigit():
-            student = mongo.db.students.find_one({"mobile": query})
-        else:
-            student = mongo.db.students.find_one({"roll_no": query})
+        student = mongo.db.students.find_one({"roll_no": roll_query, "mobile": mobile_query})
 
         if student:
             if not student.get('verification', False):
@@ -665,7 +684,7 @@ def download_admit():
             return render_template('admit_card.html', student=student, center_name=center_display_name,
                                    admit_settings=get_admit_settings())
         else:
-            flash("এই রোল বা মোবাইল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।", "danger")
+            flash("এই রোল ও মোবাইল নম্বরের মিল খুঁজে পাওয়া যায়নি। অনুগ্রহ করে সঠিক তথ্য দিন।", "danger")
             return redirect(url_for('download_admit'))
 
     return render_template('admit_search.html')
@@ -803,6 +822,7 @@ def download_scholarship_certificate():
         return redirect(url_for('view_result'))
     c_code = str(student.get('center_code', ''))
     center_name = get_grouped_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
+    student['certificate_sl_no'] = get_or_assign_certificate_serial(student)
     return render_template('certificate_design.html', student=student, center_name=center_name)
 
 @app.route('/logout')
@@ -1365,6 +1385,34 @@ def toggle_result_publish():
     )
     flash(f"Results are now {'Public' if new_status else 'Hidden'}", "success")
     return redirect(url_for('manage_results'))
+
+
+@app.route('/admin/toggle-registration', methods=['POST'])
+def toggle_registration():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    new_status = not is_registration_open()
+    mongo.db.settings.update_one(
+        {"key": "registration_open"},
+        {"$set": {"value": new_status}},
+        upsert=True
+    )
+    flash(f"রেজিস্ট্রেশন এখন {'চালু' if new_status else 'বন্ধ'} করা হয়েছে।", "success")
+    return redirect(url_for('admin_home_settings'))
+
+
+@app.route('/admin/update-registration-message', methods=['POST'])
+def update_registration_message():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    message = request.form.get('registration_closed_message', '').strip()
+    mongo.db.settings.update_one(
+        {"key": "registration_closed_message"},
+        {"$set": {"value": message}},
+        upsert=True
+    )
+    flash("রেজিস্ট্রেশন বন্ধের বার্তা আপডেট হয়েছে।", "success")
+    return redirect(url_for('admin_home_settings'))
 
 @app.route('/admin/manage-results')
 def manage_results():
@@ -1977,6 +2025,57 @@ def forgot_serial():
             flash('এই মোবাইল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি!', 'danger')
     return render_template('forgot_serial.html', student=student_data)
 
+
+# =====================================================================
+# CERTIFICATE SERIAL NUMBER (SL NO.) — auto-generated, 4-digit, starting
+# at 0001, scoped per Class + Institute among that institute's scholarship
+# (scholarship_grade set & not "Nothing") students for that class. Once
+# assigned the value is saved back onto the student document so reprints
+# always show the same serial.
+# =====================================================================
+
+def get_or_assign_certificate_serial(student):
+    """Return the 4-digit certificate serial number (e.g. '0001') for a
+    scholarship-winning student, scoped to their own class + institute
+    group. Assigns and persists it on first use; later calls just read it
+    back so the number never changes/reshuffles on reprint."""
+    existing = student.get('certificate_sl_no')
+    if existing:
+        return existing
+
+    student_class = student.get('student_class')
+    institute_en = student.get('institute_en', '')
+
+    # All scholarship-winning students in the same class + institute group,
+    # ordered by roll number for a stable, predictable numbering sequence.
+    group_query = {
+        "student_class": student_class,
+        "institute_en": institute_en,
+        "scholarship_grade": {"$exists": True, "$nin": [None, "", "Nothing"]}
+    }
+    group_students = list(mongo.db.students.find(group_query).sort("roll_no", 1))
+
+    # Assign sequential serials to the whole group in one pass so every
+    # member gets a stable number even before they're individually opened.
+    assigned_serial = None
+    for idx, s in enumerate(group_students, start=1):
+        serial = str(idx).zfill(4)
+        if not s.get('certificate_sl_no'):
+            mongo.db.students.update_one(
+                {"_id": s['_id']},
+                {"$set": {"certificate_sl_no": serial}}
+            )
+        if str(s['_id']) == str(student.get('_id')):
+            assigned_serial = s.get('certificate_sl_no') or serial
+
+    if assigned_serial:
+        return assigned_serial
+
+    # Fallback: student wasn't part of a scholarship group (e.g. no
+    # scholarship_grade yet) — give them serial 0001 within just themselves.
+    return "0001"
+
+
 @app.route('/admin/certificates', methods=['GET'])
 def admin_certificates():
     if not session.get('admin_logged_in'):
@@ -2009,6 +2108,7 @@ def print_certificate(student_id):
             return redirect(url_for('admin_certificates'))
         c_code = str(student.get('center_code', ''))
         center_name = get_grouped_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
+        student['certificate_sl_no'] = get_or_assign_certificate_serial(student)
         return render_template('certificate_design.html', student=student, center_name=center_name)
     except Exception as e:
         flash(f"সার্টিফিকেট রেন্ডার করতে সমস্যা হয়েছে: {str(e)}", "danger")
@@ -2032,6 +2132,8 @@ def print_all_certificates():
     if not students:
         flash("প্রিন্ট করার মতো কোনো স্টুডেন্ট খুঁজে পাওয়া যায়নি!", "warning")
         return redirect(url_for('admin_certificates'))
+    for s in students:
+        s['certificate_sl_no'] = get_or_assign_certificate_serial(s)
     center_names = get_grouped_center_name_map(lang='en')
     return render_template('bulk_certificates_design.html', students=students, center_names=center_names)
 
@@ -2496,6 +2598,66 @@ def admin_prospecture_album_print(student_class):
                            year=datetime.now().year)
 
 
+# Order requested for the combined printable prospectus booklet: within each
+# class, Talentpool students first, then General, then Medha Britti (the
+# 'Quata' DB value), then Suveccha — repeated for classes 5 through 9.
+PROSPECTUS_GRADE_ORDER = ['Talentpool', 'General', 'Quata', 'Suveccha']
+
+
+@app.route('/admin/prospecture/print-all')
+def admin_prospecture_print_all():
+    """Combined, A5-print-ready scholarship prospectus covering classes 5-9
+    in one document — within each class, students are grouped Talentpool ->
+    General -> Medha Britti -> Suveccha, exactly as requested. Optional
+    ?center= filter narrows it to a single exam center."""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    center_filter = request.args.get('center', '')
+    center_display_map = get_grouped_center_name_map(lang='bn')
+
+    classes_meta = [
+        {'id': '5', 'name_bn': '৫ম শ্রেণি'},
+        {'id': '6', 'name_bn': '৬ষ্ঠ শ্রেণি'},
+        {'id': '7', 'name_bn': '৭ম শ্রেণি'},
+        {'id': '8', 'name_bn': '৮ম শ্রেণি'},
+        {'id': '9', 'name_bn': '৯ম শ্রেণি'},
+    ]
+
+    classes = []
+    grand_total = 0
+    for cls in classes_meta:
+        query = {
+            "student_class": {"$in": [cls['id'], int(cls['id'])]},
+            "scholarship_grade": {"$exists": True, "$nin": [None, "", "Nothing"]}
+        }
+        if center_filter:
+            query["center_code"] = center_code_filter(center_filter)
+        students = list(mongo.db.students.find(query).sort([("scholarship_grade", 1), ("marks.total", -1)]))
+
+        grouped = {}
+        for g in PROSPECTUS_GRADE_ORDER:
+            bucket = [s for s in students if s.get('scholarship_grade') == g]
+            if bucket:
+                grouped[g] = bucket
+
+        if grouped:
+            classes.append({
+                'class_id': cls['id'],
+                'class_name_bn': cls['name_bn'],
+                'grouped': grouped,
+                'total': len(students),
+            })
+            grand_total += len(students)
+
+    return render_template('prospectus_print_all.html',
+                           classes=classes,
+                           grand_total=grand_total,
+                           center_filter=center_filter,
+                           center_display_map=center_display_map,
+                           grade_bn_labels=GRADE_BN_LABELS,
+                           year=datetime.now().year)
+
+
 
 @app.route('/admin/prospecture/search-result', methods=['GET', 'POST'])
 def admin_prospecture_result_search():
@@ -2544,15 +2706,18 @@ def admin_prospecture_result_search():
 # Public result search page (like admit search)
 @app.route('/result-search', methods=['GET', 'POST'])
 def public_result_search():
-    """Public page - search result by roll number only"""
+    """Public page - search result by roll number AND mobile number together,
+    so a result can only be viewed by someone who has both pieces of
+    information (matches the applicant's own submitted details)."""
     student = None
     search_done = False
 
     if request.method == 'POST':
-        query = request.form.get('search_query', '').strip()
+        roll_query = request.form.get('roll_no', '').strip()
+        mobile_query = request.form.get('mobile', '').strip()
         search_done = True
 
-        if query:
+        if roll_query and mobile_query:
             # Check if result is published
             setting = mongo.db.settings.find_one({"key": "result_published"})
             is_published = setting['value'] if setting else False
@@ -2561,12 +2726,12 @@ def public_result_search():
                 flash("ফলাফল এখনো প্রকাশিত হয়নি। অনুগ্রহ করে পরে আবার চেষ্টা করুন।", "warning")
                 return render_template('public_result_search.html', student=None, search_done=True)
 
-            # Search by roll number only
-            student = mongo.db.students.find_one({"roll_no": query})
+            # Search by roll number AND mobile number together
+            student = mongo.db.students.find_one({"roll_no": roll_query, "mobile": mobile_query})
             if not student:
-                flash("এই রোল নম্বর দিয়ে কোনো শিক্ষার্থী পাওয়া যায়নি।", "danger")
+                flash("এই রোল ও মোবাইল নম্বরের মিল খুঁজে পাওয়া যায়নি। অনুগ্রহ করে সঠিক তথ্য দিন।", "danger")
         else:
-            flash("অনুগ্রহ করে রোল নম্বর লিখুন।", "danger")
+            flash("অনুগ্রহ করে রোল নম্বর ও মোবাইল নম্বর উভয়ই লিখুন।", "danger")
 
     return render_template('public_result_search.html', student=student, search_done=search_done)
 
@@ -2792,7 +2957,13 @@ def admin_home_settings():
         return redirect(url_for('admin_home_settings'))
 
     settings = mongo.db.home_settings.find_one({"key": "home"}) or {}
-    return render_template('admin_home_settings.html', s=settings)
+    reg_open_setting = mongo.db.settings.find_one({"key": "registration_open"})
+    registration_open = reg_open_setting['value'] if reg_open_setting else True
+    reg_msg_setting = mongo.db.settings.find_one({"key": "registration_closed_message"})
+    registration_closed_message = reg_msg_setting['value'] if reg_msg_setting else "এই মুহূর্তে নতুন আবেদন গ্রহণ বন্ধ রয়েছে। অনুগ্রহ করে পরে আবার চেষ্টা করুন অথবা কর্তৃপক্ষের সাথে যোগাযোগ করুন।"
+    return render_template('admin_home_settings.html', s=settings,
+                            registration_open=registration_open,
+                            registration_closed_message=registration_closed_message)
 
 
 # --- ADMIN: DYNAMIC CONTACT PAGE SETTINGS ---
