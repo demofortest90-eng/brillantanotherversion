@@ -33,6 +33,10 @@
     .new-inst-title { color: #145A32; font-weight: bold; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
     .wa-btn { background: #25D366; color: white; border: none; padding: 12px; border-radius: 5px; font-weight: bold; cursor: pointer; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; transition: 0.3s; }
     .wa-btn:hover { background: #1eb954; }
+
+    /* Photo capture buttons */
+    .photo-choose-wrap { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .photo-choose-wrap .wa-btn, .photo-recrop-wrap .wa-btn { margin-top: 0; max-width: 220px; flex: 1 1 180px; }
 </style>
 
 <div class="form-container">
@@ -135,7 +139,7 @@
 
         <div id="newInstSection" class="new-inst-area">
             <div class="new-inst-title">
-                <i class="fas fa-school"></i> স্কুলের নাম খুঁজে পাওয়া যায়নি? এখানে তথ্য দিন:
+                <i class="fas fa-school"></i> স্কুলের নাম খুঁজে পাওয়া যায়নি? এখানে তথ্য দিন:
             </div>
             <div class="grid-row">
                 <div class="field-box"><div class="field-box-inner"><label>School Name (EN)</label><input type="text" id="addNameEn" placeholder="Enter Full Name"></div></div>
@@ -148,41 +152,33 @@
         </div>
 
         <div class="grid-row" style="margin-top: 20px;">
-            <div>
-                <div class="section-title">Present Address</div>
-                <div class="field-box"><div class="field-box-inner"><label>Village</label><input type="text" name="pre_v" id="pre_v" required></div></div>
-                <div class="field-box"><div class="field-box-inner"><label>Upazila</label><input type="text" name="pre_t" id="pre_t" required></div></div>
-                <div class="field-box"><div class="field-box-inner"><label>District</label><input type="text" name="pre_d" id="pre_d" required></div></div>
-            </div>
-            <div>
-                <div class="section-title">Permanent Address
-                    <label style="font-size:11px; font-weight:normal; cursor:pointer; background:none; min-width:auto; text-transform:none;">
-                        <input type="checkbox" id="same_as_present" onclick="copyAddress()"> Same
-                    </label>
-                </div>
-                <div class="field-box"><div class="field-box-inner"><label>Village</label><input type="text" name="per_v" id="per_v" required></div></div>
-                <div class="field-box"><div class="field-box-inner"><label>Upazila</label><input type="text" name="per_t" id="per_t" required></div></div>
-                <div class="field-box"><div class="field-box-inner"><label>District</label><input type="text" name="per_d" id="per_d" required></div></div>
-            </div>
-        </div>
-
-        <div class="section-title">Security & Media</div>
-        <div class="grid-row">
-            <div class="field-box"><div class="field-box-inner"><label>Password</label><input type="password" name="password" id="pass" minlength="6" required></div></div>
-            <div class="field-box"><div class="field-box-inner"><label>Confirm</label><input type="password" name="confirm_password" id="confirm_pass" minlength="6" required></div></div>
-        </div>
-
-        <div class="grid-row" style="margin-top:20px;">
             <div class="upload-zone" style="border: 2px dashed #ccc; padding: 20px; text-align: center; border-radius: 8px;">
                 <label style="font-size:11px; font-weight:bold; display:block; margin-bottom:8px;">STUDENT PHOTO</label>
-                <input type="file" id="photoInput" accept="image/*">
+
+                <!-- Hidden file inputs: one for gallery, one forcing the camera -->
+                <input type="file" id="photoInput" accept="image/*" style="display:none;">
+                <input type="file" id="photoInputCamera" accept="image/*" capture="user" style="display:none;">
                 <input type="hidden" name="photo_url" id="photoUrlField">
+
+                <div id="photoChooseWrap" class="photo-choose-wrap">
+                    <button type="button" id="galleryBtn" class="wa-btn" style="background:var(--navy);">
+                        <i class="fas fa-image"></i> Choose from Gallery
+                    </button>
+                    <button type="button" id="cameraBtn" class="wa-btn" style="background:var(--accent-crimson);">
+                        <i class="fas fa-camera"></i> Take Photo
+                    </button>
+                </div>
 
                 <div id="photoPreviewWrap" style="display:none; margin-top:15px; flex-direction:column; align-items:center; gap:10px;">
                     <img id="photoPreviewImg" src="" alt="Preview" style="width:120px; height:120px; object-fit:cover; border-radius:8px; border:2px solid var(--navy);">
-                    <button type="button" id="recropBtn" class="wa-btn" style="background:#34495e; max-width:200px;">
-                        <i class="fas fa-crop"></i> Re-crop / Change Photo
-                    </button>
+                    <div class="photo-recrop-wrap" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                        <button type="button" id="recropGalleryBtn" class="wa-btn" style="background:#34495e;">
+                            <i class="fas fa-image"></i> Re-select from Gallery
+                        </button>
+                        <button type="button" id="recropCameraBtn" class="wa-btn" style="background:#34495e;">
+                            <i class="fas fa-camera"></i> Retake Photo
+                        </button>
+                    </div>
                 </div>
 
                 <div id="uploadProgressWrap" style="display:none; margin-top:15px;">
@@ -237,7 +233,7 @@
 
             const filtered = institutes.filter(i => i[filterKey].toLowerCase().includes(val));
             
-            // যদি লিস্টে না পাওয়া যায়, তবে "Add New" সেকশন দেখাবে
+            // যদি লিস্টে না পাওয়া যায়, তবে "Add New" সেকশন দেখাবে
             newInstBox.style.display = (filtered.length === 0) ? 'block' : 'none';
 
             filtered.forEach(item => {
@@ -261,18 +257,18 @@
     setupSearch(enInput, enSuggest, 'name');
     setupSearch(bnInput, bnSuggest, 'bn');
 
-    // ২. হোয়াটসঅ্যাপ মেসেজ পাঠানো
+    // ২. হোয়াটসঅ্যাপ মেসেজ পাঠানো
     function sendInstituteRequest() {
         const nameEn = document.getElementById('addNameEn').value || enInput.value;
         const nameBn = document.getElementById('addNameBn').value || bnInput.value;
         const loc = document.getElementById('addLocation').value || document.getElementById('pre_t').value;
         
         if(!nameEn || !nameBn) {
-            alert("দয়া করে স্কুলের নাম ইংরেজিতে এবং বাংলায় লিখুন।");
+            alert("দয়া করে স্কুলের নাম ইংরেজিতে এবং বাংলায় লিখুন।");
             return;
         }
 
-        const text = `আসসালামু আলাইকুম, Brilliants Foundation.\nআমার স্কুলটি লিস্টে নেই। দয়া করে নিচের তথ্যটি যুক্ত করুন:\n\nস্কুলের নাম (EN): ${nameEn}\nস্কুলের নাম (BN): ${nameBn}\nলোকেশন: ${loc}`;
+        const text = `আসসালামু আলাইকুম, Brilliants Foundation.\nআমার স্কুলটি লিস্টে নেই। দয়া করে নিচের তথ্যটি যুক্ত করুন:\n\nস্কুলের নাম (EN): ${nameEn}\nস্কুলের নাম (BN): ${nameBn}\nলোকেশন: ${loc}`;
         window.open(`https://wa.me/8801400461284?text=${encodeURIComponent(text)}`, '_blank');
     }
 
@@ -295,9 +291,15 @@
         return true;
     }
 
-    // ৪. ফটো ক্রপ এবং প্রোগ্রেস বার সহ আপলোড
+    // ৪. ফটো ক্রপ এবং প্রোগ্রেস বার সহ আপলোড (গ্যালারি + ক্যামেরা দুটোই সাপোর্ট করে)
     let cropper = null;
     const photoInput = document.getElementById('photoInput');
+    const photoInputCamera = document.getElementById('photoInputCamera');
+    const galleryBtn = document.getElementById('galleryBtn');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const recropGalleryBtn = document.getElementById('recropGalleryBtn');
+    const recropCameraBtn = document.getElementById('recropCameraBtn');
+    const photoChooseWrap = document.getElementById('photoChooseWrap');
     const cropModal = document.getElementById('cropModal');
     const cropImage = document.getElementById('cropImage');
     const cropCancelBtn = document.getElementById('cropCancelBtn');
@@ -308,16 +310,19 @@
     const uploadProgressBar = document.getElementById('uploadProgressBar');
     const uploadStatusText = document.getElementById('uploadStatusText');
     const photoUrlField = document.getElementById('photoUrlField');
-    const recropBtn = document.getElementById('recropBtn');
     const submitBtn = document.getElementById('submitBtn');
 
-    photoInput.addEventListener('change', function() {
-        const file = this.files[0];
+    // বাটনগুলো হিডেন ফাইল ইনপুট ট্রিগার করে
+    galleryBtn.addEventListener('click', () => photoInput.click());
+    cameraBtn.addEventListener('click', () => photoInputCamera.click());
+    recropGalleryBtn.addEventListener('click', () => photoInput.click());
+    recropCameraBtn.addEventListener('click', () => photoInputCamera.click());
+
+    function handlePhotoFile(file) {
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
             alert("দয়া করে শুধুমাত্র ইমেজ ফাইল নির্বাচন করুন।");
-            this.value = '';
             return;
         }
 
@@ -335,16 +340,20 @@
             });
         };
         reader.readAsDataURL(file);
+    }
+
+    photoInput.addEventListener('change', function() {
+        handlePhotoFile(this.files[0]);
+    });
+    photoInputCamera.addEventListener('change', function() {
+        handlePhotoFile(this.files[0]);
     });
 
     cropCancelBtn.addEventListener('click', function() {
         cropModal.style.display = 'none';
         if (cropper) { cropper.destroy(); cropper = null; }
         photoInput.value = '';
-    });
-
-    recropBtn.addEventListener('click', function() {
-        photoInput.click();
+        photoInputCamera.value = '';
     });
 
     cropConfirmBtn.addEventListener('click', function() {
@@ -361,6 +370,7 @@
             if (cropper) { cropper.destroy(); cropper = null; }
 
             photoPreviewImg.src = URL.createObjectURL(blob);
+            photoChooseWrap.style.display = 'none';
             photoPreviewWrap.style.display = 'flex';
 
             uploadCroppedImage(blob);
