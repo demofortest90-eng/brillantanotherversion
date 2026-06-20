@@ -263,7 +263,14 @@
                     </tr>
                     <tr class="full-row">
                         <td class="lbl">Present Address</td>
-                        <td class="val" colspan="3">{{ student.address_present }}</td>
+                        <td class="val" colspan="3">
+                            {%- if student.address_present is mapping -%}
+                                {%- set parts = student.address_present.values() | list | select('string') | reject('equalto', '') | list -%}
+                                {{ parts | join(', ') }}
+                            {%- else -%}
+                                {{ student.address_present }}
+                            {%- endif -%}
+                        </td>
                     </tr>
                     <tr class="full-row">
                         <td class="lbl">Transaction ID</td>
