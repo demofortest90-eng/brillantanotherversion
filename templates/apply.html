@@ -15,6 +15,7 @@
     .field-box-inner { display: flex; flex: 1; }
     .field-box label { background: var(--navy); color: #fff; padding: 0 12px; min-width: 140px; display: flex; align-items: center; font-size: 11px; font-weight: 600; text-transform: uppercase; }
     .field-box input, .field-box select { flex: 1; border: none; padding: 10px; outline: none; font-size: 14px; width: 100%; }
+    .field-box input[readonly] { background: #F4F6F7; color: #7F8C8D; }
     
     .suggestion-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ccc; max-height: 250px; overflow-y: auto; z-index: 1000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
     .suggestion-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; display: flex; flex-direction: column; }
@@ -37,6 +38,11 @@
     /* Photo capture buttons */
     .photo-choose-wrap { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
     .photo-choose-wrap .wa-btn, .photo-recrop-wrap .wa-btn { margin-top: 0; max-width: 220px; flex: 1 1 180px; }
+
+    /* Same-as-present checkbox row */
+    .same-addr-row { display: flex; align-items: center; gap: 10px; background: #FDFEFE; border: 1px dashed var(--input-border); padding: 12px 15px; border-radius: 6px; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; margin-bottom: 15px; }
+    .same-addr-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
+    .field-hint { font-size: 11px; color: #7F8C8D; margin: -10px 0 15px; }
 </style>
 
 <div class="form-container">
@@ -105,6 +111,35 @@
         <div class="grid-row">
             <div class="field-box"><div class="field-box-inner"><label>Mobile No</label><input type="tel" name="mobile" pattern="[0-9]{11}" placeholder="017XXXXXXXX" required></div></div>
             <div class="field-box"><div class="field-box-inner"><label>Date of Birth</label><input type="date" name="dob" required></div></div>
+        </div>
+
+        <div class="section-title">Account Security</div>
+        <div class="grid-row">
+            <div class="field-box"><div class="field-box-inner"><label>Password</label><input type="password" name="password" id="pass" minlength="4" required></div></div>
+            <div class="field-box"><div class="field-box-inner"><label>Confirm Password</label><input type="password" name="confirm_password" id="confirm_pass" minlength="4" required></div></div>
+        </div>
+        <p class="field-hint">পরবর্তীতে রোল/রেজিস্ট্রেশন নম্বর ও এই পাসওয়ার্ড দিয়ে লগইন করতে পারবেন।</p>
+
+        <div class="section-title">ঠিকানা তথ্য (Address Information)</div>
+        <div class="grid-row">
+            <div class="field-box"><div class="field-box-inner"><label>গ্রাম/মহল্লা</label><input type="text" name="pre_v" id="pre_v" placeholder="Village / Area" required></div></div>
+            <div class="field-box"><div class="field-box-inner"><label>উপজেলা/থানা</label><input type="text" name="pre_t" id="pre_t" placeholder="Upazila / Thana" required></div></div>
+            <div class="field-box"><div class="field-box-inner"><label>জেলা</label><input type="text" name="pre_d" id="pre_d" placeholder="District" required></div></div>
+        </div>
+        <p class="field-hint">এটি আপনার বর্তমান ঠিকানা (Present Address)</p>
+
+        <label class="same-addr-row">
+            <input type="checkbox" id="same_as_present">
+            স্থায়ী ঠিকানা বর্তমান ঠিকানার মতোই (Permanent address same as present)
+        </label>
+
+        <div id="permanentAddressWrap">
+            <div class="grid-row">
+                <div class="field-box"><div class="field-box-inner"><label>গ্রাম/মহল্লা</label><input type="text" name="per_v" id="per_v" placeholder="Village / Area" required></div></div>
+                <div class="field-box"><div class="field-box-inner"><label>উপজেলা/থানা</label><input type="text" name="per_t" id="per_t" placeholder="Upazila / Thana" required></div></div>
+                <div class="field-box"><div class="field-box-inner"><label>জেলা</label><input type="text" name="per_d" id="per_d" placeholder="District" required></div></div>
+            </div>
+            <p class="field-hint">এটি আপনার স্থায়ী ঠিকানা (Permanent Address)</p>
         </div>
 
         <div class="section-title">Institutional Information</div>
@@ -433,12 +468,35 @@
         document.getElementById('groupSection').style.display = (val >= 9) ? "flex" : "none";
     }
 
+    // ৫. বর্তমান ঠিকানা = স্থায়ী ঠিকানা (চেকবক্স লজিক)
+    const sameAsPresentCheckbox = document.getElementById('same_as_present');
+    const permanentAddressWrap = document.getElementById('permanentAddressWrap');
+    const permanentFieldIds = ['per_v', 'per_t', 'per_d'];
+
     function copyAddress() {
         const check = document.getElementById('same_as_present');
         ['v', 't', 'd'].forEach(f => {
-            document.getElementById('per_'+f).value = check.checked ? document.getElementById('pre_'+f).value : "";
+            document.getElementById('per_' + f).value = check.checked ? document.getElementById('pre_' + f).value : "";
         });
     }
+
+    function toggleSameAddress() {
+        const checked = sameAsPresentCheckbox.checked;
+        permanentAddressWrap.style.display = checked ? 'none' : 'block';
+        permanentFieldIds.forEach(id => {
+            const el = document.getElementById(id);
+            el.required = !checked;
+            el.readOnly = checked;
+        });
+        copyAddress();
+    }
+
+    sameAsPresentCheckbox.addEventListener('change', toggleSameAddress);
+    ['pre_v', 'pre_t', 'pre_d'].forEach(id => {
+        document.getElementById(id).addEventListener('input', function() {
+            if (sameAsPresentCheckbox.checked) copyAddress();
+        });
+    });
 
     // সাজেশনের বাইরে ক্লিক করলে হাইড করা
     document.addEventListener('click', (e) => {
