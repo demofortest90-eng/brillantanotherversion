@@ -1716,26 +1716,252 @@ def serial_allocation():
             flash(f"Error: {str(e)}", "danger")
     return render_template('admin_serial.html', centers=centers_list)
 
+# =====================================================================
+# RESULT NOTICE SETTINGS — admin-editable letterhead/announcement text
+# & signatories for /admin/print-result. Roll-number tables and the
+# grade counts are NEVER stored here — those stay 100% auto-computed
+# from the students collection at print time. Single source of truth
+# shared by the print page and its admin settings page so edits in one
+# always show up in the other immediately.
+# =====================================================================
+
+RESULT_ORG_DEFAULTS = {
+    'name_bn': 'দ্যা ব্রিলিয়ান্টস্ ফাউন্ডেশন,বগুড়া',
+    'name_en': "The Brilliant's Foundation,Bogura",
+    'reg_no': 'S-9759',
+    'address': 'ব্রিলিয়ান্টস্ হাউজ,সবুজবাগ,বগুড়া।',
+    'mobile': '০১৭৮০-২৭৭৪৪৩',
+    'email': 'tbfbogura2002@gmail.com',
+    'logo_url': 'https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png',
+}
+
+RESULT_ANNOUNCEMENT_DEFAULTS = {
+    'exam_label': 'বৃত্তি পরীক্ষা-২০২৫',
+    'exam_date': '২৫/১২/২০২৫',
+    'center_count': '৯',
+    'sub_center_count': '১',
+    'centers': [
+        'সারিয়াকান্দি', 'গাবতলী', 'খোট্রাপাড়া', 'শাজাহানপুর (আড়িয়া)',
+        'শাজাহানপুর (রানিরহাট)', 'শেরপুর (সামিট)', 'শেরপুর (ছোনকা)',
+        'ধুনট', 'সোনাতলা (সুখানপুকুর)', 'সোনাতলা (ফাজিল মাদ্রাসা)'
+    ],
+    'result_date': '১৭ই মার্চ ২০২৬',
+    'result_time': 'দুপুর ২.০০',
+    'recipient_name': 'শাহরিয়ার হাসান বিপ্লব',
+    'giver_name': 'রাকিবুল ইসলাম রবিন',
+    'present_persons': [
+        'পরিচালক তৌফিকুল ইসলাম তাকি', 'সদস্য সচিব তাহিরুল হাবিব',
+        'রেজিস্টার মানিক মিয়া', 'কার্যনির্বাহী সদস্যবৃন্দ'
+    ],
+    'fb_link': 'https://www.facebook.com/thebrilliantsbogura',
+    'top_school_roll': '২৫৬৫২০৪',
+    'top_madrasha_roll': '২৫৫৫০৯২',
+}
+
+RESULT_SIGNATORIES_DEFAULT = [
+    {'name': 'রাকিবুল ইসলাম রবিন', 'title': 'পরীক্ষা নিয়ন্ত্রক', 'date': '১৭.০৩.২৬',
+     'signature_image': 'https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png'},
+    {'name': 'তৌফিকুল ইসলাম তাকি', 'title': 'পরিচালক', 'date': '১৭.৩.২৬',
+     'signature_image': 'https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png'},
+    {'name': 'শাহরিয়ার হাসান বিপ্লব', 'title': 'মহাপরিচালক', 'date': '১৭.৩.২৬',
+     'signature_image': 'https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png'},
+]
+
+def get_result_settings():
+    """Reads mongo.db.result_settings and merges per-field defaults (instead
+    of swapping the whole sub-document) so a partial save never blanks out
+    fields the admin hasn't touched yet. Returns the raw settings doc plus
+    the four pieces print_result.html needs."""
+    settings = mongo.db.result_settings.find_one() or {}
+
+    org = dict(settings.get('org') or {})
+    for k, v in RESULT_ORG_DEFAULTS.items():
+        org.setdefault(k, v)
+
+    notice_date = settings.get('notice_date') or '১৭/০৩/২০২৬ ইং'
+
+    announcement = dict(settings.get('announcement') or {})
+    for k, v in RESULT_ANNOUNCEMENT_DEFAULTS.items():
+        announcement.setdefault(k, v)
+
+    signatories = settings.get('signatories', RESULT_SIGNATORIES_DEFAULT)
+
+    return settings, org, notice_date, announcement, signatories
+
+
+# =====================================================================
+# PRINT RESULT PAGE — roll numbers & counts are 100% auto from DB.
+# Everything else comes from get_result_settings() above.
+# =====================================================================
+
 @app.route('/admin/print-result')
 def print_result():
-    summary_data = []
-    classes = [
-        {'id': '5', 'name': 'Five'}, {'id': '6', 'name': 'Six'},
-        {'id': '7', 'name': 'Seven'}, {'id': '8', 'name': 'Eight'},
-        {'id': '9', 'name': 'Nine'}
+    BN_DIGITS = str.maketrans('0123456789', '০১২৩৪৫৬৭৮৯')
+    def bn(value):
+        return str(value).translate(BN_DIGITS)
+
+    classes_meta = [
+        {'id': '5', 'name_bn': '৫ম'},
+        {'id': '6', 'name_bn': '৬ষ্ঠ'},
+        {'id': '7', 'name_bn': '৭ম'},
+        {'id': '8', 'name_bn': '৮ম'},
+        {'id': '9', 'name_bn': '৯ম'},
     ]
-    target_grades = ['Talentpool', 'General', 'Suveccha', 'Quata']
-    for cls in classes:
-        cls_row = {'class_display': cls['name']}
-        for grade in target_grades:
+
+    # DB grade value -> template field key. 'Suveccha' holds Institutional
+    # Merit students and 'Quata' holds the Greeting/Shuveccha group — same
+    # mapping as your existing /admin/print-result summary route.
+    grade_map = {
+        'Talentpool': 'talentpool',
+        'General': 'general',
+        'Suveccha': 'institutional_merit',
+        'Quata': 'shuveccha',
+    }
+
+    classes = []
+    grade_totals = {'talentpool': 0, 'general': 0, 'institutional_merit': 0, 'shuveccha': 0}
+
+    for cls in classes_meta:
+        cls_row = {'class_display': cls['name_bn']}
+        for db_grade, field_key in grade_map.items():
             students = mongo.db.students.find(
-                {'student_class': {'$in': [cls['id'], int(cls['id'])]}, 'scholarship_grade': grade},
+                {'student_class': {'$in': [cls['id'], int(cls['id'])]}, 'scholarship_grade': db_grade},
                 {'roll_no': 1, '_id': 0}
             ).sort('roll_no', 1)
-            rolls = [str(s['roll_no']) for s in students]
-            cls_row[grade] = ", ".join(rolls)
-        summary_data.append(cls_row)
-    return render_template('print_result.html', summary_data=summary_data)
+            rolls = [bn(s['roll_no']) for s in students]
+            cls_row[field_key] = rolls
+            grade_totals[field_key] += len(rolls)
+        classes.append(cls_row)
+
+    total_awarded = sum(grade_totals.values())
+
+    # Letterhead / announcement text that isn't derivable from the students
+    # collection — admin-editable via /admin/result-settings, with built-in
+    # fallbacks if nothing's been saved yet.
+    settings, org, notice_date, announcement, signatories = get_result_settings()
+
+    # Computed live from the roll-number queries above, so these can never
+    # drift out of sync with the tables — never admin-editable.
+    announcement['talentpool_count'] = bn(grade_totals['talentpool'])
+    announcement['general_count'] = bn(grade_totals['general'])
+    announcement['institutional_merit_count'] = bn(grade_totals['institutional_merit'])
+    announcement['susveccha_count'] = bn(grade_totals['shuveccha'])
+    announcement['total_awarded'] = bn(total_awarded)
+    # total_examinees: auto-counted from the students collection unless the
+    # admin has explicitly overridden it on the settings page.
+    total_examinees_override = settings.get('total_examinees')
+    announcement['total_examinees'] = bn(total_examinees_override) if total_examinees_override else bn(mongo.db.students.count_documents({}))
+
+    return render_template(
+        'print_result.html',
+        org=org,
+        notice_date=notice_date,
+        announcement=announcement,
+        classes=classes,
+        signatories=signatories
+    )
+
+
+# =====================================================================
+# RESULT PRINT SETTINGS — admin form for everything above except the
+# auto-computed roll numbers/counts.
+# =====================================================================
+
+@app.route('/admin/result-settings', methods=['GET', 'POST'])
+def admin_result_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'update_org':
+            org_doc = {k: request.form.get(k, '').strip() for k in RESULT_ORG_DEFAULTS}
+            mongo.db.result_settings.update_one(
+                {}, {"$set": {"org": org_doc, "notice_date": request.form.get('notice_date', '').strip()}},
+                upsert=True
+            )
+            flash("প্রতিষ্ঠানের তথ্য সফলভাবে আপডেট হয়েছে।", "success")
+
+        elif action == 'update_announcement':
+            text_fields = ['exam_label', 'exam_date', 'center_count', 'sub_center_count',
+                            'result_date', 'result_time', 'recipient_name', 'giver_name',
+                            'fb_link', 'top_school_roll', 'top_madrasha_roll']
+            set_ops = {f"announcement.{f}": request.form.get(f, '').strip() for f in text_fields}
+            total_examinees = request.form.get('total_examinees', '').strip()
+            if total_examinees:
+                set_ops['total_examinees'] = total_examinees
+                mongo.db.result_settings.update_one({}, {"$set": set_ops}, upsert=True)
+            else:
+                mongo.db.result_settings.update_one({}, {"$set": set_ops}, upsert=True)
+                mongo.db.result_settings.update_one({}, {"$unset": {"total_examinees": ""}})
+            flash("ঘোষণার তথ্য সফলভাবে আপডেট হয়েছে।", "success")
+
+        elif action == 'add_center':
+            name = request.form.get('center_name', '').strip()
+            if name:
+                mongo.db.result_settings.update_one({}, {"$push": {"announcement.centers": name}}, upsert=True)
+                flash("কেন্দ্র যোগ করা হয়েছে।", "success")
+
+        elif action == 'remove_center':
+            mongo.db.result_settings.update_one({}, {"$pull": {"announcement.centers": request.form.get('center_name', '')}})
+            flash("কেন্দ্র মুছে ফেলা হয়েছে।", "success")
+
+        elif action == 'add_person':
+            name = request.form.get('person_name', '').strip()
+            if name:
+                mongo.db.result_settings.update_one({}, {"$push": {"announcement.present_persons": name}}, upsert=True)
+                flash("নাম যোগ করা হয়েছে।", "success")
+
+        elif action == 'remove_person':
+            mongo.db.result_settings.update_one({}, {"$pull": {"announcement.present_persons": request.form.get('person_name', '')}})
+            flash("নাম মুছে ফেলা হয়েছে।", "success")
+
+        elif action == 'add_signatory':
+            sig = {
+                "name": request.form.get('sig_name', '').strip(),
+                "title": request.form.get('sig_title', '').strip(),
+                "date": request.form.get('sig_date', '').strip(),
+                "signature_image": request.form.get('sig_image', '').strip(),
+            }
+            if sig['name']:
+                mongo.db.result_settings.update_one({}, {"$push": {"signatories": sig}}, upsert=True)
+                flash("স্বাক্ষরকারী যোগ করা হয়েছে।", "success")
+
+        elif action == 'update_signatory':
+            idx = int(request.form.get('sig_index', -1))
+            doc = mongo.db.result_settings.find_one() or {}
+            sigs = doc.get('signatories', list(RESULT_SIGNATORIES_DEFAULT))
+            if 0 <= idx < len(sigs):
+                sigs[idx] = {
+                    "name": request.form.get('sig_name', '').strip(),
+                    "title": request.form.get('sig_title', '').strip(),
+                    "date": request.form.get('sig_date', '').strip(),
+                    "signature_image": request.form.get('sig_image', '').strip(),
+                }
+                mongo.db.result_settings.update_one({}, {"$set": {"signatories": sigs}}, upsert=True)
+                flash("স্বাক্ষরকারীর তথ্য আপডেট করা হয়েছে।", "success")
+
+        elif action == 'remove_signatory':
+            idx = int(request.form.get('sig_index', -1))
+            doc = mongo.db.result_settings.find_one() or {}
+            sigs = doc.get('signatories', list(RESULT_SIGNATORIES_DEFAULT))
+            if 0 <= idx < len(sigs):
+                sigs.pop(idx)
+                mongo.db.result_settings.update_one({}, {"$set": {"signatories": sigs}}, upsert=True)
+                flash("স্বাক্ষরকারী মুছে ফেলা হয়েছে।", "success")
+
+        return redirect(url_for('admin_result_settings'))
+
+    settings, org, notice_date, announcement, signatories = get_result_settings()
+    return render_template(
+        'admin_result_settings.html',
+        org=org,
+        notice_date=notice_date,
+        announcement=announcement,
+        signatories=signatories,
+        settings_total_examinees=settings.get('total_examinees', '')
+    )
 
 @app.route('/forgot-serial', methods=['GET', 'POST'])
 def forgot_serial():
