@@ -260,6 +260,9 @@
 
     <!-- Actions -->
     <div class="action-bar">
+        <a href="{{ url_for('admin_prospecture_print_all') }}" class="btn-action" style="background:#C5A059;color:#1B2631;" target="_blank">
+            <i class="fas fa-book-open"></i> Printable Prospectus (A5)
+        </a>
         <a href="{{ url_for('admin_prospecture_result_search') }}" class="btn-action btn-blue">
             <i class="fas fa-search"></i> Search Student Result
         </a>
@@ -327,7 +330,7 @@
                 {% if cls.quata > 0 %}
                 <div class="grade-row">
                     <div class="grade-row-label">
-                        <span class="grade-dot dot-quata"></span> Quata
+                        <span class="grade-dot dot-quata"></span> Medha Britti
                     </div>
                     <div class="grade-bar-wrap">
                         <div class="grade-bar-fill fill-quata" style="width:{{ (cls.quata / cls.total * 100)|int }}%"></div>

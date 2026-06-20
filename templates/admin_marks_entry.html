@@ -138,8 +138,9 @@
                     <td style="text-align: center;" class="row-total">0.00</td>
                     <td>
                         <select class="custom-select scholarship-grade">
+                            {% set grade_display = {"Nothing": "Nothing", "Talentpool": "Talentpool", "General": "General", "Suveccha": "Suveccha", "Quata": "Medha Britti"} %}
                             {% for g in ["Nothing", "Talentpool", "General", "Suveccha", "Quata"] %}
-                            <option value="{{g}}" {{ 'selected' if s.scholarship_grade == g }}>{{g}}</option>
+                            <option value="{{g}}" {{ 'selected' if s.scholarship_grade == g }}>{{ grade_display[g] }}</option>
                             {% endfor %}
                         </select>
                     </td>

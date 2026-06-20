@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <title>Scholarship Prospectus {{ year }} - The Brilliants Foundation</title>
+    <style>
+        @import url('https://fonts.maateen.me/kalpurush/font.css');
+
+        /* A5 page setup */
+        @page { size: A5 portrait; margin: 8mm 9mm 10mm; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Kalpurush', 'Noto Sans Bengali', Arial, sans-serif;
+            color: #111; margin: 0; padding: 0;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+            font-size: 11px;
+        }
+
+        /* Cover / running header on every printed page via @page margin
+           isn't reliably styleable across browsers, so we repeat a compact
+           org header at the top of the document and at the top of every
+           class section instead — simple and reliably prints well. */
+        .doc-header { text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
+        .doc-header .org-bn { font-size: 13px; font-weight: 900; }
+        .doc-header .org-en { font-size: 8px; color: #444; margin-top: 1px; }
+        .doc-header .doc-title { font-size: 10px; font-weight: 700; margin-top: 4px; color: #333; }
+        .doc-header .doc-meta { font-size: 8px; color: #666; margin-top: 2px; }
+
+        /* Each class section starts on its own page for clean A5 printing */
+        .class-section { page-break-before: always; }
+        .class-section:first-child { page-break-before: avoid; }
+
+        .class-title-bar {
+            background: #1B2631; color: #fff;
+            padding: 5px 10px; border-radius: 5px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .class-title-bar .ct-name { font-size: 12px; font-weight: 800; }
+        .class-title-bar .ct-count { font-size: 9px; opacity: 0.85; }
+
+        /* Grade group block — simple list style, not a photo grid, so a
+           full class+grade list fits compactly on A5 pages. */
+        .grade-group { margin-bottom: 7px; break-inside: avoid; }
+        .grade-group-title {
+            font-size: 10px; font-weight: 800; color: #1B2631;
+            border-left: 3px solid #C5A059; padding-left: 6px;
+            margin-bottom: 3px;
+        }
+        .grade-group-title .g-count { font-weight: 600; color: #777; font-size: 8.5px; }
+
+        table.student-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
+        table.student-table th, table.student-table td {
+            border: 0.5px solid #ccc; padding: 2.5px 4px; font-size: 9px; text-align: left;
+        }
+        table.student-table th {
+            background: #f1f1f1; font-weight: 700; font-size: 8.5px;
+        }
+        table.student-table td.sl { width: 18px; text-align: center; color: #777; }
+        table.student-table td.roll { width: 42px; font-weight: 700; }
+        table.student-table td.inst { font-size: 8.3px; color: #444; }
+
+        .empty-note { text-align: center; color: #888; font-size: 9px; padding: 10px 0; }
+
+        .doc-footer { margin-top: 10px; text-align: center; font-size: 8px; color: #888; border-top: 0.5px solid #ddd; padding-top: 4px; }
+
+        @media print { .no-print { display: none; } }
+        .no-print {
+            position: fixed; top: 10px; right: 10px; z-index: 99;
+            display: flex; gap: 8px;
+        }
+        .no-print button, .no-print a {
+            background: #1B2631; color: #fff; border: none; padding: 8px 14px;
+            border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Print / Save PDF</button>
+    </div>
+
+    {% if not classes %}
+    <div class="doc-header">
+        <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
+        <div class="org-en">The Brilliants Foundation, Bogura</div>
+        <div class="doc-title">বৃত্তি প্রসপেক্টাস {{ year|bn_num }}</div>
+    </div>
+    <p class="empty-note">এই মুহূর্তে কোনো বৃত্তিপ্রাপ্ত শিক্ষার্থী পাওয়া যায়নি।</p>
+    {% endif %}
+
+    {% for cls in classes %}
+    <div class="class-section">
+        <div class="doc-header">
+            <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
+            <div class="org-en">The Brilliants Foundation, Bogura</div>
+            <div class="doc-title">বৃত্তি প্রসপেক্টাস {{ year|bn_num }} — মেধাবৃত্তিপ্রাপ্ত শিক্ষার্থীবৃন্দ</div>
+            {% if center_filter %}
+            <div class="doc-meta">কেন্দ্র: {{ center_display_map.get(center_filter|string, center_filter) }}</div>
+            {% endif %}
+        </div>
+
+        <div class="class-title-bar">
+            <span class="ct-name">{{ cls.class_name_bn }}</span>
+            <span class="ct-count">মোট {{ cls.total|bn_num }} জন</span>
+        </div>
+
+        {% for grade in ['Talentpool', 'General', 'Quata', 'Suveccha'] %}
+            {% if grade in cls.grouped %}
+            {% set students_in_grade = cls.grouped[grade] %}
+            <div class="grade-group">
+                <div class="grade-group-title">
+                    {{ grade_bn_labels.get(grade, grade) }}
+                    <span class="g-count">({{ students_in_grade|length|bn_num }} জন)</span>
+                </div>
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th class="sl">ক্রম</th>
+                            <th class="roll">রোল</th>
+                            <th>নাম</th>
+                            <th class="inst">প্রতিষ্ঠান</th>
+                            <th class="inst">কেন্দ্র</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in students_in_grade %}
+                        <tr>
+                            <td class="sl">{{ loop.index|bn_num }}</td>
+                            <td class="roll">{{ s.roll_no|bn_num }}</td>
+                            <td>{{ s.name_bn or s.name_en }}</td>
+                            <td class="inst">{{ s.institute_bn or s.institute_en }}</td>
+                            <td class="inst">{{ center_display_map.get(s.center_code|string, s.center_code) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        {% endfor %}
+
+        <div class="doc-footer">
+            "মেধার আলোয় আলোকিত হোক আগামীর প্রতিটি পথ" — দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া
+        </div>
+    </div>
+    {% endfor %}
+
+</body>
+</html>

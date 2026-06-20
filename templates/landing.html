@@ -17,6 +17,17 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* base.html wraps the page content in <main class="container">, which
+       caps width at 1100px and adds a top margin — fine for inner pages but
+       wrong for this page's full-bleed hero/banner sections. Reset it here
+       so landing.html controls its own width via its own .container class. */
+    main.container {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+    }
+
     body {
         font-family: "Hind Siliguri", "Kalpurush", Arial, sans-serif;
         color: var(--dark);
@@ -107,11 +118,41 @@
 
     .btn-gold { background: var(--gold); color: var(--dark); }
     .btn-border { border: 1.5px solid var(--white); color: var(--white); }
+    .btn-gold:hover { background: #d4b56e; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(197,160,89,0.35); }
+    .btn-border:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+
+    /* Registration closed banner */
+    .reg-closed-banner {
+        background: linear-gradient(90deg, #7c2d12, #991b1b);
+        color: #fff;
+        padding: 11px 0;
+    }
+    .reg-closed-inner {
+        display: flex; align-items: center; justify-content: center;
+        gap: 10px; flex-wrap: wrap; text-align: center;
+        font-size: 0.85rem; font-weight: 600;
+    }
+    .reg-closed-inner a {
+        color: #ffe8b0; text-decoration: none; font-weight: 800;
+        border-bottom: 1px solid rgba(255,232,176,0.5);
+        white-space: nowrap;
+    }
+    .reg-closed-inner a:hover { border-color: #ffe8b0; }
+    .btn-disabled-look { opacity: 0.6; cursor: not-allowed; display: inline-flex; align-items: center; gap: 8px; }
+    .btn-disabled-look:hover { transform: none !important; box-shadow: none !important; }
 
     /* 2. IMPORTANT DATES */
     .section-padding { padding: 60px 0; }
     .section-header { text-align: center; margin-bottom: 35px; }
     .section-header h2 { font-size: 1.6rem; font-weight: 800; }
+    .section-header .underline { width: 40px; height: 3px; background: var(--gold); margin: 10px auto 0; }
+
+    @media (max-width: 600px) {
+        .section-padding { padding: 40px 0; }
+        .hero-content p { font-size: 0.88rem; }
+        .hero-btns { gap: 8px; flex-wrap: wrap; justify-content: center; }
+        .btn { padding: 11px 18px; font-size: 0.85rem; }
+    }
 
     .dates-grid { display: flex; flex-direction: column; gap: 12px; }
     @media (min-width: 768px) { .dates-grid { display: grid; grid-template-columns: repeat(3, 1fr); } }
@@ -213,12 +254,41 @@
 
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+    /* 6. CLOSING CTA STRIP */
+    .cta-strip {
+        background: var(--dark);
+        padding: 45px 0;
+    }
+    .cta-strip-inner {
+        display: flex; flex-direction: column; gap: 20px;
+        align-items: center; text-align: center;
+        justify-content: space-between;
+    }
+    @media (min-width: 768px) {
+        .cta-strip-inner { flex-direction: row; text-align: left; }
+    }
+    .cta-strip h3 { color: #fff; font-size: 1.25rem; margin-bottom: 6px; }
+    .cta-strip p { color: rgba(255,255,255,0.65); font-size: 0.88rem; }
+    .cta-strip-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .btn-border-dark { border: 1.5px solid rgba(255,255,255,0.3); color: #fff; }
+    .btn-border-dark:hover { background: rgba(255,255,255,0.1); transform: translateY(-2px); }
+
     .reveal { opacity: 0; transform: translateY(20px); transition: 0.6s ease-out; }
     .reveal.active { opacity: 1; transform: translateY(0); }
 </style>
 {% endblock %}
 
 {% block content %}
+
+{% if not registration_open %}
+<div class="reg-closed-banner">
+    <div class="container reg-closed-inner">
+        <i class="fas fa-info-circle"></i>
+        <span>আবেদন গ্রহণ বর্তমানে বন্ধ আছে। বিস্তারিত জানতে নোটিশ দেখুন।</span>
+        <a href="{{ url_for('notices') }}">নোটিশ দেখুন <i class="fas fa-arrow-right"></i></a>
+    </div>
+</div>
+{% endif %}
 
 <section class="hero-container">
     {% for slide_url in hero_slides %}
@@ -229,7 +299,11 @@
         <h1 class="reveal active">{{ hero_title|safe }}</h1>
         <p class="reveal active">{{ hero_subtitle }}</p>
         <div class="hero-btns reveal active">
+            {% if registration_open %}
             <a href="/apply" class="btn btn-gold">এখনই আবেদন করুন</a>
+            {% else %}
+            <a href="/apply" class="btn btn-gold btn-disabled-look"><i class="fas fa-lock"></i> আবেদন বন্ধ আছে</a>
+            {% endif %}
             <a href="#dates" class="btn btn-border">সময়সূচী</a>
         </div>
     </div>
@@ -238,7 +312,7 @@
 <section id="dates" class="section-padding container">
     <div class="section-header reveal">
         <h2>গুরুত্বপূর্ণ সময়সূচী</h2>
-        <div style="width: 40px; height: 3px; background: var(--gold); margin: 10px auto;"></div>
+        <div class="underline"></div>
     </div>
     <div class="dates-grid">
         {% for d in important_dates %}
@@ -277,6 +351,7 @@
 <section class="section-padding container">
     <div class="section-header reveal">
         <h2>কার্যক্রমের স্থিরচিত্র</h2>
+        <div class="underline"></div>
     </div>
     <div class="gallery-grid reveal">
         {% for img_url in gallery_images %}
@@ -309,6 +384,21 @@
             {% endif %}
         </div>
         {% endfor %}
+    </div>
+</section>
+
+<section class="cta-strip">
+    <div class="container cta-strip-inner">
+        <div>
+            <h3>আজই আপনার ভবিষ্যৎ গড়ার যাত্রা শুরু করুন</h3>
+            <p>রোল ও মোবাইল নম্বর দিয়ে ফলাফল যাচাই করুন অথবা নতুন আবেদন জমা দিন।</p>
+        </div>
+        <div class="cta-strip-btns">
+            {% if registration_open %}
+            <a href="/apply" class="btn btn-gold">আবেদন করুন</a>
+            {% endif %}
+            <a href="/result-search" class="btn btn-border-dark">ফলাফল দেখুন</a>
+        </div>
     </div>
 </section>
 

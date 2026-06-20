@@ -279,7 +279,7 @@
                         {% elif student.scholarship_grade == 'Suveccha' %}
                             <strong style="color: #2563eb;">শুভেচ্ছা পুরস্কার প্রাপ্ত</strong>
                         {% elif student.scholarship_grade == 'Quata' %}
-                            <strong style="color: #ec4899;">কোটা বৃত্তি প্রাপ্ত</strong>
+                            <strong style="color: #ec4899;">মেধাবৃত্তি প্রাপ্ত</strong>
                         {% else %}
                             <strong style="color: #64748b;">বৃত্তি পাওয়া যায়নি</strong>
                         {% endif %}
@@ -323,7 +323,7 @@
                         {% elif student.scholarship_grade == 'Suveccha' %}
                             শুভেচ্ছা পুরস্কার
                         {% elif student.scholarship_grade == 'Quata' %}
-                            কোটা বৃত্তি
+                            মেধাবৃত্তি
                         {% elif student.scholarship_grade and student.scholarship_grade != 'Nothing' %}
                             {{ student.scholarship_grade | upper }}
                         {% else %}

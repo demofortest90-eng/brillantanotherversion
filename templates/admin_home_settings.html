@@ -11,6 +11,37 @@
     {% endfor %}
     {% endwith %}
 
+    <!-- REGISTRATION ON/OFF -->
+    <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0; border-left:5px solid {{ '#10b981' if registration_open else '#ef4444' }};">
+        <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-toggle-on"></i> আবেদন (রেজিস্ট্রেশন) নিয়ন্ত্রণ</h3>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:15px;margin-bottom:18px;padding:14px 16px;background:{{ '#f0fdf4' if registration_open else '#fef2f2' }};border-radius:10px;">
+            <div>
+                <div style="font-weight:800;font-size:0.95rem;color:{{ '#065f46' if registration_open else '#991b1b' }};">
+                    <i class="fas fa-circle" style="font-size:0.6rem;"></i>
+                    বর্তমান অবস্থা: {{ 'রেজিস্ট্রেশন চালু আছে' if registration_open else 'রেজিস্ট্রেশন বন্ধ আছে' }}
+                </div>
+                <div style="font-size:0.8rem;color:#64748b;margin-top:4px;">
+                    {% if registration_open %}
+                    শিক্ষার্থীরা এখন /apply পেজ থেকে আবেদন জমা দিতে পারবে।
+                    {% else %}
+                    /apply পেজে গেলে শিক্ষার্থীরা একটি নির্ধারিত বার্তা দেখবে এবং আবেদন করতে পারবে না।
+                    {% endif %}
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('toggle_registration') }}" onsubmit="return confirm('{{ 'আবেদন বন্ধ করতে চান?' if registration_open else 'আবেদন চালু করতে চান?' }}');">
+                <button type="submit" style="background:{{ '#ef4444' if registration_open else '#10b981' }};color:#fff;border:none;padding:12px 22px;border-radius:8px;font-weight:700;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-power-off"></i> {{ 'রেজিস্ট্রেশন বন্ধ করুন' if registration_open else 'রেজিস্ট্রেশন চালু করুন' }}
+                </button>
+            </form>
+        </div>
+
+        <form method="POST" action="{{ url_for('update_registration_message') }}">
+            <label style="font-weight:700;font-size:0.85rem;display:block;margin-bottom:5px;">রেজিস্ট্রেশন বন্ধ থাকলে যে বার্তা দেখানো হবে</label>
+            <textarea name="registration_closed_message" rows="3" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:0.9rem;">{{ registration_closed_message }}</textarea>
+            <button type="submit" style="margin-top:10px;background:#020617;color:#C5A059;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;"><i class="fas fa-save"></i> বার্তা সংরক্ষণ করুন</button>
+        </form>
+    </div>
+
     <!-- HERO SLIDES -->
     <div style="background:#fff;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(0,0,0,0.07);margin-bottom:20px;border:1px solid #e2e8f0;">
         <h3 style="margin-bottom:15px;font-size:1.1rem;"><i class="fas fa-images"></i> কভার স্লাইড (হিরো ছবি)</h3>

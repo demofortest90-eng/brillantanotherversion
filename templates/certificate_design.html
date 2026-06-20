@@ -68,8 +68,16 @@
 
         /* --- নিখুঁত পজিশন ম্যাপিং (ইমেজ অনুযায়ী ক্যালিব্রেটেড) --- */
 
-        /* SI No. (শীর্ষ বামে) */
-        .sl-no { top: 14.5%; left: 21.5%; width: 70px; }
+        /* SI No. (শীর্ষ বামে) — সিরিয়াল নম্বরের জন্য আলাদা, স্পষ্ট, সহজপাঠ্য ফন্ট
+           ব্যবহার করা হয়েছে (cursive সার্টিফিকেট ফন্টের বদলে), যাতে ৪-সংখ্যার
+           সিরিয়াল সহজেই পড়া যায়। */
+        .sl-no {
+            top: 14.5%; left: 21.5%; width: 70px;
+            font-family: 'Courier New', 'Consolas', monospace !important;
+            font-style: normal !important;
+            font-weight: 700 !important;
+            letter-spacing: 1px;
+        }
 
         /* Registration No. (শীর্ষ ডানে) */
         .reg-no { top: 14.2%; right: 7.5%; width: 140px; justify-content: flex-start; }
@@ -100,7 +108,7 @@
 <body>
 
     <div class="cert-container">
-        <div class="field sl-no">{{ student.certificate_sl_no or '4263' }}</div>
+        <div class="field sl-no">{{ student.certificate_sl_no or '0001' }}</div>
         <div class="field reg-no">{{ student.reg_no or '1865593' }}</div>
 
         <div class="field exam-year">-{{ student.exam_year or '2026' }}</div>

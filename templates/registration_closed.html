@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}রেজিস্ট্রেশন বন্ধ | দ্য ব্রিলিয়ান্টস ফাউন্ডেশন{% endblock %}
+
+{% block content %}
+<style>
+    .closed-wrap {
+        display: flex; justify-content: center; align-items: center;
+        min-height: 65vh; padding: 20px;
+    }
+    .closed-card {
+        max-width: 520px; width: 100%; background: #fff;
+        border-radius: 16px; box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+        border-top: 6px solid var(--red, #ED1C24);
+        padding: 45px 35px; text-align: center;
+    }
+    .closed-icon {
+        width: 76px; height: 76px; border-radius: 50%;
+        background: #fef2f2; color: #dc2626;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2.1rem; margin: 0 auto 20px;
+    }
+    .closed-card h2 { font-size: 1.4rem; color: #1B2631; margin-bottom: 12px; }
+    .closed-card p { color: #64748b; font-size: 0.95rem; line-height: 1.7; }
+    .closed-actions { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .closed-btn {
+        padding: 11px 22px; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
+        text-decoration: none; transition: 0.2s;
+    }
+    .closed-btn.primary { background: #1B2631; color: #fff; }
+    .closed-btn.primary:hover { background: #0f1822; }
+    .closed-btn.outline { border: 1.5px solid #cbd5e1; color: #475569; }
+    .closed-btn.outline:hover { border-color: #94a3b8; background: #f8fafc; }
+</style>
+
+<div class="closed-wrap">
+    <div class="closed-card">
+        <div class="closed-icon"><i class="fas fa-lock"></i></div>
+        <h2>আবেদন গ্রহণ বর্তমানে বন্ধ আছে</h2>
+        <p>{{ closed_message }}</p>
+        <div class="closed-actions">
+            <a href="{{ url_for('notices') }}" class="closed-btn primary"><i class="fas fa-bullhorn"></i> নোটিশ দেখুন</a>
+            <a href="{{ url_for('landing') }}" class="closed-btn outline"><i class="fas fa-home"></i> হোম পেজে ফিরুন</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

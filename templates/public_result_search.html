@@ -9,6 +9,8 @@
     .search-header p { color: #7F8C8D; font-size: 14px; margin-top: 6px; }
     .inp { width: 100%; padding: 13px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 15px; outline: none; }
     .inp:focus { border-color: #922B21; }
+    .field-pair { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 480px) { .field-pair { grid-template-columns: 1fr 1fr; } }
     .btn-search { width: 100%; background: #922B21; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: 800; font-size: 15px; cursor: pointer; margin-top: 12px; letter-spacing: 0.5px; transition: 0.2s; }
     .btn-search:hover { background: #7B241C; }
 
@@ -47,7 +49,7 @@
     <div class="search-card">
         <div class="search-header">
             <h2><i class="fas fa-poll" style="color:#922B21;"></i> ফলাফল অনুসন্ধান</h2>
-            <p>দ্য ব্রিলিয়ান্টস ফাউন্ডেশন — বৃত্তি পরীক্ষা ২০২৬</p>
+            <p>রোল ও মোবাইল নম্বর দিয়ে ফলাফল যাচাই করুন</p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -57,9 +59,12 @@
         {% endwith %}
 
         <form method="POST">
-            <input type="hidden" id="search_type" name="search_type" value="roll">
-            <input class="inp" type="text" name="search_query" id="searchInput"
-                   placeholder="রোল নম্বর লিখুন" value="{{ request.form.get('search_query', '') }}">
+            <div class="field-pair">
+                <input class="inp" type="text" name="roll_no" id="rollInput"
+                       placeholder="রোল নম্বর" value="{{ request.form.get('roll_no', '') }}" required>
+                <input class="inp" type="tel" name="mobile" id="mobileInput" pattern="[0-9]{11}"
+                       placeholder="মোবাইল নম্বর (017XXXXXXXX)" value="{{ request.form.get('mobile', '') }}" required>
+            </div>
             <button type="submit" class="btn-search"><i class="fas fa-search"></i> ফলাফল খুঁজুন</button>
         </form>
     </div>
@@ -123,7 +128,7 @@
                 <div class="scholarship-badge sch-quata">
                     <span class="sch-icon">🎖️</span>
                     <div class="sch-label">বৃত্তির ধরন</div>
-                    <div class="sch-value">কোটা</div>
+                    <div class="sch-value">মেধাবৃত্তি</div>
                 </div>
                 {% elif g == 'Nothing' %}
                 <div class="scholarship-badge sch-nothing">

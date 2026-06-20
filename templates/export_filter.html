@@ -136,8 +136,9 @@
           <label><i class="fas fa-medal"></i> Scholarship Grade</label>
           <select name="grade" class="select-control">
             <option value="">All Grades</option>
+            {% set grade_display = {"Talentpool": "Talentpool", "General": "General", "Suveccha": "Suveccha", "Quata": "Medha Britti", "Nothing": "Nothing"} %}
             {% for g in grades %}
-            <option value="{{g}}">{{g}}</option>
+            <option value="{{g}}">{{ grade_display.get(g, g) }}</option>
             {% endfor %}
           </select>
         </div>

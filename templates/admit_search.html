@@ -49,7 +49,7 @@
         <div class="search-header">
             <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot-2026-01-20-020601-removebg-preview.png" alt="TBF Logo">
             <h2>প্রবেশপত্র ডাউনলোড</h2>
-            <p>প্রবেশপত্র পেতে রোল বা মোবাইল নম্বর দিন</p>
+            <p>প্রবেশপত্র পেতে রোল নম্বর ও মোবাইল নম্বর দিন</p>
         </div>
         
         <div class="search-body">
@@ -66,9 +66,14 @@
 
             <form action="{{ url_for('download_admit') }}" method="POST" id="admitForm">
                 <div class="form-group">
-                    <label><i class="fas fa-search"></i> রোল বা মোবাইল নম্বর</label>
-                    <input type="text" name="search_query" class="form-control"
-                           placeholder="যেমন: 10025 অথবা 017XXXXXXXX" required autofocus autocomplete="off">
+                    <label><i class="fas fa-id-card"></i> রোল নম্বর</label>
+                    <input type="text" name="roll_no" class="form-control"
+                           placeholder="যেমন: 10025" required autofocus autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-mobile-alt"></i> মোবাইল নম্বর</label>
+                    <input type="tel" name="mobile" class="form-control" pattern="[0-9]{11}"
+                           placeholder="যেমন: 017XXXXXXXX" required autocomplete="off">
                 </div>
 
                 <button type="submit" class="btn-search" id="submitBtn">
