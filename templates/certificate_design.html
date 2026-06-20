@@ -6,6 +6,22 @@
     <style>
         /* আসল সার্টিফিকেটের মতো ইটালিক ফন্ট */
         @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@1,600&display=swap');
+        @import url('https://fonts.maateen.me/kalpurush/font.css');
+
+        /* ===== Monotype Corsiva =====
+           যদি কম্পিউটারে ইনস্টল করা থাকে তাহলে সেটি ব্যবহার করবে;
+           না থাকলে static/fonts/ ফোল্ডার থেকে সেলফ-হোস্টেড ফাইল লোড করবে।
+           ফাইল দুটি static/fonts/ এ রাখুন: monotype-corsiva.woff2 ও monotype-corsiva.ttf */
+        @font-face {
+            font-family: 'Monotype Corsiva';
+            src: local('Monotype Corsiva'),
+                 local('MonotypeCorsiva'),
+                 url('/static/fonts/monotype-corsiva.woff2') format('woff2'),
+                 url('/static/fonts/monotype-corsiva.ttf') format('truetype');
+            font-style: normal;
+            font-weight: normal;
+            font-display: swap;
+        }
 
         /* প্রিন্ট সেটিংস: ব্যাকগ্রাউন্ড ইমেজ প্রিন্ট নিশ্চিত করতে */
         @media print {
@@ -13,14 +29,16 @@
             body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none; }
         }
-        
-        @import url('https://fonts.maateen.me/kalpurush/font.css');
+
+        /* সব টেক্সট Monotype Corsiva ফন্টে */
+        * {
+            font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", "Crimson Text", "Kalpurush", cursive !important;
+        }
 
         body {
             margin: 0; padding: 0;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; background: #555;
-            font-family: "Times New Roman", Times, "Kalpurush", Arial, sans-serif;
         }
 
         /* সার্টিফিকেট কন্টেইনার: A4 ল্যান্ডস্কেপ সাইজ */
@@ -45,10 +63,10 @@
             display: flex;
             align-items: center;
             color: #1a1a1a;
-            /* border: 1px solid red; */ /* পজিশন চেক করার সময় বর্ডারটি আনকমেন্ট করুন */
+            /* border: 1px solid red; */ /* পজিশন চেক করার সময় বর্ডারটি আনকমেন্ট করুন */
         }
 
-        /* --- নিখুঁত পজিশন ম্যাপিং (ইমেজ অনুযায়ী ক্যালিব্রেটেড) --- */
+        /* --- নিখুঁত পজিশন ম্যাপিং (ইমেজ অনুযায়ী ক্যালিব্রেটেড) --- */
 
         /* SI No. (শীর্ষ বামে) */
         .sl-no { top: 14.5%; left: 21.5%; width: 70px; }
@@ -101,7 +119,7 @@
     </div>
 
     <script>
-        // পেজ পুরোপুরি লোড হওয়ার ১ সেকেন্ড পর অটোমেটিক প্রিন্ট ডায়ালগ আসবে
+        // পেজ পুরোপুরি লোড হওয়ার ১ সেকেন্ড পর অটোমেটিক প্রিন্ট ডায়ালগ আসবে
         window.onload = function() {
             setTimeout(() => { 
                 window.print(); 

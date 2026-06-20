@@ -3,93 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <title>Admit_Cards_TBF</title>
+
+    <!-- Bangla fonts: Kalpurush (preferred) + Hind Siliguri (reliable fallback) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/css/kalpurush.css">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
-        
-        /* প্রিন্ট সেটিংস */
+        /* Robust Kalpurush fallback in case the CDN class above is unavailable */
+        @font-face {
+            font-family: 'Kalpurush';
+            src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/Kalpurush/Kalpurush.woff2') format('woff2'),
+                 url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/Kalpurush/Kalpurush.ttf') format('truetype');
+            font-display: swap;
+        }
+
+        :root {
+            --font-stack: "Times New Roman", 'Kalpurush', 'Hind Siliguri', Times, serif;
+            --bn-stack: 'Kalpurush', 'Hind Siliguri', sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
         @page {
             size: A4;
             margin: 0;
         }
 
-        body { 
-            font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif; 
-            background: #e0e0e0; 
-            margin: 0; 
-            padding: 0; 
-            color: #000; 
+        body {
+            font-family: var(--font-stack);
+            background: #e0e0e0;
+            margin: 0;
+            padding: 0;
+            color: #000;
         }
 
-        /* এটি নিশ্চিত করবে যে অ্যাডমিট কার্ডটি পাতার মাঝখানে থাকবে */
+        /* ===== One card per A4 page, centered (print pagination) ===== */
         .page-wrapper {
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
             background: white;
             display: flex;
-            justify-content: center; /* অনুভূমিক সেন্টার */
-            align-items: center;    /* উলম্ব সেন্টার */
+            justify-content: center;
+            align-items: center;
             page-break-after: always;
             box-sizing: border-box;
         }
 
+        /* ===== Outer double frame ===== */
+        .admit-frame {
+            width: 190mm;
+            margin: 0 auto;
+            border: 1.5px solid #000;
+            padding: 5px;
+            background: #fff;
+        }
         .admit-container {
-            width: 195mm; /* A4 এর ভেতর উপযুক্ত চওড়া */
-            background-color: #f2f2e1;
-            border: 2px solid #000; 
-            position: relative; 
-            box-shadow: none; /* প্রিন্টে শ্যাডো দরকার নেই */
-            box-sizing: border-box;
+            border: 1px solid #000;
+            padding: 18px 22px 14px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .top-line { height: 6px; background-color: #ff0000; width: 100%; }
-        
-        .header { display: flex; align-items: center; padding: 15px 20px; border-bottom: 2px solid #000; }
-        .logo { width: 85px; height: 85px; object-fit: contain; }
-        .header-title { flex-grow: 1; text-align: center; }
-        .org-bn { font-size: 28px; font-weight: bold; margin: 0; color: #000; }
-        .org-en { font-size: 20px; font-weight: bold; margin: 2px 0; color: #000; }
-        .reg-box { border: 1.5px solid #000; padding: 5px 12px; font-size: 14px; background: #fff; font-weight: bold; }
-        
-        .admit-label { text-align: center; font-size: 20px; font-weight: bold; text-decoration: underline; padding: 15px 0; }
-        
-        .main-content { display: flex; justify-content: space-between; padding: 0 30px 10px 30px; gap: 20px; }
-        .info-table { width: 72%; border-collapse: collapse; }
-        .info-table td { padding: 8px 5px; font-size: 17px; border-bottom: 1px dotted #ccc; }
-        .label { font-weight: bold; width: 180px; }
-        
-        .photo-area { width: 25%; display: flex; flex-direction: column; align-items: flex-end; }
-        .photo-box { width: 150px; height: 170px; border: 2px solid #000; background: #fff; overflow: hidden; }
-        .photo-box img { width: 100%; height: 100%; object-fit: cover; }
-
-        .instructions { 
-            border: 1.5px solid #000; 
-            margin: 20px 30px; 
-            padding: 10px; 
-            background: #fff; 
+        /* ===== Watermark ===== */
+        .watermark {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            opacity: 0.06;
+            pointer-events: none;
+            z-index: 0;
         }
-        .ins-title { 
-            text-align: center; 
-            font-weight: bold; 
-            font-size: 16px; 
-            border-bottom: 1px solid #000; 
-            margin-bottom: 8px; 
-            padding-bottom: 2px;
-        }
-        .ins-list { margin: 0; padding-left: 25px; list-style-type: none; }
-        .ins-list li { font-size: 13.5px; line-height: 1.6; position: relative; }
-        .ins-list li::before { position: absolute; left: -20px; font-weight: bold; }
-        
-        .ins-list li:nth-child(1)::before { content: "১. "; }
-        .ins-list li:nth-child(2)::before { content: "২. "; }
-        .ins-list li:nth-child(3)::before { content: "৩. "; }
-        .ins-list li:nth-child(4)::before { content: "৪. "; }
-        .ins-list li:nth-child(5)::before { content: "৫. "; }
+        .admit-container > *:not(.watermark) { position: relative; z-index: 1; }
 
-        .footer-sig { display: flex; justify-content: flex-end; margin: 30px 30px 20px; align-items: flex-end; }
-        .sig-wrapper { text-align: center; width: 200px; }
-        .footer-sig-img { width: 150px; height: 50px; object-fit: contain; margin-bottom: 5px; }
-        .sig-line { border-top: 1.5px solid #000; font-size: 14px; padding-top: 5px; font-weight: bold; }
+        /* ===== Header ===== */
+        .header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .logo { width: 78px; height: 78px; object-fit: contain; flex-shrink: 0; }
+        .header-title { flex-grow: 1; text-align: center; padding-top: 4px; }
+        .org-bn { font-family: "Kalpurush", sans-serif; font-size: 26px; font-weight: 700; margin: 0; }
+        .org-en { font-size: 21px; font-weight: 700; margin: 3px 0 1px; }
+        .org-reg { font-size: 13px; font-weight: 600; margin: 2px 0 0; }
+
+        .photo-box {
+            width: 120px; height: 95px;
+            border: 1.5px solid #000;
+            background: #fff;
+            padding: 3px;
+            flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; font-size: 11px; color: #333;
+            overflow: hidden;
+        }
+        .photo-box img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+
+        /* ===== Admit Card pill ===== */
+        .admit-pill-wrap { text-align: center; margin: 18px 0 16px; }
+        .admit-pill {
+            display: inline-block;
+            border: 1.5px solid #000;
+            border-radius: 30px;
+            padding: 5px 26px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .admit-pill .bn { font-family: "Kalpurush", sans-serif; font-weight: 700; }
+
+        /* ===== Info grid ===== */
+        table { border-collapse: collapse; width: 100%; }
+        .info-table td {
+            border: 1px solid #000;
+            padding: 6px 10px;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        .info-table .lbl { font-weight: 700; width: 150px; white-space: nowrap; }
+        .info-table .val { font-weight: 700; }
+        .info-table .val.bn { font-family: "Kalpurush", sans-serif; }
+        .full-row td { text-align: left; }
+        .full-row .val { text-align: center; font-weight: 700; letter-spacing: 0.5px; }
+
+        /* ===== Signature row ===== */
+        .sig-table { margin-top: 14px; }
+        .sig-table td {
+            border: 1px solid #000;
+            height: 90px;
+            vertical-align: bottom;
+            padding: 6px 10px;
+            width: 50%;
+            position: relative;
+        }
+        .sig-img-wrap { text-align: center; }
+        .sig-img-wrap img { max-height: 48px; max-width: 170px; object-fit: contain; }
+        .sig-caption { font-weight: 700; font-size: 13px; }
+        .sig-caption.bn { font-family: "Kalpurush", sans-serif; }
+        .sig-left .sig-caption { text-align: left; }
+        .sig-right .sig-caption { text-align: right; }
+
+        /* ===== Instructions ===== */
+        .instructions { border: 1px solid #000; margin-top: 16px; padding: 8px 12px 10px; }
+        .ins-title {
+            text-align: center; font-weight: 700; font-size: 16px;
+            font-family: "Kalpurush", sans-serif;
+            border-bottom: 1px solid #000; margin: 0 0 8px; padding-bottom: 4px;
+        }
+        .ins-list {
+            margin: 0; padding-left: 26px; list-style: none;
+            font-family: "Kalpurush", sans-serif;
+        }
+        .ins-list li { font-size: 13px; line-height: 1.7; position: relative; }
+        .ins-list li::before { position: absolute; left: -22px; font-weight: 700; }
+        .ins-list li:nth-child(1)::before { content: "১।"; }
+        .ins-list li:nth-child(2)::before { content: "২।"; }
+        .ins-list li:nth-child(3)::before { content: "৩।"; }
+        .ins-list li:nth-child(4)::before { content: "৪।"; }
+        .ins-list li:nth-child(5)::before { content: "৫।"; }
 
         @media print {
             body { background: none; }
@@ -102,59 +176,89 @@
 
     {% for student in students %}
     <div class="page-wrapper">
-        <div class="admit-container">
-            <div class="top-line"></div>
-            <div class="header">
-                <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" class="logo">
-                <div class="header-title">
-                    <h1 class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</h1>
-                    <p class="org-en">The Brilliants Foundation, Bogura</p>
-                </div>
-                <div class="reg-box">Reg No: S-9759/09</div>
-            </div>
+        <div class="admit-frame">
+            <div class="admit-container">
 
-            <div class="admit-label">ADMIT CARD (প্রবেশপত্র)</div>
+                <!-- Watermark -->
+                <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" class="watermark" alt="">
 
-            <div class="main-content">
-                <table class="info-table">
-                    <tr><td class="label">Roll No</td><td>: <b>{{ student.roll_no }}</b></td></tr>
-                    <tr><td class="label">Reg No</td><td>: <b>{{ student.reg_no }}</b></td></tr>
-                    <tr><td class="label">Student Name</td><td>: {{ student.name_bn }}</td></tr>
-                    <tr><td class="label">Father's Name</td><td>: {{ student.father_bn or student.father_name }}</td></tr>
-                    <tr><td class="label">Mother's Name</td><td>: {{ student.mother_bn or student.mother_name }}</td></tr>
-                    <tr><td class="label">Institution</td><td>: {{ student.institute_en or 'Not Specified' }}</td></tr>
-                    <tr><td class="label">Class/Group</td><td>: {{ student.student_class }}</td></tr>
-                    <tr>
-                        <td class="label">Exam Center</td>
-                        <td>: {{ student.center_name }}</td> 
-                    </tr>
-                    <tr><td class="label">Date & Time</td><td>: {{ admit_settings.exam_datetime if admit_settings else '20 Jan 2026, 10:00 AM' }}</td></tr>
-                </table>
-                <div class="photo-area">
+                <!-- Header -->
+                <div class="header">
+                    <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" class="logo" alt="Logo">
+                    <div class="header-title">
+                        <h1 class="org-bn" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</h1>
+                        <p class="org-en">The Brilliants Foundation, Bogura</p>
+                        <p class="org-reg">Reg No: S-9759</p>
+                    </div>
                     <div class="photo-box">
-                        {% if student.photo_url %}
-                            <img src="{{ student.photo_url }}">
-                        {% endif %}
+                        {% if student.photo_url %}<img src="{{ student.photo_url }}" alt="Photo">{% else %}Passport Size<br>Photograph{% endif %}
                     </div>
                 </div>
-            </div>
 
-            <div class="instructions">
-                <div class="ins-title">নিয়মাবলী</div>
-                <ul class="ins-list">
-                    <li>পরীক্ষার্থীকে পরীক্ষা শুরুর অন্তত ৩০ মিনিট পূর্বে কেন্দ্রে উপস্থিত হতে হবে।</li>
-                    <li>প্রবেশপত্র ছাড়া কোনো পরীক্ষার্থীকে পরীক্ষা কক্ষে প্রবেশ করতে দেওয়া হবে না।</li>
-                    <li>পরীক্ষা কক্ষে মোবাইল ফোন বা কোনো প্রকার ইলেকট্রনিক ডিভাইস আনা সম্পূর্ণ নিষিদ্ধ।</li>
-                    <li>উত্তরপত্রে কোনো প্রকার ঘষাঘষি বা কাটাকাটি করা যাবে না।</li>
-                    <li>পরীক্ষার্থীকে অবশ্যই কেন্দ্রের শৃঙ্খলা ও নিয়মকানুন মেনে চলতে হবে।</li>
-                </ul>
-            </div>
-
-            <div class="footer-sig">
-                <div class="sig-wrapper">
-                    <img src="{{ admit_settings.signature_image if admit_settings else 'https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png' }}" class="footer-sig-img">
-                    <div class="sig-line">{{ admit_settings.signature_title if admit_settings else 'পরীক্ষা নিয়ন্ত্রক' }}</div>
+                <!-- Admit Card pill -->
+                <div class="admit-pill-wrap">
+                    <span class="admit-pill">Admit Card <span class="bn" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">(প্রবেশপত্র)</span></span>
                 </div>
+
+                <!-- Info grid -->
+                <table class="info-table">
+                    <tr>
+                        <td class="lbl">Name of Examinee</td>
+                        <td class="val bn" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">{{ student.name_bn }}</td>
+                        <td class="lbl">Roll No.</td>
+                        <td class="val">{{ student.roll_no }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Father's Name</td>
+                        <td class="val bn" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">{{ student.father_bn or student.father_name }}</td>
+                        <td class="lbl">Registration No.</td>
+                        <td class="val">{{ student.reg_no }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Mother's Name</td>
+                        <td class="val bn" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">{{ student.mother_bn or student.mother_name }}</td>
+                        <td class="lbl">Class / Group</td>
+                        <td class="val">{{ student.student_class }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Institution</td>
+                        <td class="val">{{ student.institute_en or 'Not Specified' }}</td>
+                        <td class="lbl">Date &amp; Time</td>
+                        <td class="val">{{ admit_settings.exam_datetime if admit_settings else '20 Jan 2026, 10:00 AM' }}</td>
+                    </tr>
+                    <tr class="full-row">
+                        <td class="lbl">Exam Center</td>
+                        <td class="val" colspan="3">{{ student.center_name }}</td>
+                    </tr>
+                </table>
+
+                <!-- Signature row -->
+                <table class="sig-table">
+                    <tr>
+                        <td class="sig-left">
+                            <div class="sig-caption">Student's Signature</div>
+                        </td>
+                        <td class="sig-right">
+                            <div class="sig-img-wrap">
+                                <img src="{{ admit_settings.signature_image if admit_settings else 'https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png' }}" alt="Signature">
+                            </div>
+                            <div class="sig-caption bn" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">{{ admit_settings.signature_title if admit_settings else 'পরীক্ষা নিয়ন্ত্রক' }}</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Instructions -->
+                <div class="instructions">
+                    <div class="ins-title" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">পরীক্ষার্থীদের জন্য নির্দেশাবলী</div>
+                    <ul class="ins-list" style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">
+                        <li style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">পরীক্ষার্থীকে পরীক্ষা শুরুর অন্তত ৩০ মিনিট পূর্বে কেন্দ্রে উপস্থিত হতে হবে।</li>
+                        <li style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">প্রবেশপত্র ছাড়া কোনো পরীক্ষার্থীকে পরীক্ষা কক্ষে প্রবেশ করতে দেওয়া হবে না।</li>
+                        <li style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">পরীক্ষা কক্ষে মোবাইল ফোন বা কোনো প্রকার ইলেকট্রনিক ডিভাইস আনা সম্পূর্ণ নিষিদ্ধ।</li>
+                        <li style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">উত্তরপত্রে কোনো প্রকার ঘষাঘষি বা কাটাকাটি করা যাবে না।</li>
+                        <li style="font-family: 'Kalpurush', 'Hind Siliguri', sans-serif;">পরীক্ষার্থীকে অবশ্যই কেন্দ্রের শৃঙ্খলা ও নিয়মকানুন মেনে চলতে হবে।</li>
+                    </ul>
+                </div>
+
             </div>
         </div>
     </div>

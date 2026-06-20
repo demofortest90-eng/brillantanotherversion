@@ -33,7 +33,7 @@
             margin: 0; 
             padding: 0;
             background: #555; /* প্রিভিউ দেখার জন্য ডার্ক ব্যাকগ্রাউন্ড */
-            font-family: "Times New Roman", Times, "Kalpurush", Arial, sans-serif;
+            font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", "Crimson Text", "Kalpurush", cursive;
         }
 
         /* প্রতিটি সার্টিফিকেটের জন্য আলাদা পেজ কন্টেইনার */
@@ -54,7 +54,7 @@
             background-repeat: no-repeat;
             background-color: white;
             color: #000;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); /* প্রিভিউতে গভীরতা দেওয়ার জন্য */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); /* প্রিভিউতে গভীরতা দেওয়ার জন্য */
         }
 
         @media print {
@@ -66,6 +66,7 @@
         /* ডাটা ফিল্ডের কমন স্টাইল */
         .field {
             position: absolute;
+            font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", "Crimson Text", "Kalpurush", cursive;
             font-size: 20px;
             font-style: italic;
             font-weight: 600;
@@ -74,7 +75,7 @@
             color: #1a1a1a;
         }
 
-        /* পজিশনিং (আপনার দেওয়া ম্যাপিং অনুযায়ী) */
+        /* পজিশনিং (আপনার দেওয়া ম্যাপিং অনুযায়ী) */
         .sl-no { top: 14.5%; left: 21.5%; width: 70px; }
         .reg-no { top: 14.2%; right: 7.5%; width: 140px; justify-content: flex-start; }
         .exam-year { top: 32.5%; left: 62.5%; font-size: 28px; }
@@ -124,7 +125,7 @@
     {% endfor %}
 
     <script>
-        // পেজ লোড হওয়ার পর অটোমেটিক প্রিন্ট ডায়ালগ
+        // পেজ লোড হওয়ার পর অটোমেটিক প্রিন্ট ডায়ালগ
         window.onload = function() {
             setTimeout(() => { 
                 window.print(); 

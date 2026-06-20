@@ -62,11 +62,6 @@
                    placeholder="রোল নম্বর লিখুন" value="{{ request.form.get('search_query', '') }}">
             <button type="submit" class="btn-search"><i class="fas fa-search"></i> ফলাফল খুঁজুন</button>
         </form>
-
-        <a href="{{ url_for('institute_result_search') }}"
-           style="display:block; text-align:center; margin-top:10px; background:#922B21; color:white; padding:13px; border-radius:10px; font-weight:800; font-size:14px; text-decoration:none;">
-            <i class="fas fa-school"></i> শিক্ষক/প্রতিষ্ঠান অনুসন্ধান (Institute-wise Search)
-        </a>
     </div>
 
     {% if student %}

@@ -4,108 +4,298 @@
 <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+{#
+    EXPECTED CONTEXT (pass these from your Flask route):
+
+    org = {
+        'name_bn': 'দ্যা ব্রিলিয়ান্টস্ ফাউন্ডেশন,বগুড়া',
+        'name_en': "The Brilliant's Foundation,Bogura",
+        'reg_no': 'S-9759',
+        'address': 'ব্রিলিয়ান্টস্ হাউজ,সবুজবাগ,বগুড়া।',
+        'mobile': '০১৭৮০-২৭৭৪৪৩',
+        'email': 'tbfbogura2002@gmail.com',
+        'logo_url': 'https://...'
+    }
+
+    notice_date = '১৭/০৩/২০২৬ ইং'   # top-right corner date
+
+    announcement = {
+        'exam_label': 'বৃত্তি পরীক্ষা-২০২৫',
+        'exam_date': '২৫/১২/২০২৫',
+        'center_count': '৯',
+        'sub_center_count': '১',
+        'centers': ['সারিয়াকান্দি', 'গাবতলী', ... ],   # list of center names (Bengali)
+        'result_date': '১৭ই মার্চ ২০২৬',
+        'result_time': 'দুপুর ২.০০',
+        'recipient_name': 'শাহরিয়ার হাসান বিপ্লব',      # MD receiving result
+        'giver_name': 'রাকিবুল ইসলাম রবিন',             # exam controller handing over
+        'present_persons': ['পরিচালক তৌফিকুল ইসলাম তাকি', 'সদস্য সচিব তাহিরুল হাবিব', 'রেজিস্টার মানিক মিয়া', 'কার্যনির্বাহী সদস্যবৃন্দ'],
+        'total_examinees': '৪৪০১',
+        'talentpool_count': '৪৮',
+        'general_count': '১৭৩',
+        'institutional_merit_count': '৮৭',
+        'susveccha_count': '২৯৮',
+        'total_awarded': '৬০৬',
+        'fb_link': 'https://www.facebook.com/thebrilliantsbogura',
+        'top_school_roll': '২৫৬৫২০৪',
+        'top_madrasha_roll': '২৫৫৫০৯২',
+    }
+
+    classes = [   # one entry per class, in display order
+        {
+            'class_display': '৫ম',
+            'talentpool': ['২৫১৫০৪৬', '২৫১৫০৫০', ...],         # Bengali-digit roll number strings
+            'general': ['২৫১৫০০২', '২৫১৫০১০', ...],
+            'institutional_merit': ['২৫১৫০০১', '২৫১৫০৪৫', ...],
+            'shuveccha': ['২৫১৫০০৮', '২৫১৫০০৯', ...],
+        },
+        ...
+    ]
+
+    signatories = [
+        {'name': 'রাকিবুল ইসলাম রবিন', 'title': 'পরীক্ষা নিয়ন্ত্রক', 'date': '১৭.০৩.২৬', 'signature_image': 'https://...'},
+        {'name': 'তৌফিকুল ইসলাম তাকি', 'title': 'পরিচালক', 'date': '১৭.৩.২৬', 'signature_image': 'https://...'},
+        {'name': 'শাহরিয়ার হাসান বিপ্লব', 'title': 'মহাপরিচালক', 'date': '১৭.৩.২৬', 'signature_image': 'https://...'},
+    ]
+#}
+
+{% macro render_rolls(rolls) -%}
+    {%- for r in rolls -%}
+        {%- if r == announcement.top_school_roll or r == announcement.top_madrasha_roll -%}
+            <span class="roll-highlight">{{ r }}</span>
+        {%- else -%}
+            {{ r }}
+        {%- endif -%}
+        {%- if not loop.last %}, {% endif -%}
+    {%- endfor -%}
+{%- endmacro %}
+
 <style>
     :root {
         --sheet-bg: #f2f2e1;
         --border-color: #000;
     }
 
-    /* ২. পুরো বডিতে বাংলা ফন্ট সেট করুন */
     #report-container {
-        max-width: 1150px;
+        max-width: 900px;
         margin: 0 auto;
         background: var(--sheet-bg);
         border: 2px solid var(--border-color);
-        font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif; 
+        font-family: "Times New Roman", Times, serif, "Kalpurush", "Hind Siliguri", Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
+        padding: 30px 35px;
+        position: relative;
+    }
+
+    .notice-date {
+        position: absolute;
+        top: 12px;
+        right: 18px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .bismillah-line {
+        text-align: center;
+        font-size: 15px;
+        margin-bottom: 6px;
     }
 
     .sheet-header {
         display: flex;
-        justify-content: space-between;
+        justify-content: center;
         align-items: center;
-        padding: 25px 40px;
+        gap: 18px;
         border-bottom: 2px solid var(--border-color);
+        padding-bottom: 14px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
     }
 
-    .title-bn {
-        font-size: 38px;
-        font-weight: 700;
-        margin: 0;
-        color: #000;
-        line-height: 1.2;
-    }
+    .logo-side img { width: 78px; height: 78px; object-fit: contain; }
 
-    .title-en { font-size: 24px; font-weight: 700; margin: 0; }
-    
-    .exam-tag {
-        font-size: 20px;
-        font-weight: 600;
-        margin-top: 5px;
-        border-top: 1px solid #000;
-        padding-top: 2px;
-    }
+    .header-mid { text-align: center; }
 
-    .reg-label-box {
-        border: 2px solid #000;
-        padding: 5px 15px;
-        background: #fff;
-        font-weight: bold;
+    .title-bn { font-size: 30px; font-weight: 700; margin: 0; line-height: 1.2; }
+    .title-en { font-size: 18px; font-weight: 700; margin: 2px 0 0; }
+    .reg-line { font-size: 13px; font-weight: 600; margin: 4px 0 0; }
+
+    .org-contact {
         text-align: center;
+        font-size: 12.5px;
+        margin-bottom: 14px;
+        line-height: 1.6;
     }
 
-    .summary-table { width: 100%; border-collapse: collapse; }
-    .summary-table th { background: #4a5568; color: #fff; padding: 12px; border: 1px solid #000; }
-    .summary-table td { padding: 15px; border: 1px solid #000; text-align: center; font-size: 14px; }
-    
-    .class-name { font-size: 24px; font-weight: 800; }
+    .exam-title-banner {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+        margin: 10px 0 16px;
+    }
+
+    .announcement-text {
+        font-size: 14.5px;
+        line-height: 1.9;
+        text-align: justify;
+        margin-bottom: 6px;
+    }
+
+    .top-scorers-line {
+        font-size: 14.5px;
+        font-weight: 700;
+        margin: 10px 0 18px;
+    }
+
+    .section-label {
+        font-size: 15px;
+        font-weight: 700;
+        margin: 6px 0 10px;
+        text-decoration: underline;
+    }
+
+    .roll-table { width: 100%; border-collapse: collapse; margin-bottom: 22px; }
+    .roll-table th, .roll-table td {
+        border: 1px solid #000;
+        padding: 8px 10px;
+        font-size: 13.5px;
+    }
+    .roll-table th { background: #4a5568; color: #fff; text-align: center; }
+    .roll-table .class-name { font-size: 18px; font-weight: 800; text-align: center; white-space: nowrap; }
+    .roll-table .roll-cell { line-height: 1.8; }
+
+    .roll-highlight {
+        border: 1.5px solid #c0392b;
+        padding: 1px 4px;
+        font-weight: 700;
+        display: inline-block;
+    }
+
+    .signature-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+        margin-top: 50px;
+        flex-wrap: wrap;
+    }
+
+    .sig-block { text-align: center; flex: 1 1 200px; }
+    .sig-img { max-width: 130px; max-height: 50px; object-fit: contain; }
+    .sig-date { font-size: 12px; }
+    .sig-name { font-weight: 700; font-size: 14px; margin-top: 2px; }
+    .sig-title { font-size: 13px; }
+    .sig-org { font-size: 12px; }
 
     .action-bar { text-align: center; margin-top: 20px; }
     .btn { padding: 10px 25px; cursor: pointer; border-radius: 5px; font-weight: bold; border: none; color: white; margin: 5px; }
     .btn-pdf { background: #3b82f6; }
     .btn-print { background: #64748b; }
 
-    @media print { .no-print { display: none; } }
+    .avoid-break { page-break-inside: avoid; }
+
+    @media print {
+        .no-print { display: none; }
+    }
 </style>
 
 <div class="result-body" style="background:#e2e8f0; padding: 40px 20px;">
     <div id="report-container">
-        <div class="sheet-header">
+
+        <span class="notice-date">তারিখ: {{ notice_date }}</span>
+
+        <div class="bismillah-line avoid-break">বিসমিল্লাহির রাহমানির রাহিম</div>
+
+        <div class="sheet-header avoid-break">
             <div class="logo-side">
-                <img src="https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png" style="width: 90px;">
+                <img src="{{ org.logo_url if org else 'https://i.postimg.cc/SsLDX6WZ/Screenshot_2026_01_20_020601_removebg_preview.png' }}">
             </div>
-            <div class="header-mid" style="text-align: center;">
-                <h1 class="title-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</h1>
-                <p class="title-en">The Brilliants Foundation, Bogura</p>
-                <div class="exam-tag">বৃত্তি পরীক্ষা ২০২৬ এর ফলাফল</div>
-            </div>
-            <div class="reg-side">
-                <div class="reg-label-box">জাতীয় রেজি. নং<br>S-9759/09</div>
+            <div class="header-mid">
+                <h1 class="title-bn">{{ org.name_bn if org else 'দ্যা ব্রিলিয়ান্টস্ ফাউন্ডেশন,বগুড়া' }}</h1>
+                <p class="title-en">{{ org.name_en if org else "The Brilliant's Foundation,Bogura" }}</p>
+                <p class="reg-line">জাতীয় রেজিঃ নং- {{ org.reg_no if org else 'S-9759' }}</p>
             </div>
         </div>
 
-        <table class="summary-table">
+        <div class="org-contact avoid-break">
+            প্রধান কার্যালয়ঃ {{ org.address if org else 'ব্রিলিয়ান্টস্ হাউজ,সবুজবাগ,বগুড়া।' }}<br>
+            মোবাইলঃ {{ org.mobile if org else '০১৭৮০-২৭৭৪৪৩' }} &nbsp; E-mail: {{ org.email if org else 'tbfbogura2002@gmail.com' }}
+        </div>
+
+        <div class="exam-title-banner avoid-break">
+            "{{ org.name_bn if org else 'দ্যা ব্রিলিয়ান্টস্ ফাউন্ডেশন,বগুড়া' }}" {{ announcement.exam_label }} এর ফলাফল প্রকাশ
+        </div>
+
+        <div class="announcement-text">
+            গত {{ announcement.exam_date }} ইং তারিখে "{{ org.name_bn if org else 'দ্যা ব্রিলিয়ান্টস্ ফাউন্ডেশন,বগুড়া' }}" এর
+            {{ announcement.exam_label }} বগুড়ার {{ announcement.center_count }} টি কেন্দ্র এবং {{ announcement.sub_center_count }} টি
+            সাব কেন্দ্র যথাক্রমে {{ announcement.centers | join(', ') }} একযোগে অনুষ্ঠিত হয়। উক্ত পরীক্ষার ফলাফল
+            {{ announcement.result_date }} ইং {{ announcement.result_time }} ঘটিকায় নিজস্ব কার্যালয়ে ফাউন্ডেশনের মহাপরিচালক জনাব
+            {{ announcement.recipient_name }}-এর নিকট হস্তান্তর করেন ফাউন্ডেশনের পরীক্ষা নিয়ন্ত্রক {{ announcement.giver_name }}।
+            এতে উপস্থিত ছিলেন ফাউন্ডেশনের {{ announcement.present_persons | join(', ') }}। বৃত্তি পরীক্ষায়
+            {{ announcement.total_examinees }} জন ছাত্র-ছাত্রী অংশগ্রহণ করেন। যার মধ্যে এবারের ফলাফলে ট্যালেন্টপুল গ্রেডে
+            {{ announcement.talentpool_count }} জন, জেনারেল গ্রেডে {{ announcement.general_count }} জন, প্রাতিষ্ঠানিক মেধায়
+            {{ announcement.institutional_merit_count }} জন ও শুভেচ্ছা গ্রেডে {{ announcement.susveccha_count }} জন সহ সর্বমোট
+            {{ announcement.total_awarded }} জন বৃত্তি পেয়েছে। ফলাফল পরীক্ষার কেন্দ্র ও ফাউন্ডেশনের ফেসবুক পেজে দেখা যাবে। যার লিংক
+            নিচে দেয়া হলো ({{ announcement.fb_link }})
+        </div>
+
+        <div class="top-scorers-line">
+            এ বছর স্কুল ও মাদ্রাসা পর্যায়ে শ্রেষ্ঠ যারা, স্কুল: রোল- {{ announcement.top_school_roll }} এবং মাদ্রাসা: রোল- {{ announcement.top_madrasha_roll }}
+        </div>
+
+        <div class="section-label">বৃত্তি প্রাপ্তদের রোল নম্বর নিম্নরূপ:</div>
+
+        <table class="roll-table">
             <thead>
                 <tr>
-                    <th style="width: 15%;">Class</th>
-                    <th>Talent pool</th>
-                    <th>General</th>
-                    <th>Institutional Merit</th>
-                    <th>Greeting</th>
+                    <th style="width: 10%;">শ্রেণী</th>
+                    <th style="width: 30%;">ট্যালেন্টপুল</th>
+                    <th style="width: 35%;">জেনারেল</th>
+                    <th style="width: 25%;">প্রাতিষ্ঠানিক মেধা</th>
                 </tr>
             </thead>
             <tbody>
-                {% for row in summary_data %}
+                {% for cls in classes %}
                 <tr>
-                    <td class="class-name">{{ row.class_display }}</td>
-                    <td>{{ row.Talentpool if row.Talentpool else '---' }}</td>
-                    <td>{{ row.General if row.General else '---' }}</td>
-                    <td>{{ row.Suveccha if row.Suveccha else '---' }}</td>
-                    <td>{{ row.Quata if row.Quata else '---' }}</td>
+                    <td class="class-name">{{ cls.class_display }}</td>
+                    <td class="roll-cell">{{ render_rolls(cls.talentpool) }}</td>
+                    <td class="roll-cell">{{ render_rolls(cls.general) }}</td>
+                    <td class="roll-cell">{{ render_rolls(cls.institutional_merit) }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        <table class="roll-table">
+            <thead>
+                <tr><th colspan="{{ classes|length }}">শুভেচ্ছা</th></tr>
+                <tr>
+                    {% for cls in classes %}
+                    <th>{{ cls.class_display }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for cls in classes %}
+                    <td class="roll-cell">{{ render_rolls(cls.shuveccha) }}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="signature-row avoid-break">
+            {% for sig in signatories %}
+            <div class="sig-block">
+                <img src="{{ sig.signature_image }}" class="sig-img" alt="Signature"><br>
+                <span class="sig-date">{{ sig.date }}</span>
+                <div class="sig-name">{{ sig.name }}</div>
+                <div class="sig-title">{{ sig.title }}</div>
+                <div class="sig-org">{{ org.name_bn if org else 'দ্যা ব্রিলিয়ান্টস্ ফাউন্ডেশন,বগুড়া' }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
     </div>
 
     <div class="action-bar no-print">
@@ -117,23 +307,22 @@
 <script>
     function generatePDF() {
         const element = document.getElementById('report-container');
-        
-        // ৩. কনফিগারেশনে 'letterRendering' এবং 'useCORS' নিশ্চিত করুন
+
         const options = {
-            margin: 0.2,
-            filename: 'Scholarship_Result_2026.pdf',
+            margin: 0.3,
+            filename: 'Scholarship_Result_{{ announcement.exam_label if announcement else "2026" }}.pdf',
             image: { type: 'jpeg', quality: 1.0 },
-            html2canvas: { 
-                scale: 3, // রেজোলিউশন বাড়াতে ৩ ব্যবহার করুন
-                useCORS: true, 
-                letterRendering: false, // এটি false রাখাই বাংলার জন্য ভালো
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                letterRendering: false,
                 allowTaint: false,
                 logging: false
             },
-            jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['css', 'legacy'] }
         };
 
-        // ৪. পিডিএফ জেনারেট করার আগে ইমেজ লোড হতে সময় দিন
         html2pdf().set(options).from(element).save();
     }
 </script>

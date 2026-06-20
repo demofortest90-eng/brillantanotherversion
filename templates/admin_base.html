@@ -204,6 +204,9 @@
             <a href="{{ url_for('print_result') }}" class="{{ 'active' if request.endpoint == 'print_result' }}">
                 <i class="fas fa-file-invoice"></i> ফলাফল প্রিন্ট
             </a>
+            <a href="{{ url_for('admin_result_settings') }}" class="{{ 'active' if request.endpoint == 'admin_result_settings' }}">
+                <i class="fas fa-file-invoice"></i> ফলাফল Settings
+            </a>
             <a href="{{ url_for('admin_certificates') }}" class="{{ 'active' if request.endpoint == 'admin_certificates' }}">
                 <i class="fas fa-certificate"></i> সার্টিফিকেট প্রিন্ট
             </a>
