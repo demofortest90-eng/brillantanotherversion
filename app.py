@@ -331,6 +331,113 @@ def get_cert_settings():
     }
 
 # =====================================================================
+# CERTIFICATE FIELD LAYOUT (drag-and-drop editor)
+# ---------------------------------------------------------------------
+# Each field's position is stored as percentages of the 1123x794 (A4
+# landscape) certificate container, plus a font-size in px. These are the
+# canonical defaults (calibrated against static/img/certificate_original.jpg).
+# Admins can drag every field in Admin -> সার্টিফিকেট লেআউট to override these,
+# and the saved layout is applied to both single and bulk certificate prints.
+# =====================================================================
+
+# Ordered so the editor lists them in a sensible top-to-bottom order.
+CERT_FIELD_LABELS = [
+    ("sl-no",            "SI / Serial No"),
+    ("reg-no",           "Registration No"),
+    ("exam-year",        "Exam Year"),
+    ("student-name",     "Student Name"),
+    ("father-name",      "Father's Name"),
+    ("student-class",    "Class"),
+    ("institute",        "Institute"),
+    ("roll-no",          "Roll No"),
+    ("center-name",      "Center Name"),
+    ("scholarship-grade","Scholarship Grade"),
+    ("pub-date",         "Publication Date"),
+    ("signature-block",  "Signature Block"),
+]
+
+# Sample values shown inside each field while editing.
+CERT_FIELD_SAMPLES = {
+    "sl-no": "4263",
+    "reg-no": "1865593",
+    "exam-year": "-2026",
+    "student-name": "MD. SAMPLE STUDENT NAME",
+    "father-name": "MD. SAMPLE FATHER NAME",
+    "student-class": "8",
+    "institute": "SAMPLE HIGH SCHOOL",
+    "roll-no": "101",
+    "center-name": "Brilliants Center",
+    "scholarship-grade": "General",
+    "pub-date": "30-03-2026",
+    "signature-block": "স্বাক্ষর",
+}
+
+DEFAULT_CERT_LAYOUT = {
+    "sl-no":             {"top": 14.5, "left": 21.5, "width": 6.2,   "font_size": 20},
+    "reg-no":            {"top": 14.2, "left": 80.0, "width": 12.5,  "font_size": 20},
+    "exam-year":         {"top": 32.5, "left": 62.5, "width": 12.0,  "font_size": 28},
+    "student-name":      {"top": 49.3, "left": 26.0, "width": 63.0,  "font_size": 30},
+    "father-name":       {"top": 56.0, "left": 24.0, "width": 64.0,  "font_size": 20},
+    "student-class":     {"top": 61.6, "left": 24.0, "width": 8.9,   "font_size": 20},
+    "institute":         {"top": 61.6, "left": 45.0, "width": 46.0,  "font_size": 20},
+    "roll-no":           {"top": 67.0, "left": 17.0, "width": 10.7,  "font_size": 20},
+    "center-name":       {"top": 67.0, "left": 31.5, "width": 18.7,  "font_size": 20},
+    "scholarship-grade": {"top": 67.0, "left": 75.3, "width": 10.7,  "font_size": 20},
+    "pub-date":          {"top": 83.0, "left": 18.0, "width": 14.25, "font_size": 20},
+    "signature-block":   {"top": 70.0, "left": 63.5, "width": 22.0,  "font_size": 15},
+}
+
+
+def _coerce_layout_entry(default, raw):
+    """Merge one saved field entry over its default, keeping only valid
+    numeric values within sane bounds."""
+    out = dict(default)
+    if not isinstance(raw, dict):
+        return out
+    for key in ("top", "left", "width", "font_size"):
+        if key in raw:
+            try:
+                val = float(raw[key])
+            except (TypeError, ValueError):
+                continue
+            if key == "font_size":
+                val = max(6.0, min(120.0, val))
+            else:
+                val = max(0.0, min(100.0, val))
+            out[key] = round(val, 2)
+    return out
+
+
+def get_cert_layout():
+    """Return the full field-layout map (saved values merged over defaults).
+    Always contains every field key, so templates never KeyError."""
+    s = mongo.db.cert_settings.find_one({"key": "cert"}) or {}
+    saved = s.get("layout") or {}
+    layout = {}
+    for field, default in DEFAULT_CERT_LAYOUT.items():
+        layout[field] = _coerce_layout_entry(default, saved.get(field))
+    return layout
+
+
+def build_cert_field_styles(layout=None):
+    """Turn the layout map into inline CSS strings, one per field. These are
+    injected onto each field element in the certificate templates and override
+    the positions defined in the template's <style> block. `right:auto` is
+    always set so fields originally anchored from the right snap to `left`."""
+    if layout is None:
+        layout = get_cert_layout()
+    styles = {}
+    for field, pos in layout.items():
+        styles[field] = (
+            "top:{top}%; left:{left}%; right:auto; "
+            "width:{width}%; font-size:{fs}px;".format(
+                top=pos["top"], left=pos["left"],
+                width=pos["width"], fs=pos["font_size"],
+            )
+        )
+    return styles
+
+# =====================================================================
 # PARTICIPANT SUMMARY REPORT HELPERS (gender x school/madrasha breakdown
 # + manually recorded exam-day attendance, matching the official sheet)
 # =====================================================================
@@ -856,7 +963,8 @@ def download_scholarship_certificate():
     cert_date, cert_signature = get_certificate_date_and_signature(student)
     return render_template('certificate_design.html', student=student,
                            center_name=center_name, cert_date=cert_date,
-                           cert_signature=cert_signature)
+                           cert_signature=cert_signature,
+                           field_styles=build_cert_field_styles())
 
 @app.route('/logout')
 def logout():
@@ -1750,6 +1858,51 @@ def admin_certificate_settings():
         return redirect(url_for('admin_certificate_settings'))
     return render_template('admin_certificate_settings.html', s=get_cert_settings())
 
+
+@app.route('/admin/certificate-layout', methods=['GET'])
+def admin_certificate_layout():
+    """Drag-and-drop editor: position every certificate field over the real
+    background image, then save. Saved positions are used by both the single
+    and bulk certificate prints."""
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    return render_template(
+        'admin_certificate_layout.html',
+        layout=get_cert_layout(),
+        defaults=DEFAULT_CERT_LAYOUT,
+        fields=CERT_FIELD_LABELS,
+        samples=CERT_FIELD_SAMPLES,
+    )
+
+
+@app.route('/admin/certificate-layout/save', methods=['POST'])
+def save_certificate_layout():
+    """Persist the dragged field layout (JSON body: {field: {top,left,width,
+    font_size}}). Each value is validated/clamped before saving."""
+    if not session.get('admin_logged_in'):
+        return jsonify({"ok": False, "error": "auth"}), 403
+    payload = request.get_json(silent=True) or {}
+    incoming = payload.get("layout", payload)
+    clean = {}
+    for field, default in DEFAULT_CERT_LAYOUT.items():
+        clean[field] = _coerce_layout_entry(default, incoming.get(field))
+    mongo.db.cert_settings.update_one(
+        {"key": "cert"}, {"$set": {"layout": clean}}, upsert=True
+    )
+    return jsonify({"ok": True, "layout": clean})
+
+
+@app.route('/admin/certificate-layout/reset', methods=['POST'])
+def reset_certificate_layout():
+    """Remove the custom layout so certificates fall back to the built-in
+    calibrated default positions."""
+    if not session.get('admin_logged_in'):
+        return jsonify({"ok": False, "error": "auth"}), 403
+    mongo.db.cert_settings.update_one(
+        {"key": "cert"}, {"$unset": {"layout": ""}}, upsert=True
+    )
+    return jsonify({"ok": True, "layout": DEFAULT_CERT_LAYOUT})
+
 @app.route('/admin/notices')
 def admin_notices():
     notices = mongo.db.notices.find().sort("_id", -1)
@@ -2260,7 +2413,8 @@ def print_certificate(student_id):
         cert_date, cert_signature = get_certificate_date_and_signature(student)
         return render_template('certificate_design.html', student=student,
                                center_name=center_name, cert_date=cert_date,
-                               cert_signature=cert_signature)
+                               cert_signature=cert_signature,
+                               field_styles=build_cert_field_styles())
     except Exception as e:
         flash(f"সার্টিফিকেট রেন্ডার করতে সমস্যা হয়েছে: {str(e)}", "danger")
         return redirect(url_for('admin_certificates'))
@@ -2289,7 +2443,8 @@ def print_all_certificates():
     cert_date, cert_signature = get_certificate_date_and_signature(students[0])
     return render_template('bulk_certificates_design.html', students=students,
                            center_names=center_names, cert_date=cert_date,
-                           cert_signature=cert_signature)
+                           cert_signature=cert_signature,
+                           field_styles=build_cert_field_styles())
 
 
 @app.route('/admin/certificates/reset-serials', methods=['POST'])
