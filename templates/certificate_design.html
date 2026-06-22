@@ -102,25 +102,25 @@
     {% set serial = reg[-4:] if reg|length >= 1 else (student.certificate_sl_no or '4263') %}
 
     <div class="cert-container">
-        <div class="field sl-no">{{ serial }}</div>
-        <div class="field reg-no">{{ reg or '1865593' }}</div>
+        <div class="field sl-no" style="{{ (field_styles or {}).get('sl-no','') }}">{{ serial }}</div>
+        <div class="field reg-no" style="{{ (field_styles or {}).get('reg-no','') }}">{{ reg or '1865593' }}</div>
 
-        <div class="field exam-year">-{{ student.exam_year or '2026' }}</div>
+        <div class="field exam-year" style="{{ (field_styles or {}).get('exam-year','') }}">-{{ student.exam_year or '2026' }}</div>
 
-        <div class="field student-name">{{ student.name_en }}</div>
-        <div class="field father-name">{{ student.father_en }}</div>
+        <div class="field student-name" style="{{ (field_styles or {}).get('student-name','') }}">{{ student.name_en }}</div>
+        <div class="field father-name" style="{{ (field_styles or {}).get('father-name','') }}">{{ student.father_en }}</div>
 
-        <div class="field student-class">{{ student.student_class }}</div>
-        <div class="field institute">{{ student.institute_en }}</div>
+        <div class="field student-class" style="{{ (field_styles or {}).get('student-class','') }}">{{ student.student_class }}</div>
+        <div class="field institute" style="{{ (field_styles or {}).get('institute','') }}">{{ student.institute_en }}</div>
 
-        <div class="field roll-no">{{ student.roll_no }}</div>
-        <div class="field center-name">{{ center_name }}</div>
-        <div class="field scholarship-grade">{{ student.scholarship_grade or 'General' }}</div>
+        <div class="field roll-no" style="{{ (field_styles or {}).get('roll-no','') }}">{{ student.roll_no }}</div>
+        <div class="field center-name" style="{{ (field_styles or {}).get('center-name','') }}">{{ center_name }}</div>
+        <div class="field scholarship-grade" style="{{ (field_styles or {}).get('scholarship-grade','') }}">{{ student.scholarship_grade or 'General' }}</div>
 
-        <div class="field pub-date">{{ cert_date or student.result_publication_date or '30-03-2026' }}</div>
+        <div class="field pub-date" style="{{ (field_styles or {}).get('pub-date','') }}">{{ cert_date or student.result_publication_date or '30-03-2026' }}</div>
 
         {% if cert_signature and (cert_signature.signature_image or cert_signature.name) %}
-        <div class="signature-block">
+        <div class="signature-block" style="{{ (field_styles or {}).get('signature-block','') }}">
             {% if cert_signature.signature_image %}
             <img class="sig-img" src="{{ cert_signature.signature_image }}" alt="signature"
                  onerror="this.style.display='none'">

@@ -1,0 +1,351 @@
+{% extends "admin_base.html" %}
+{% block content %}
+<div style="padding: 24px; background:#f8fafc; min-height:100vh; font-family:'Inter',sans-serif;">
+  <div style="max-width:1300px; margin:0 auto;">
+
+    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px;">
+      <div>
+        <h2 style="color:#1e293b; font-weight:800; margin:0;">
+          <i class="fas fa-up-down-left-right" style="color:#2563eb; margin-right:8px;"></i>সার্টিফিকেট লেআউট এডিটর
+        </h2>
+        <p style="color:#64748b; font-size:13px; margin:6px 0 0;">
+          প্রতিটি ফিল্ড টেনে (drag) সঠিক জায়গায় বসান। এই পজিশন একক ও বাল্ক — সব সার্টিফিকেটে প্রয়োগ হবে।
+        </p>
+      </div>
+      <a href="{{ url_for('admin_certificates') }}"
+         style="text-decoration:none; background:#fff; border:1px solid #e2e8f0; color:#334155; padding:9px 16px; border-radius:8px; font-weight:700; font-size:13px;">
+        <i class="fas fa-arrow-left"></i> ফিরে যান
+      </a>
+    </div>
+
+    <div id="cl-toast" style="display:none; position:fixed; top:18px; left:50%; transform:translateX(-50%);
+        z-index:9999; padding:11px 18px; border-radius:9px; font-weight:700; font-size:14px;
+        box-shadow:0 8px 24px rgba(0,0,0,.18);"></div>
+
+    <div style="display:grid; grid-template-columns: 1fr 300px; gap:18px; align-items:start;">
+
+      <!-- ===== STAGE ===== -->
+      <div style="background:#475569; border-radius:12px; padding:14px; box-shadow:0 4px 10px rgba(0,0,0,.12); overflow:hidden;">
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; align-items:center;">
+          <label style="display:flex; align-items:center; gap:6px; color:#e2e8f0; font-size:12px; font-weight:700;">
+            <input type="checkbox" id="cl-bg" checked> ব্যাকগ্রাউন্ড
+          </label>
+          <label style="display:flex; align-items:center; gap:6px; color:#e2e8f0; font-size:12px; font-weight:700;">
+            <input type="checkbox" id="cl-outline" checked> ফিল্ড আউটলাইন
+          </label>
+          <span id="cl-hint" style="margin-left:auto; color:#cbd5e1; font-size:12px;">
+            একটি ফিল্ডে ক্লিক করে সিলেক্ট করুন, তারপর টেনে সরান।
+          </span>
+        </div>
+
+        <div id="cl-wrap" style="position:relative; width:100%;">
+          <div id="cl-stage" style="position:absolute; top:0; left:0; width:1123px; height:794px;
+              transform-origin:top left; background:#fff; background-image:url('/static/img/certificate_original.jpg');
+              background-size:100% 100%; background-repeat:no-repeat;">
+            <!-- fields injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== CONTROL PANEL ===== -->
+      <div style="background:#fff; border-radius:12px; padding:18px; box-shadow:0 4px 6px rgba(0,0,0,.08); position:sticky; top:16px;">
+
+        <div style="font-size:12px; font-weight:800; color:#475569; margin-bottom:8px; letter-spacing:.4px;">ফিল্ড সমূহ</div>
+        <select id="cl-field-list" size="6"
+            style="width:100%; border:1px solid #e2e8f0; border-radius:8px; padding:6px; font-size:13px; outline:none; margin-bottom:14px;">
+          {% for key, label in fields %}
+          <option value="{{ key }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <div id="cl-editor" style="display:none;">
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; color:#1e3a8a; padding:8px 10px; border-radius:8px;
+              font-size:13px; font-weight:800; margin-bottom:12px;">
+            <i class="fas fa-vector-square"></i> <span id="cl-sel-label">—</span>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:6px;">
+            <div>
+              <label class="cl-lbl">Top %</label>
+              <input type="number" id="cl-top" step="0.1" class="cl-num">
+            </div>
+            <div>
+              <label class="cl-lbl">Left %</label>
+              <input type="number" id="cl-left" step="0.1" class="cl-num">
+            </div>
+            <div>
+              <label class="cl-lbl">Width %</label>
+              <input type="number" id="cl-width" step="0.1" class="cl-num">
+            </div>
+            <div>
+              <label class="cl-lbl">Font px</label>
+              <input type="number" id="cl-font" step="1" class="cl-num">
+            </div>
+          </div>
+
+          <div style="font-size:11px; color:#94a3b8; margin:8px 0 14px;">
+            টিপ: ফিল্ড সিলেক্ট করে কীবোর্ডের তীর চিহ্ন (← ↑ → ↓) চাপলে সূক্ষ্মভাবে নড়বে। Shift চাপলে বড় ধাপে।
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+          <button id="cl-save"
+              style="width:100%; padding:12px; background:#059669; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:800; font-size:14px;">
+            <i class="fas fa-save"></i> লেআউট সংরক্ষণ করুন
+          </button>
+          <button id="cl-preview"
+              style="width:100%; padding:11px; background:#2563eb; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:13px;">
+            <i class="fas fa-eye"></i> সেভ করে প্রিভিউ দেখুন
+          </button>
+          <button id="cl-reset"
+              style="width:100%; padding:10px; background:#fff; color:#b91c1c; border:1px solid #fecaca; border-radius:8px; cursor:pointer; font-weight:700; font-size:13px;">
+            <i class="fas fa-rotate-left"></i> ডিফল্টে রিসেট করুন
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .cl-lbl { display:block; font-size:11px; font-weight:800; color:#64748b; margin-bottom:3px; }
+  .cl-num { width:100%; padding:7px; border:1px solid #cbd5e1; border-radius:7px; box-sizing:border-box; font-size:13px; outline:none; }
+  .cl-num:focus { border-color:#2563eb; }
+
+  #cl-stage .cl-fld {
+    position:absolute; box-sizing:border-box;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    font-family:"Times New Roman", Times, serif;
+    font-style:italic; font-weight:600; color:#1a1a1a;
+    cursor:grab; user-select:none; touch-action:none;
+    padding:1px 2px; line-height:1.05; overflow:hidden; white-space:nowrap;
+  }
+  #cl-stage.show-outline .cl-fld { outline:1px dashed rgba(37,99,235,.55); background:rgba(37,99,235,.05); }
+  #cl-stage .cl-fld.sel { outline:2px solid #ef4444 !important; background:rgba(239,68,68,.10); cursor:grabbing; z-index:50; }
+  #cl-stage .cl-fld:active { cursor:grabbing; }
+
+  /* resize handle */
+  #cl-stage .cl-handle {
+    position:absolute; right:-6px; top:50%; transform:translateY(-50%);
+    width:12px; height:12px; border-radius:50%; background:#ef4444; border:2px solid #fff;
+    cursor:ew-resize; display:none; touch-action:none;
+  }
+  #cl-stage .cl-fld.sel .cl-handle { display:block; }
+
+  @media (max-width: 920px) {
+    div[style*="grid-template-columns: 1fr 300px"] { grid-template-columns:1fr !important; }
+  }
+</style>
+
+<script>
+(function () {
+  var STAGE_W = 1123, STAGE_H = 794;
+  var layout   = {{ layout|tojson }};
+  var defaults = {{ defaults|tojson }};
+  var samples  = {{ samples|tojson }};
+  var labels   = {};
+  {% for key, label in fields %}labels["{{ key }}"] = "{{ label }}";{% endfor %}
+
+  var wrap   = document.getElementById('cl-wrap');
+  var stage  = document.getElementById('cl-stage');
+  var list   = document.getElementById('cl-field-list');
+  var editor = document.getElementById('cl-editor');
+  var selLbl = document.getElementById('cl-sel-label');
+  var inTop  = document.getElementById('cl-top');
+  var inLeft = document.getElementById('cl-left');
+  var inWid  = document.getElementById('cl-width');
+  var inFont = document.getElementById('cl-font');
+
+  var scale = 1;
+  var selected = null;
+  var els = {}; // key -> field DOM element
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+  function r2(v){ return Math.round(v * 100) / 100; }
+
+  function toast(msg, ok){
+    var t = document.getElementById('cl-toast');
+    t.textContent = msg;
+    t.style.background = ok ? '#dcfce7' : '#fee2e2';
+    t.style.color = ok ? '#166534' : '#991b1b';
+    t.style.display = 'block';
+    clearTimeout(t._h); t._h = setTimeout(function(){ t.style.display='none'; }, 2600);
+  }
+
+  // ---- responsive scaling: keep an internal 1123x794 coordinate system ----
+  function fit(){
+    scale = wrap.clientWidth / STAGE_W;
+    stage.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (STAGE_H * scale) + 'px';
+  }
+  window.addEventListener('resize', fit);
+
+  // ---- build a field element ----
+  function makeField(key){
+    var pos = layout[key];
+    var el = document.createElement('div');
+    el.className = 'cl-fld';
+    el.dataset.key = key;
+    el.textContent = samples[key] || key;
+    applyPos(el, pos);
+    var h = document.createElement('div');
+    h.className = 'cl-handle';
+    el.appendChild(h);
+
+    el.addEventListener('pointerdown', function(e){
+      if (e.target === h) return; // handle has its own listener
+      startDrag(key, e);
+    });
+    h.addEventListener('pointerdown', function(e){ startResize(key, e); });
+    stage.appendChild(el);
+    els[key] = el;
+  }
+
+  function applyPos(el, pos){
+    el.style.top    = pos.top + '%';
+    el.style.left   = pos.left + '%';
+    el.style.width  = pos.width + '%';
+    el.style.fontSize = pos.font_size + 'px';
+    el.style.right  = 'auto';
+  }
+
+  function refresh(key){ applyPos(els[key], layout[key]); if (selected === key) fillInputs(); }
+
+  // ---- selection ----
+  function select(key){
+    selected = key;
+    Object.keys(els).forEach(function(k){ els[k].classList.toggle('sel', k === key); });
+    list.value = key;
+    editor.style.display = 'block';
+    selLbl.textContent = labels[key] || key;
+    fillInputs();
+  }
+
+  function fillInputs(){
+    var p = layout[selected];
+    inTop.value = p.top; inLeft.value = p.left; inWid.value = p.width; inFont.value = p.font_size;
+  }
+
+  // ---- drag move ----
+  function startDrag(key, e){
+    select(key);
+    e.preventDefault();
+    var p = layout[key];
+    var startX = e.clientX, startY = e.clientY;
+    var startLeft = p.left, startTop = p.top;
+    var el = els[key];
+    el.setPointerCapture(e.pointerId);
+
+    function move(ev){
+      var dxPct = ((ev.clientX - startX) / scale) / STAGE_W * 100;
+      var dyPct = ((ev.clientY - startY) / scale) / STAGE_H * 100;
+      p.left = r2(clamp(startLeft + dxPct, 0, 100 - 1));
+      p.top  = r2(clamp(startTop + dyPct, 0, 100 - 1));
+      refresh(key);
+    }
+    function up(ev){
+      el.releasePointerCapture(e.pointerId);
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+    }
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+  }
+
+  // ---- resize width ----
+  function startResize(key, e){
+    select(key);
+    e.preventDefault(); e.stopPropagation();
+    var p = layout[key];
+    var startX = e.clientX, startW = p.width;
+    var h = els[key].querySelector('.cl-handle');
+    h.setPointerCapture(e.pointerId);
+
+    function move(ev){
+      var dwPct = ((ev.clientX - startX) / scale) / STAGE_W * 100;
+      p.width = r2(clamp(startW + dwPct, 2, 100));
+      refresh(key);
+    }
+    function up(){
+      h.releasePointerCapture(e.pointerId);
+      h.removeEventListener('pointermove', move);
+      h.removeEventListener('pointerup', up);
+    }
+    h.addEventListener('pointermove', move);
+    h.addEventListener('pointerup', up);
+  }
+
+  // ---- numeric inputs ----
+  function bindInput(input, prop, lo, hi){
+    input.addEventListener('input', function(){
+      if (!selected) return;
+      var v = parseFloat(input.value);
+      if (isNaN(v)) return;
+      layout[selected][prop] = r2(clamp(v, lo, hi));
+      applyPos(els[selected], layout[selected]);
+    });
+  }
+  bindInput(inTop, 'top', 0, 100);
+  bindInput(inLeft, 'left', 0, 100);
+  bindInput(inWid, 'width', 2, 100);
+  bindInput(inFont, 'font_size', 6, 120);
+
+  // ---- keyboard nudge ----
+  document.addEventListener('keydown', function(e){
+    if (!selected) return;
+    if (['INPUT','SELECT','TEXTAREA'].indexOf(document.activeElement.tagName) !== -1) return;
+    var step = e.shiftKey ? 1 : 0.1;
+    var p = layout[selected], moved = true;
+    if (e.key === 'ArrowLeft')  p.left = r2(clamp(p.left - step, 0, 100));
+    else if (e.key === 'ArrowRight') p.left = r2(clamp(p.left + step, 0, 100));
+    else if (e.key === 'ArrowUp')    p.top  = r2(clamp(p.top - step, 0, 100));
+    else if (e.key === 'ArrowDown')  p.top  = r2(clamp(p.top + step, 0, 100));
+    else moved = false;
+    if (moved){ e.preventDefault(); refresh(selected); }
+  });
+
+  list.addEventListener('change', function(){ select(list.value); });
+
+  document.getElementById('cl-bg').addEventListener('change', function(){
+    stage.style.backgroundImage = this.checked ? "url('/static/img/certificate_original.jpg')" : 'none';
+  });
+  document.getElementById('cl-outline').addEventListener('change', function(){
+    stage.classList.toggle('show-outline', this.checked);
+  });
+
+  // ---- save / reset ----
+  function save(then){
+    fetch("{{ url_for('save_certificate_layout') }}", {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ layout: layout })
+    }).then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.ok){ toast('লেআউট সংরক্ষণ হয়েছে ✓', true); if (then) then(); }
+        else toast('সংরক্ষণ ব্যর্থ হয়েছে', false);
+      }).catch(function(){ toast('নেটওয়ার্ক সমস্যা', false); });
+  }
+
+  document.getElementById('cl-save').addEventListener('click', function(){ save(); });
+  document.getElementById('cl-preview').addEventListener('click', function(){
+    save(function(){ window.open("{{ url_for('admin_certificates') }}", '_blank'); });
+  });
+  document.getElementById('cl-reset').addEventListener('click', function(){
+    if (!confirm('সব ফিল্ড বিল্ট-ইন ডিফল্ট পজিশনে ফিরে যাবে। নিশ্চিত?')) return;
+    fetch("{{ url_for('reset_certificate_layout') }}", { method:'POST' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.ok){
+          Object.keys(defaults).forEach(function(k){ layout[k] = Object.assign({}, defaults[k]); refresh(k); });
+          toast('ডিফল্টে রিসেট হয়েছে', true);
+        }
+      });
+  });
+
+  // ---- init ----
+  stage.classList.add('show-outline');
+  Object.keys(layout).forEach(makeField);
+  fit();
+  select(Object.keys(layout)[0]);
+})();
+</script>
+{% endblock %}

@@ -213,6 +213,9 @@
             <a href="{{ url_for('admin_certificate_settings') }}" class="{{ 'active' if request.endpoint == 'admin_certificate_settings' }}">
                 <i class="fas fa-signature"></i> সার্টিফিকেট সেটিংস
             </a>
+            <a href="{{ url_for('admin_certificate_layout') }}" class="{{ 'active' if request.endpoint == 'admin_certificate_layout' }}">
+                <i class="fas fa-up-down-left-right"></i> সার্টিফিকেট লেআউট
+            </a>
             <a href="{{ url_for('bulk_admit_filter') }}" class="{{ 'active' if request.endpoint == 'bulk_admit_filter' }}">
                 <i class="fas fa-id-card"></i> এডমিট ডাউনলোড
             </a>
