@@ -1,0 +1,67 @@
+{% extends "admin_base.html" %}
+{% block content %}
+<div style="padding: 30px; background: #f8fafc; min-height: 100vh; font-family: 'Inter', sans-serif;">
+    <div style="max-width: 760px; margin: 0 auto; background: white; padding: 28px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.08);">
+
+        <h2 style="text-align:center; color:#1e293b; margin-bottom:6px; font-weight:700;">
+            <i class="fas fa-signature" style="color:#2563eb; margin-right:8px;"></i>সার্টিফিকেট সেটিংস
+        </h2>
+        <p style="text-align:center; color:#64748b; font-size:13px; margin-top:0; margin-bottom:24px;">
+            এখানে দেওয়া স্বাক্ষর সার্টিফিকেটের নিচে-ডান কোণে (Controller of Examinations লেখার উপরে) এবং তারিখটি
+            “Date of Publication of Result” লাইনে দেখানো হবে।
+        </p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div style="padding:12px; border-radius:8px; margin-bottom:18px; text-align:center; font-size:14px;
+                    background:{% if category=='success' %}#dcfce7; color:#166534;{% else %}#fee2e2; color:#991b1b;{% endif %} border:1px solid currentColor;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('admin_certificate_settings') }}">
+            <div style="margin-bottom:18px;">
+                <label style="display:block; font-size:12px; font-weight:800; color:#475569; margin-bottom:6px;">
+                    স্বাক্ষরের ছবির লিংক (Signature image URL)
+                </label>
+                <input type="url" name="signature_image" value="{{ s.signature_image }}"
+                       placeholder="https://i.postimg.cc/.../signature.png"
+                       style="width:100%; padding:11px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+                <small style="color:#94a3b8;">স্বচ্ছ (transparent PNG) ছবি দিলে সবচেয়ে ভালো দেখাবে।</small>
+
+                {% if s.signature_image %}
+                <div style="margin-top:10px; padding:10px; background:#f1f5f9; border-radius:8px; text-align:center;">
+                    <img src="{{ s.signature_image }}" alt="signature preview" style="max-height:70px; max-width:220px; object-fit:contain;">
+                </div>
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom:18px;">
+                <label style="display:block; font-size:12px; font-weight:800; color:#475569; margin-bottom:6px;">
+                    স্বাক্ষরকারীর নাম (ঐচ্ছিক — স্বাক্ষরের নিচে ছোট করে দেখাবে)
+                </label>
+                <input type="text" name="signature_name" value="{{ s.signature_name }}"
+                       placeholder="যেমন: রাকিবুল ইসলাম রবিন"
+                       style="width:100%; padding:11px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+                <small style="color:#94a3b8;">“Controller of Examinations” লেখাটি সার্টিফিকেটে আগে থেকেই ছাপানো আছে, তাই পদবি আবার দেওয়ার দরকার নেই।</small>
+            </div>
+
+            <div style="margin-bottom:24px;">
+                <label style="display:block; font-size:12px; font-weight:800; color:#475569; margin-bottom:6px;">
+                    ফলাফল প্রকাশের তারিখ (Date of Publication of Result)
+                </label>
+                <input type="text" name="publication_date" value="{{ s.publication_date }}"
+                       placeholder="যেমন: 17-03-2026"
+                       style="width:100%; padding:11px; border:1px solid #cbd5e1; border-radius:8px; box-sizing:border-box;">
+                <small style="color:#94a3b8;">খালি রাখলে ফলাফল সেটিংসের নোটিশ তারিখ বা আজকের তারিখ ব্যবহার হবে।</small>
+            </div>
+
+            <button type="submit"
+                    style="width:100%; padding:13px; background:#2563eb; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:700; font-size:15px;">
+                <i class="fas fa-save"></i> সংরক্ষণ করুন
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

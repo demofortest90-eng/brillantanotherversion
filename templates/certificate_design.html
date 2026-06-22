@@ -6,22 +6,6 @@
     <style>
         /* আসল সার্টিফিকেটের মতো ইটালিক ফন্ট */
         @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@1,600&display=swap');
-        @import url('https://fonts.maateen.me/kalpurush/font.css');
-
-        /* ===== Monotype Corsiva =====
-           যদি কম্পিউটারে ইনস্টল করা থাকে তাহলে সেটি ব্যবহার করবে;
-           না থাকলে static/fonts/ ফোল্ডার থেকে সেলফ-হোস্টেড ফাইল লোড করবে।
-           ফাইল দুটি static/fonts/ এ রাখুন: monotype-corsiva.woff2 ও monotype-corsiva.ttf */
-        @font-face {
-            font-family: 'Monotype Corsiva';
-            src: local('Monotype Corsiva'),
-                 local('MonotypeCorsiva'),
-                 url('/static/fonts/monotype-corsiva.woff2') format('woff2'),
-                 url('/static/fonts/monotype-corsiva.ttf') format('truetype');
-            font-style: normal;
-            font-weight: normal;
-            font-display: swap;
-        }
 
         /* প্রিন্ট সেটিংস: ব্যাকগ্রাউন্ড ইমেজ প্রিন্ট নিশ্চিত করতে */
         @media print {
@@ -29,16 +13,14 @@
             body { margin: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none; }
         }
-
-        /* সব টেক্সট Monotype Corsiva ফন্টে */
-        * {
-            font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", "Crimson Text", "Kalpurush", cursive !important;
-        }
+        
+        @import url('https://fonts.maateen.me/kalpurush/font.css');
 
         body {
             margin: 0; padding: 0;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; background: #555;
+            font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif;
         }
 
         /* সার্টিফিকেট কন্টেইনার: A4 ল্যান্ডস্কেপ সাইজ */
@@ -68,18 +50,10 @@
 
         /* --- নিখুঁত পজিশন ম্যাপিং (ইমেজ অনুযায়ী ক্যালিব্রেটেড) --- */
 
-        /* SI No. (শীর্ষ বামে) — সিরিয়াল নম্বরের জন্য আলাদা, স্পষ্ট, সহজপাঠ্য ফন্ট
-           ব্যবহার করা হয়েছে (cursive সার্টিফিকেট ফন্টের বদলে), যাতে ৪-সংখ্যার
-           সিরিয়াল সহজেই পড়া যায়। */
-        .sl-no {
-            top: 14.5%; left: 21.5%; width: 70px;
-            font-family: 'Courier New', 'Consolas', monospace !important;
-            font-style: normal !important;
-            font-weight: 700 !important;
-            letter-spacing: 1px;
-        }
+        /* SI No. (শীর্ষ বামে) — সিরিয়াল = রেজিস্ট্রেশন নম্বরের শেষ ৪ সংখ্যা */
+        .sl-no { top: 14.5%; left: 21.5%; width: 70px; }
 
-        /* Registration No. (শীর্ষ ডানে) */
+        /* Registration No. (শীর্ষ ডানে) — শিক্ষার্থীর পরীক্ষার রেজিস্ট্রেশন নম্বর */
         .reg-no { top: 14.2%; right: 7.5%; width: 140px; justify-content: flex-start; }
 
         /* Scholarship Examination Year (হেডারের পাশে) */
@@ -103,13 +77,33 @@
         /* Date of Publication (নিচে বামে) */
         .pub-date { top: 83%; left: 18%; width: 160px; justify-content: center; }
 
+        /* স্বাক্ষর ব্লক — নিচে-ডানে, ছাপানো "Controller of Examinations" এর উপরে।
+           এটি absolute, তাই উপরের কোনো ফিল্ডের অ্যালাইনমেন্ট নষ্ট করে না।
+           সেটিংস থেকে স্বাক্ষর/নাম দেওয়া থাকলে তবেই দেখাবে। */
+        .signature-block {
+            position: absolute;
+            top: 70%; left: 63.5%; width: 22%; height: 14%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-end; text-align: center;
+        }
+        .signature-block .sig-img { max-height: 70px; max-width: 200px; object-fit: contain; margin-bottom: 2px; }
+        .signature-block .sig-rule { width: 80%; border-top: 1.5px solid #1a1a1a; margin: 1px 0 3px; }
+        .signature-block .sig-name {
+            font-family: "Kalpurush", "Noto Sans Bengali", "Times New Roman", serif;
+            font-style: normal; font-weight: 700; font-size: 15px; color: #1a1a1a; line-height: 1.2;
+        }
+
     </style>
 </head>
 <body>
 
+    {# সিরিয়াল = রেজিস্ট্রেশন নম্বরের শেষ ৪ সংখ্যা (না থাকলে সংরক্ষিত সিরিয়াল) #}
+    {% set reg = (student.reg_no or '')|string %}
+    {% set serial = reg[-4:] if reg|length >= 1 else (student.certificate_sl_no or '4263') %}
+
     <div class="cert-container">
-        <div class="field sl-no">{{ student.certificate_sl_no or '0001' }}</div>
-        <div class="field reg-no">{{ student.reg_no or '1865593' }}</div>
+        <div class="field sl-no">{{ serial }}</div>
+        <div class="field reg-no">{{ reg or '1865593' }}</div>
 
         <div class="field exam-year">-{{ student.exam_year or '2026' }}</div>
 
@@ -123,7 +117,18 @@
         <div class="field center-name">{{ center_name }}</div>
         <div class="field scholarship-grade">{{ student.scholarship_grade or 'General' }}</div>
 
-        <div class="field pub-date">{{ student.result_publication_date or '30-03-2019' }}</div>
+        <div class="field pub-date">{{ cert_date or student.result_publication_date or '30-03-2026' }}</div>
+
+        {% if cert_signature and (cert_signature.signature_image or cert_signature.name) %}
+        <div class="signature-block">
+            {% if cert_signature.signature_image %}
+            <img class="sig-img" src="{{ cert_signature.signature_image }}" alt="signature"
+                 onerror="this.style.display='none'">
+            {% endif %}
+            <div class="sig-rule"></div>
+            {% if cert_signature.name %}<div class="sig-name">{{ cert_signature.name }}</div>{% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <script>

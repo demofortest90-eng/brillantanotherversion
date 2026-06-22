@@ -75,28 +75,39 @@
             color: #1a1a1a;
         }
 
-        /* পজিশনিং (আপনার দেওয়া ম্যাপিং অনুযায়ী) */
+        /* পজিশনিং (আসল certificate_original.jpg অনুযায়ী ক্যালিব্রেটেড) */
         .sl-no {
-            top: 14.5%; left: 21.5%; width: 70px;
+            top: 15.4%; left: 18.5%; width: 11.5%; justify-content: center;
             font-family: 'Courier New', 'Consolas', monospace !important;
-            font-style: normal !important;
-            font-weight: 700 !important;
-            letter-spacing: 1px;
+            font-style: normal !important; font-weight: 700 !important; letter-spacing: 1px;
         }
-        .reg-no { top: 14.2%; right: 7.5%; width: 140px; justify-content: flex-start; }
-        .exam-year { top: 32.5%; left: 62.5%; font-size: 28px; }
+        .reg-no { top: 15.4%; left: 82%; width: 14%; justify-content: center; }
+        .exam-year { top: 33%; left: 63%; font-size: 28px; }
 
-        .student-name { top: 49.3%; left: 26%; width: 63%; justify-content: center; font-size: 30px; }
-        .father-name { top: 56%; left: 24%; width: 64%; justify-content: center; }
+        .student-name { top: 50.4%; left: 28%; width: 70%; justify-content: center; font-size: 30px; }
+        .father-name { top: 57%; left: 24%; width: 74%; justify-content: center; }
 
-        .student-class { top: 61.6%; left: 24%; width: 100px; justify-content: center; }
-        .institute { top: 61.6%; left: 45%; width: 46%; justify-content: center; }
+        .student-class { top: 62.5%; left: 24%; width: 11%; justify-content: center; }
+        .institute { top: 62.5%; left: 38%; width: 59%; justify-content: center; }
 
-        .roll-no { top: 67%; left: 17%; width: 120px; justify-content: center; }
-        .center-name { top: 67%; left: 31.5%; width: 210px; justify-content: center; }
-        .scholarship-grade { top: 67%; right: 14%; width: 120px; justify-content: center; }
+        .roll-no { top: 68.1%; left: 17%; width: 13%; justify-content: center; }
+        .center-name { top: 68.1%; left: 36%; width: 11%; justify-content: center; }
+        .scholarship-grade { top: 68.1%; left: 78%; width: 20%; justify-content: center; }
 
-        .pub-date { top: 83%; left: 18%; width: 160px; justify-content: center; }
+        .pub-date { top: 83.6%; left: 16%; width: 15%; justify-content: center; }
+
+        /* স্বাক্ষর ব্লক — নিচে-ডানে, ছাপানো "Controller of Examinations" এর উপরে */
+        .signature-block {
+            position: absolute; top: 71%; left: 63.5%; width: 22%; height: 13%;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: flex-end; text-align: center;
+        }
+        .signature-block .sig-img { max-height: 70px; max-width: 200px; object-fit: contain; margin-bottom: 2px; }
+        .signature-block .sig-rule { width: 80%; border-top: 1.5px solid #1a1a1a; margin: 1px 0 3px; }
+        .signature-block .sig-name {
+            font-family: "Kalpurush", "Noto Sans Bengali", serif; font-style: normal;
+            font-weight: 700; font-size: 15px; color: #1a1a1a; line-height: 1.2;
+        }
 
     </style>
 </head>
@@ -125,7 +136,18 @@
 
             <div class="field scholarship-grade">{{ student.scholarship_grade or 'General' }}</div>
 
-            <div class="field pub-date">{{ student.result_publication_date or '30-03-2026' }}</div>
+            <div class="field pub-date">{{ cert_date or student.result_publication_date or '30-03-2026' }}</div>
+
+            {% if cert_signature and (cert_signature.signature_image or cert_signature.name) %}
+            <div class="signature-block">
+                {% if cert_signature.signature_image %}
+                <img class="sig-img" src="{{ cert_signature.signature_image }}" alt="signature"
+                     onerror="this.style.display='none'">
+                {% endif %}
+                <div class="sig-rule"></div>
+                {% if cert_signature.name %}<div class="sig-name">{{ cert_signature.name }}</div>{% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
     {% endfor %}

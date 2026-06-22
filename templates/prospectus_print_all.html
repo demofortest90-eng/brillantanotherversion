@@ -6,73 +6,94 @@
     <style>
         @import url('https://fonts.maateen.me/kalpurush/font.css');
 
-        /* A5 page setup */
-        @page { size: A5 portrait; margin: 8mm 9mm 10mm; }
+        /* ===================================================================
+           PAGE SIZE: 1656 x 2550 px (portrait) — chosen so the 6-column x
+           7-row (= 42 per page) photo album matches the printed booklet
+           sample. To use LANDSCAPE 2550 x 1656 instead, swap the two numbers
+           in --page-w / --page-h below.
+           =================================================================== */
+        :root {
+            --page-w: 1656px;
+            --page-h: 2550px;
+            --cols: 6;
+            --rows: 7;
+            --cell-h: 350px;   /* ~ (page-h - margins) / 7 rows */
+        }
+
+        @page { size: var(--page-w) var(--page-h); margin: 8mm; }
         * { box-sizing: border-box; }
         body {
             font-family: 'Kalpurush', 'Noto Sans Bengali', Arial, sans-serif;
             color: #111; margin: 0; padding: 0;
             -webkit-print-color-adjust: exact; print-color-adjust: exact;
-            font-size: 11px;
         }
 
-        /* Cover / running header on every printed page via @page margin
-           isn't reliably styleable across browsers, so we repeat a compact
-           org header at the top of the document and at the top of every
-           class section instead — simple and reliably prints well. */
-        .doc-header { text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 5px; margin-bottom: 8px; }
-        .doc-header .org-bn { font-size: 13px; font-weight: 900; }
-        .doc-header .org-en { font-size: 8px; color: #444; margin-top: 1px; }
-        .doc-header .doc-title { font-size: 10px; font-weight: 700; margin-top: 4px; color: #333; }
-        .doc-header .doc-meta { font-size: 8px; color: #666; margin-top: 2px; }
-
-        /* Each class section starts on its own page for clean A5 printing */
-        .class-section { page-break-before: always; }
-        .class-section:first-child { page-break-before: avoid; }
-
-        .class-title-bar {
-            background: #1B2631; color: #fff;
-            padding: 5px 10px; border-radius: 5px;
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 8px;
+        /* Album: a continuous grid of fixed-size cells. 6 cells per row and
+           7 rows fit per page, so each printed page shows exactly 42 cells
+           (student photos + the scholarship-category markers). */
+        .album {
+            display: flex; flex-wrap: wrap;
+            width: 100%;
         }
-        .class-title-bar .ct-name { font-size: 12px; font-weight: 800; }
-        .class-title-bar .ct-count { font-size: 9px; opacity: 0.85; }
-
-        /* Grade group block — simple list style, not a photo grid, so a
-           full class+grade list fits compactly on A5 pages. */
-        .grade-group { margin-bottom: 7px; break-inside: avoid; }
-        .grade-group-title {
-            font-size: 10px; font-weight: 800; color: #1B2631;
-            border-left: 3px solid #C5A059; padding-left: 6px;
-            margin-bottom: 3px;
+        .cell {
+            width: calc(100% / var(--cols));
+            height: var(--cell-h);
+            padding: 4px;
+            break-inside: avoid; page-break-inside: avoid;
         }
-        .grade-group-title .g-count { font-weight: 600; color: #777; font-size: 8.5px; }
 
-        table.student-table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        table.student-table th, table.student-table td {
-            border: 0.5px solid #ccc; padding: 2.5px 4px; font-size: 9px; text-align: left;
+        /* --- Scholarship category MARKER (clearly NOT a student card) -------
+           Bold, dark, gold-bordered speech-bubble with large text so that from
+           a distance it reads as the scholarship category divider, not a
+           student's name/photo. -------------------------------------------- */
+        .badge {
+            width: 100%; height: 100%;
+            border-radius: 18px 18px 18px 4px;
+            background: linear-gradient(135deg, #1B2631 0%, #2c3e50 55%, #1B2631 100%);
+            border: 2px solid #C5A059;
+            color: #fff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 8px;
         }
-        table.student-table th {
-            background: #f1f1f1; font-weight: 700; font-size: 8.5px;
+        .badge .b-top {
+            font-size: 12px; font-weight: 700; letter-spacing: 1px;
+            color: #C5A059; text-transform: uppercase; margin-bottom: 6px;
         }
-        table.student-table td.sl { width: 18px; text-align: center; color: #777; }
-        table.student-table td.roll { width: 42px; font-weight: 700; }
-        table.student-table td.inst { font-size: 8.3px; color: #444; }
+        .badge .b-class { font-size: 19px; font-weight: 800; color: #eef2f6; line-height: 1.2; }
+        .badge .b-grade { font-size: 26px; font-weight: 900; color: #fff; line-height: 1.25; margin-top: 3px; }
+        .badge .b-count { font-size: 12px; font-weight: 600; color: #cdd6df; margin-top: 6px; }
 
-        .empty-note { text-align: center; color: #888; font-size: 9px; padding: 10px 0; }
+        /* --- Student photo card --- */
+        .card { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; }
+        .frame {
+            width: 74%; aspect-ratio: 1 / 1.18;
+            border: 1px solid #333; overflow: hidden; background: #1a1a1a; margin: 0 auto;
+        }
+        .frame img { width: 100%; height: 100%; object-fit: cover; display: block; filter: grayscale(100%) contrast(1.05); }
+        .c-name { font-weight: 800; font-size: 13px; color: #000; line-height: 1.2; margin-top: 5px; }
+        .c-inst { font-size: 11px; color: #333; line-height: 1.18; margin-top: 1px; }
+        .c-center { font-size: 10.5px; color: #555; line-height: 1.18; margin-top: 1px; }
 
-        .doc-footer { margin-top: 10px; text-align: center; font-size: 8px; color: #888; border-top: 0.5px solid #ddd; padding-top: 4px; }
+        .empty-note { text-align: center; color: #888; font-size: 16px; padding: 60px 0; }
 
-        @media print { .no-print { display: none; } }
+        /* Screen-only toolbar */
         .no-print {
-            position: fixed; top: 10px; right: 10px; z-index: 99;
-            display: flex; gap: 8px;
-        }
-        .no-print button, .no-print a {
-            background: #1B2631; color: #fff; border: none; padding: 8px 14px;
-            border-radius: 6px; font-size: 12px; cursor: pointer; text-decoration: none;
+            position: fixed; top: 10px; right: 10px; z-index: 99; display: flex; gap: 8px;
             font-family: Arial, sans-serif;
+        }
+        .no-print button {
+            background: #1B2631; color: #fff; border: none; padding: 9px 16px;
+            border-radius: 6px; font-size: 13px; cursor: pointer;
+        }
+        @media print { .no-print { display: none; } }
+
+        /* On screen, show the page boundary for a realistic preview */
+        @media screen {
+            body { background: #525659; padding: 20px 0; }
+            .album {
+                width: var(--page-w); margin: 0 auto; background: #fff;
+                padding: 8mm; box-shadow: 0 0 18px rgba(0,0,0,0.4);
+            }
         }
     </style>
 </head>
@@ -83,69 +104,41 @@
     </div>
 
     {% if not classes %}
-    <div class="doc-header">
-        <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
-        <div class="org-en">The Brilliants Foundation, Bogura</div>
-        <div class="doc-title">বৃত্তি প্রসপেক্টাস {{ year|bn_num }}</div>
-    </div>
-    <p class="empty-note">এই মুহূর্তে কোনো বৃত্তিপ্রাপ্ত শিক্ষার্থী পাওয়া যায়নি।</p>
-    {% endif %}
-
-    {% for cls in classes %}
-    <div class="class-section">
-        <div class="doc-header">
-            <div class="org-bn">দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া</div>
-            <div class="org-en">The Brilliants Foundation, Bogura</div>
-            <div class="doc-title">বৃত্তি প্রসপেক্টাস {{ year|bn_num }} — মেধাবৃত্তিপ্রাপ্ত শিক্ষার্থীবৃন্দ</div>
-            {% if center_filter %}
-            <div class="doc-meta">কেন্দ্র: {{ center_display_map.get(center_filter|string, center_filter) }}</div>
-            {% endif %}
-        </div>
-
-        <div class="class-title-bar">
-            <span class="ct-name">{{ cls.class_name_bn }}</span>
-            <span class="ct-count">মোট {{ cls.total|bn_num }} জন</span>
-        </div>
-
-        {% for grade in ['Talentpool', 'General', 'Quata', 'Suveccha'] %}
-            {% if grade in cls.grouped %}
-            {% set students_in_grade = cls.grouped[grade] %}
-            <div class="grade-group">
-                <div class="grade-group-title">
-                    {{ grade_bn_labels.get(grade, grade) }}
-                    <span class="g-count">({{ students_in_grade|length|bn_num }} জন)</span>
+    <div class="album"><div class="empty-note">এই মুহূর্তে কোনো বৃত্তিপ্রাপ্ত শিক্ষার্থী পাওয়া যায়নি।</div></div>
+    {% else %}
+    <div class="album">
+        {% for cls in classes %}
+            {% for grade in ['Talentpool', 'General', 'Quata', 'Suveccha'] %}
+                {% if grade in cls.grouped %}
+                {% set students_in_grade = cls.grouped[grade] %}
+                {# ---- Scholarship category marker cell (first cell of the group) ---- #}
+                <div class="cell">
+                    <div class="badge">
+                        <span class="b-top">বৃত্তির ধরন</span>
+                        <span class="b-class">{{ cls.class_name_bn }}</span>
+                        <span class="b-grade">{{ prospectus_grade_labels.get(grade, grade) }}</span>
+                        <span class="b-count">({{ students_in_grade|length|bn_num }} জন)</span>
+                    </div>
                 </div>
-                <table class="student-table">
-                    <thead>
-                        <tr>
-                            <th class="sl">ক্রম</th>
-                            <th class="roll">রোল</th>
-                            <th>নাম</th>
-                            <th class="inst">প্রতিষ্ঠান</th>
-                            <th class="inst">কেন্দ্র</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for s in students_in_grade %}
-                        <tr>
-                            <td class="sl">{{ loop.index|bn_num }}</td>
-                            <td class="roll">{{ s.roll_no|bn_num }}</td>
-                            <td>{{ s.name_bn or s.name_en }}</td>
-                            <td class="inst">{{ s.institute_bn or s.institute_en }}</td>
-                            <td class="inst">{{ center_display_map.get(s.center_code|string, s.center_code) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% endif %}
+                {# ---- Student photo cards ---- #}
+                {% for s in students_in_grade %}
+                <div class="cell">
+                    <div class="card">
+                        <div class="frame">
+                            <img src="{{ s.photo_url }}" alt="{{ s.name_en }}"
+                                 onerror="this.onerror=null;this.src='data:image/svg+xml;utf8,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 118%27><rect width=%27100%27 height=%27118%27 fill=%27%23111%27/><circle cx=%2750%27 cy=%2742%27 r=%2222%27 fill=%27%23333%27/><path d=%27M12 116 Q50 72 88 116 Z%27 fill=%27%23333%27/></svg>'">
+                        </div>
+                        <div class="c-name">{{ s.name_bn or s.name_en }}</div>
+                        <div class="c-inst">{{ s.institute_bn or s.institute_en }}</div>
+                        <div class="c-center">{{ center_display_map.get(s.center_code|string, s.center_code) }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% endif %}
+            {% endfor %}
         {% endfor %}
-
-        <div class="doc-footer">
-            "মেধার আলোয় আলোকিত হোক আগামীর প্রতিটি পথ" — দ্য ব্রিলিয়ান্টস ফাউন্ডেশন, বগুড়া
-        </div>
     </div>
-    {% endfor %}
+    {% endif %}
 
 </body>
 </html>

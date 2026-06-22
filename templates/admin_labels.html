@@ -102,7 +102,11 @@
                 <label style="font-size: 11px; font-weight: 800;">কেন্দ্র</label>
                 <select name="center" class="styled-select">
                     <option value="">সকল কেন্দ্র</option>
-                    {% for c in all_centers %}<option value="{{c}}" {{ 'selected' if request.args.get('center') == c }}>{{c}}</option>{% endfor %}
+                    {% for c in all_centers %}
+                    <option value="{{c}}" {{ 'selected' if request.args.get('center') == c }}>
+                        {{ c }}{% if center_name_map.get(c) and center_name_map.get(c) != c %} — {{ center_name_map.get(c) }}{% endif %}
+                    </option>
+                    {% endfor %}
                 </select>
             </div>
             <div>
@@ -116,7 +120,12 @@
             </div>
             <div>
                 <label style="font-size: 11px; font-weight: 800;">শিক্ষা প্রতিষ্ঠান</label>
-                <input type="text" name="school" class="styled-input" placeholder="স্কুলের নাম..." value="{{ request.args.get('school', '') }}">
+                <input type="text" name="school" class="styled-input" list="institute-list"
+                       placeholder="তালিকা থেকে বাছুন বা টাইপ করুন..."
+                       value="{{ request.args.get('school', '') }}" autocomplete="off">
+                <datalist id="institute-list">
+                    {% for inst in all_institutes %}<option value="{{ inst }}"></option>{% endfor %}
+                </datalist>
             </div>
             <div>
                 <label style="font-size: 11px; font-weight: 800;">রোল নম্বর</label>
@@ -124,9 +133,16 @@
             </div>
             <div style="display: flex; gap: 8px;">
                 <button type="submit" class="btn-action">ফিল্টার</button>
+                <a href="{{ url_for('scholarship_labels') }}" class="btn-action" style="background:#64748b; text-align:center; text-decoration:none; display:flex; align-items:center; justify-content:center;">রিসেট</a>
                 <button type="button" onclick="window.print()" class="btn-action" style="background: #3b82f6;">প্রিন্ট</button>
             </div>
         </form>
+
+        <div style="margin-top:10px; font-size:12px; font-weight:700; color:#334155;" class="no-print">
+            মোট লেবেল: {{ students|length }} টি
+            {% if request.args.get('school') %} &nbsp;|&nbsp; প্রতিষ্ঠান: “{{ request.args.get('school') }}”{% endif %}
+            {% if request.args.get('center') %} &nbsp;|&nbsp; কেন্দ্র: {{ request.args.get('center') }}{% endif %}
+        </div>
     </div>
 
     <div class="label-grid">

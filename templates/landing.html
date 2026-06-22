@@ -393,7 +393,7 @@
 
         <div class="ledger reveal">
             {% for n in notices %}
-            <a class="ledger-row" href="{{ n.url }}">
+            <a class="ledger-row" href="{{ url_for('notices') }}#notice-{{ loop.index }}">
                 <div class="ledger-date">
                     <span class="d">{{ n.date }}</span>
                 </div>

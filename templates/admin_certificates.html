@@ -58,6 +58,16 @@
             </div>
         </form>
 
+        <div style="display:flex; justify-content:flex-end; margin-bottom:20px;">
+            <form action="{{ url_for('reset_certificate_serials') }}" method="POST"
+                  onsubmit="return confirm('সকল সার্টিফিকেট সিরিয়াল নম্বর মুছে ফেলে নতুন করে ০০০১ থেকে ক্রমিকভাবে দেওয়া হবে। এটি ইতিমধ্যে প্রিন্ট করা সার্টিফিকেটের নম্বর পরিবর্তন করতে পারে। আপনি কি নিশ্চিত?');">
+                <button type="submit"
+                        style="padding:9px 16px; background:#f1f5f9; color:#b91c1c; border:1px solid #fecaca; border-radius:8px; cursor:pointer; font-weight:700; font-size:12px; display:inline-flex; align-items:center; gap:6px;">
+                    <i class="fas fa-rotate"></i> Reset & Regenerate All Serials (0001–9999)
+                </button>
+            </form>
+        </div>
+
         {% if students %}
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px;">
             <p style="font-size: 14px; color: #64748b;">Showing <strong>{{ students|length }}</strong> Verified Students</p>
