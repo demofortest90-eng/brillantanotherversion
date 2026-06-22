@@ -20,7 +20,7 @@
             margin: 0; padding: 0;
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; background: #555;
-            font-family: "Times New Roman", Times, serif, "Kalpurush", Arial, sans-serif;
+            font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", "Crimson Text", "Kalpurush", cursive;
         }
 
         /* সার্টিফিকেট কন্টেইনার: A4 ল্যান্ডস্কেপ সাইজ */
@@ -39,6 +39,7 @@
         /* ডাটা ফিল্ডের জন্য কমন স্টাইল */
         .field {
             position: absolute;
+            font-family: "Monotype Corsiva", "Apple Chancery", "URW Chancery L", "Crimson Text", "Kalpurush", cursive;
             font-size: 20px; /* ইমেজের টেক্সটের সাথে সামঞ্জস্যপূর্ণ */
             font-style: italic;
             font-weight: 600;
@@ -107,14 +108,14 @@
 
         <div class="field exam-year" style="{{ (field_styles or {}).get('exam-year','') }}">-{{ student.exam_year or '2026' }}</div>
 
-        <div class="field student-name" style="{{ (field_styles or {}).get('student-name','') }}">{{ student.name_en }}</div>
-        <div class="field father-name" style="{{ (field_styles or {}).get('father-name','') }}">{{ student.father_en }}</div>
+        <div class="field student-name" style="{{ (field_styles or {}).get('student-name','') }}">{{ student.name_en|title }}</div>
+        <div class="field father-name" style="{{ (field_styles or {}).get('father-name','') }}">{{ student.father_en|title }}</div>
 
         <div class="field student-class" style="{{ (field_styles or {}).get('student-class','') }}">{{ student.student_class }}</div>
-        <div class="field institute" style="{{ (field_styles or {}).get('institute','') }}">{{ student.institute_en }}</div>
+        <div class="field institute" style="{{ (field_styles or {}).get('institute','') }}">{{ student.institute_en|title }}</div>
 
         <div class="field roll-no" style="{{ (field_styles or {}).get('roll-no','') }}">{{ student.roll_no }}</div>
-        <div class="field center-name" style="{{ (field_styles or {}).get('center-name','') }}">{{ center_name }}</div>
+        <div class="field center-name" style="{{ (field_styles or {}).get('center-name','') }}">{{ center_name|title }}</div>
         <div class="field scholarship-grade" style="{{ (field_styles or {}).get('scholarship-grade','') }}">{{ student.scholarship_grade or 'General' }}</div>
 
         <div class="field pub-date" style="{{ (field_styles or {}).get('pub-date','') }}">{{ cert_date or student.result_publication_date or '30-03-2026' }}</div>

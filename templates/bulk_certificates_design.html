@@ -121,17 +121,17 @@
 
             <div class="field exam-year" style="{{ (field_styles or {}).get('exam-year','') }}">-{{ student.exam_year or '2026' }}</div>
 
-            <div class="field student-name" style="{{ (field_styles or {}).get('student-name','') }}">{{ student.name_en|upper }}</div>
-            <div class="field father-name" style="{{ (field_styles or {}).get('father-name','') }}">{{ student.father_en|upper }}</div>
+            <div class="field student-name" style="{{ (field_styles or {}).get('student-name','') }}">{{ student.name_en|title }}</div>
+            <div class="field father-name" style="{{ (field_styles or {}).get('father-name','') }}">{{ student.father_en|title }}</div>
 
             <div class="field student-class" style="{{ (field_styles or {}).get('student-class','') }}">{{ student.student_class }}</div>
-            <div class="field institute" style="{{ (field_styles or {}).get('institute','') }}">{{ student.institute_en|upper }}</div>
+            <div class="field institute" style="{{ (field_styles or {}).get('institute','') }}">{{ student.institute_en|title }}</div>
 
             <div class="field roll-no" style="{{ (field_styles or {}).get('roll-no','') }}">{{ student.roll_no }}</div>
             
             {# কেন্দ্রের নাম — ব্যাকএন্ড থেকে ডাইনামিক ভাবে আসে (centers কালেকশন থেকে) #}
             <div class="field center-name" style="{{ (field_styles or {}).get('center-name','') }}">
-                {{ center_names.get(student.center_code|string, "Brilliants Center") }}
+                {{ center_names.get(student.center_code|string, "Brilliants Center")|title }}
             </div>
 
             <div class="field scholarship-grade" style="{{ (field_styles or {}).get('scholarship-grade','') }}">{{ student.scholarship_grade or 'General' }}</div>
