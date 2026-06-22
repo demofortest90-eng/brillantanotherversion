@@ -2,6 +2,7 @@ import os
 import random
 import string
 import datetime
+import re
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
 from flask_pymongo import PyMongo
 from werkzeug.utils import secure_filename
@@ -158,6 +159,12 @@ def landing():
 
     registration_open = is_registration_open()
 
+    # Top 3 latest notices for the homepage notice board.
+    try:
+        latest_notices = list(mongo.db.notices.find().sort("_id", -1).limit(3))
+    except Exception:
+        latest_notices = []
+
     return render_template('landing.html',
         leaders=leaders,
         hero_slides=hero_slides,
@@ -169,7 +176,8 @@ def landing():
         impact_text=impact_text,
         stats=stats,
         gallery_images=gallery_images,
-        registration_open=registration_open
+        registration_open=registration_open,
+        notices=latest_notices
     )
 
 def upload_to_imgbb(file):
@@ -266,6 +274,16 @@ GRADE_BN_LABELS = {
     'Quata': 'মেধাবৃত্তি',
 }
 
+# Labels used specifically on the printed prospectus booklet badges, matching
+# the wording in the official printed book (e.g. "জেনারেল" rather than
+# "সাধারণ"). Kept separate so the rest of the app's labels stay unchanged.
+PROSPECTUS_GRADE_LABELS = {
+    'Talentpool': 'ট্যালেন্টপুল',
+    'General': 'জেনারেল',
+    'Suveccha': 'শুভেচ্ছা',
+    'Quata': 'মেধাবৃত্তি',
+}
+
 def get_prospecture_students(student_class, grade_filter='', center_filter=''):
     """Fetch scholarship-winning students for a class (optionally narrowed
     by grade/center), and also return them pre-grouped by scholarship grade
@@ -298,6 +316,18 @@ def get_admit_settings():
         "signature_image": s.get("signature_image") or "https://i.postimg.cc/sX21ngh3/rsz-screenshot-2026-01-23-185732.png",
         "signature_title": s.get("signature_title") or "পরীক্ষা নিয়ন্ত্রক",
         "exam_datetime": s.get("exam_datetime") or "20 Jan 2026, 10:00 AM",
+    }
+
+def get_cert_settings():
+    """Admin-editable certificate signature + result-publication date. The
+    signature image prints in the bottom-right corner (above the pre-printed
+    'Controller of Examinations' label) and the date prints on the 'Date of
+    Publication of Result' line. Managed from Admin → সার্টিফিকেট সেটিংস."""
+    s = mongo.db.cert_settings.find_one({"key": "cert"}) or {}
+    return {
+        "signature_image": s.get("signature_image", ""),
+        "signature_name": s.get("signature_name", ""),
+        "publication_date": s.get("publication_date", ""),
     }
 
 # =====================================================================
@@ -823,7 +853,10 @@ def download_scholarship_certificate():
     c_code = str(student.get('center_code', ''))
     center_name = get_grouped_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
     student['certificate_sl_no'] = get_or_assign_certificate_serial(student)
-    return render_template('certificate_design.html', student=student, center_name=center_name)
+    cert_date, cert_signature = get_certificate_date_and_signature(student)
+    return render_template('certificate_design.html', student=student,
+                           center_name=center_name, cert_date=cert_date,
+                           cert_signature=cert_signature)
 
 @app.route('/logout')
 def logout():
@@ -1507,22 +1540,62 @@ def approve_admits():
 
 @app.route('/admin/scholarship/labels')
 def scholarship_labels():
-    center_query = request.args.get('center', '')
-    roll_query = request.args.get('roll', '')
-    school_query = request.args.get('school', '')
-    class_query = request.args.get('student_class', '')
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+
+    center_query = request.args.get('center', '').strip()
+    roll_query = request.args.get('roll', '').strip()
+    school_query = request.args.get('school', '').strip()
+    class_query = request.args.get('student_class', '').strip()
+
     query = {"status": "Verified"}
     if center_query:
-        query["center_code"] = center_query
+        query["center_code"] = center_code_filter(center_query)
     if roll_query:
         query["roll_no"] = roll_query
     if class_query:
         query["student_class"] = class_query
+
+    # --- Institute filter (works on BOTH Bangla and English name fields) ---
+    # Build the canonical list of distinct institute names first, so the form
+    # can offer an exact-pick dropdown. If the chosen value matches a known
+    # institute exactly we filter exactly; otherwise we fall back to a
+    # case-insensitive "contains" match so partial typing still works.
+    inst_set = {}
+    for s in mongo.db.students.find({"status": "Verified"}, {"institute_bn": 1, "institute_en": 1}):
+        name = (s.get('institute_bn') or s.get('institute_en') or '').strip()
+        if name:
+            inst_set[name] = True
+    all_institutes = sorted(inst_set.keys())
+
     if school_query:
-        query["institute_en"] = {"$regex": school_query, "$options": "i"}
+        if school_query in inst_set:
+            query["$or"] = [
+                {"institute_bn": school_query},
+                {"institute_en": school_query},
+            ]
+        else:
+            esc = re.escape(school_query)
+            query["$or"] = [
+                {"institute_bn": {"$regex": esc, "$options": "i"}},
+                {"institute_en": {"$regex": esc, "$options": "i"}},
+            ]
+
     students_list = list(mongo.db.students.find(query).sort("roll_no", 1))
-    all_centers = mongo.db.students.distinct("center_code")
-    return render_template('admin_labels.html', students=students_list, all_centers=all_centers)
+
+    # Center dropdown: show "code — name" using the live center map.
+    center_name_map = get_center_name_map(lang='bn')
+    raw_centers = mongo.db.students.distinct("center_code")
+    all_centers = sorted(
+        [str(c) for c in raw_centers if str(c).strip()],
+        key=lambda x: (len(x), x)
+    )
+
+    return render_template('admin_labels.html',
+                           students=students_list,
+                           all_centers=all_centers,
+                           center_name_map=center_name_map,
+                           all_institutes=all_institutes)
 
 @app.route('/admin/centers')
 def manage_centers():
@@ -1660,6 +1733,22 @@ def admin_admit_settings():
         flash("এডমিট কার্ড সেটিংস সফলভাবে আপডেট হয়েছে। এখন থেকে সব এডমিট কার্ডে (একক ও বাল্ক) এই তথ্য দেখানো হবে।", "success")
         return redirect(url_for('admin_admit_settings'))
     return render_template('admin_admit_settings.html', s=get_admit_settings())
+
+@app.route('/admin/certificate-settings', methods=['GET', 'POST'])
+def admin_certificate_settings():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    if request.method == 'POST':
+        data = {
+            "key": "cert",
+            "signature_image": request.form.get("signature_image", "").strip(),
+            "signature_name": request.form.get("signature_name", "").strip(),
+            "publication_date": request.form.get("publication_date", "").strip(),
+        }
+        mongo.db.cert_settings.update_one({"key": "cert"}, {"$set": data}, upsert=True)
+        flash("সার্টিফিকেট সেটিংস সফলভাবে আপডেট হয়েছে। এখন থেকে সব সার্টিফিকেটে এই স্বাক্ষর ও তারিখ দেখানো হবে।", "success")
+        return redirect(url_for('admin_certificate_settings'))
+    return render_template('admin_certificate_settings.html', s=get_cert_settings())
 
 @app.route('/admin/notices')
 def admin_notices():
@@ -2027,53 +2116,112 @@ def forgot_serial():
 
 
 # =====================================================================
-# CERTIFICATE SERIAL NUMBER (SL NO.) — auto-generated, 4-digit, starting
-# at 0001, scoped per Class + Institute among that institute's scholarship
-# (scholarship_grade set & not "Nothing") students for that class. Once
-# assigned the value is saved back onto the student document so reprints
-# always show the same serial.
+# CERTIFICATE SERIAL NUMBER (SL NO.) — auto-generated, 4-digit, GLOBALLY
+# UNIQUE across every certificate (0001 .. 9999). Not scoped per class or
+# institute. The whole scholarship pool is numbered in roll-number order and
+# the value is saved back onto the student document so reprints always show
+# the same serial.
 # =====================================================================
 
 def get_or_assign_certificate_serial(student):
     """Return the 4-digit certificate serial number (e.g. '0001') for a
-    scholarship-winning student, scoped to their own class + institute
-    group. Assigns and persists it on first use; later calls just read it
-    back so the number never changes/reshuffles on reprint."""
+    scholarship-winning student. The serial is GLOBALLY UNIQUE across every
+    certificate in the system (0001 .. 9999) — it is NOT scoped per class or
+    institute. The whole scholarship pool is ordered by roll number for a
+    stable, predictable sequence; once a number is assigned it is persisted on
+    the student document and never reshuffles on reprint."""
     existing = student.get('certificate_sl_no')
     if existing:
         return existing
 
-    student_class = student.get('student_class')
-    institute_en = student.get('institute_en', '')
-
-    # All scholarship-winning students in the same class + institute group,
-    # ordered by roll number for a stable, predictable numbering sequence.
+    # Global pool of all scholarship-winning students, ordered by roll number
+    # so the numbering is stable and predictable for everyone.
     group_query = {
-        "student_class": student_class,
-        "institute_en": institute_en,
         "scholarship_grade": {"$exists": True, "$nin": [None, "", "Nothing"]}
     }
     group_students = list(mongo.db.students.find(group_query).sort("roll_no", 1))
 
-    # Assign sequential serials to the whole group in one pass so every
-    # member gets a stable number even before they're individually opened.
+    # Highest serial already handed out, so re-runs keep extending the
+    # sequence instead of reshuffling numbers that are already in print.
+    used = [
+        int(s['certificate_sl_no'])
+        for s in group_students
+        if s.get('certificate_sl_no') and str(s['certificate_sl_no']).isdigit()
+    ]
+    next_serial = (max(used) + 1) if used else 1
+
     assigned_serial = None
-    for idx, s in enumerate(group_students, start=1):
-        serial = str(idx).zfill(4)
-        if not s.get('certificate_sl_no'):
-            mongo.db.students.update_one(
-                {"_id": s['_id']},
-                {"$set": {"certificate_sl_no": serial}}
-            )
+    for s in group_students:
+        if s.get('certificate_sl_no'):
+            if str(s['_id']) == str(student.get('_id')):
+                assigned_serial = s['certificate_sl_no']
+            continue
+        serial = str(next_serial).zfill(4)
+        next_serial += 1
+        mongo.db.students.update_one(
+            {"_id": s['_id']},
+            {"$set": {"certificate_sl_no": serial}}
+        )
         if str(s['_id']) == str(student.get('_id')):
-            assigned_serial = s.get('certificate_sl_no') or serial
+            assigned_serial = serial
 
-    if assigned_serial:
-        return assigned_serial
+    return assigned_serial or "0001"
 
-    # Fallback: student wasn't part of a scholarship group (e.g. no
-    # scholarship_grade yet) — give them serial 0001 within just themselves.
-    return "0001"
+
+def reset_and_regenerate_certificate_serials():
+    """Wipe every existing certificate serial and reassign a fresh, globally
+    unique 0001-upward sequence across all scholarship-winning students
+    (ordered by roll number). Used by the admin "reset serials" action so the
+    whole set can be cleanly renumbered from 0001 on demand."""
+    mongo.db.students.update_many({}, {"$unset": {"certificate_sl_no": ""}})
+    group_students = list(mongo.db.students.find({
+        "scholarship_grade": {"$exists": True, "$nin": [None, "", "Nothing"]}
+    }).sort("roll_no", 1))
+    for idx, s in enumerate(group_students, start=1):
+        mongo.db.students.update_one(
+            {"_id": s['_id']},
+            {"$set": {"certificate_sl_no": str(idx).zfill(4)}}
+        )
+    return len(group_students)
+
+
+def get_certificate_date_and_signature(student):
+    """Return (date_string, signature_dict) for a certificate, both pulled
+    dynamically from admin settings (with sensible fallbacks) so the printed
+    date and the bottom-right authority signature are never hard-coded.
+
+    Priority for both is the dedicated Certificate Settings, then the result
+    settings / admit settings, then a final fallback.
+
+    - date  : certificate-settings publication date, else the student's own
+              result_publication_date, else the result-settings notice date,
+              else today's date.
+    - signature : {signature_image, name}. No 'title' is returned because the
+              certificate background already has 'Controller of Examinations'
+              pre-printed beneath the signature line."""
+    cert = get_cert_settings()
+    _settings, _org, notice_date, _announcement, signatories = get_result_settings()
+
+    cert_date = (
+        cert.get('publication_date')
+        or student.get('result_publication_date')
+        or notice_date
+        or datetime.now().strftime('%d-%m-%Y')
+    )
+
+    signature = {'signature_image': '', 'name': ''}
+    if cert.get('signature_image') or cert.get('signature_name'):
+        signature['signature_image'] = cert.get('signature_image', '')
+        signature['name'] = cert.get('signature_name', '')
+    elif signatories:
+        signature['signature_image'] = signatories[0].get('signature_image', '')
+        signature['name'] = signatories[0].get('name', '')
+
+    if not signature['signature_image']:
+        admit = get_admit_settings()
+        signature['signature_image'] = admit.get('signature_image', '')
+
+    return cert_date, signature
 
 
 @app.route('/admin/certificates', methods=['GET'])
@@ -2109,7 +2257,10 @@ def print_certificate(student_id):
         c_code = str(student.get('center_code', ''))
         center_name = get_grouped_center_name_map(lang="en").get(c_code, "Brilliants Foundation Center")
         student['certificate_sl_no'] = get_or_assign_certificate_serial(student)
-        return render_template('certificate_design.html', student=student, center_name=center_name)
+        cert_date, cert_signature = get_certificate_date_and_signature(student)
+        return render_template('certificate_design.html', student=student,
+                               center_name=center_name, cert_date=cert_date,
+                               cert_signature=cert_signature)
     except Exception as e:
         flash(f"সার্টিফিকেট রেন্ডার করতে সমস্যা হয়েছে: {str(e)}", "danger")
         return redirect(url_for('admin_certificates'))
@@ -2135,7 +2286,19 @@ def print_all_certificates():
     for s in students:
         s['certificate_sl_no'] = get_or_assign_certificate_serial(s)
     center_names = get_grouped_center_name_map(lang='en')
-    return render_template('bulk_certificates_design.html', students=students, center_names=center_names)
+    cert_date, cert_signature = get_certificate_date_and_signature(students[0])
+    return render_template('bulk_certificates_design.html', students=students,
+                           center_names=center_names, cert_date=cert_date,
+                           cert_signature=cert_signature)
+
+
+@app.route('/admin/certificates/reset-serials', methods=['POST'])
+def reset_certificate_serials():
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    count = reset_and_regenerate_certificate_serials()
+    flash(f"সকল সার্টিফিকেট সিরিয়াল রিসেট করা হয়েছে। {count} জনকে নতুন করে ০০০১ থেকে ক্রমিক নম্বর দেওয়া হয়েছে।", "success")
+    return redirect(url_for('admin_certificates'))
 
 @app.route('/admin/attendance/print')
 def admin_attendance_print():
@@ -2655,6 +2818,7 @@ def admin_prospecture_print_all():
                            center_filter=center_filter,
                            center_display_map=center_display_map,
                            grade_bn_labels=GRADE_BN_LABELS,
+                           prospectus_grade_labels=PROSPECTUS_GRADE_LABELS,
                            year=datetime.now().year)
 
 
