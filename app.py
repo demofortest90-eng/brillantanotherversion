@@ -34,10 +34,12 @@ if "brillant2026" not in MONGO_URI:
         MONGO_URI = MONGO_URI + "/brillant2026"
 
 app.config["MONGO_URI"] = MONGO_URI
-app.config['UPLOAD_FOLDER'] = os.getenv("UPLOAD_FOLDER", "static/uploads")
+app.config['UPLOAD_FOLDER'] = os.getenv("UPLOAD_FOLDER", "/tmp/uploads")
 
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
+try:
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+except OSError:
+    pass
 
 mongo = PyMongo(app)
 
